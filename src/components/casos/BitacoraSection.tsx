@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BitacoraEvento } from "@/types/database";
+import { TIPOS_EVENTO, ordenDeEvento, pasosPendientesAnteriores } from "@/lib/eventosBitacora";
 
 export default function BitacoraSection({ casoId }: { casoId: string }) {
   const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
@@ -11,6 +12,7 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
 
   const [form, setForm] = useState({
     tipo_evento: "",
+    tipo_evento_otro: "",
     observacion: "",
     es_interna: false,
     completado: false,
@@ -30,14 +32,53 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [casoId]);
 
+  function resetForm() {
+    setForm({
+      tipo_evento: "",
+      tipo_evento_otro: "",
+      observacion: "",
+      es_interna: false,
+      completado: false,
+      fecha_inicio: new Date().toISOString().slice(0, 10),
+      fecha_fin: ""
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
+
+    const etiquetaFinal =
+      form.tipo_evento === "otro" ? form.tipo_evento_otro.trim() : form.tipo_evento;
+
+    if (!etiquetaFinal) {
+      setError('Elegí un tipo de evento (o completá el detalle si elegiste "Otro").');
+      return;
+    }
+
+    // Validación de secuencia: no dejamos completar un paso de la secuencia
+    // principal si los pasos anteriores todavía no están completados.
+    const orden = ordenDeEvento(etiquetaFinal);
+    if (orden !== null && form.completado) {
+      const pendientes = pasosPendientesAnteriores(orden, eventos ?? []);
+      if (pendientes.length > 0) {
+        setError(
+          `No se puede marcar como completado "${etiquetaFinal}" porque todavía faltan pasos anteriores: ${pendientes.join(", ")}.`
+        );
+        return;
+      }
+    }
+
     setSaving(true);
     const res = await fetch(`/api/casos/${casoId}/bitacora`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
+        tipo_evento: etiquetaFinal,
+        observacion: form.observacion,
+        es_interna: form.es_interna,
+        completado: form.completado,
+        fecha_inicio: form.fecha_inicio,
         fecha_fin: form.fecha_fin || null
       })
     });
@@ -49,25 +90,36 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
       return;
     }
 
-    setForm({
-      tipo_evento: "",
-      observacion: "",
-      es_interna: false,
-      completado: false,
-      fecha_inicio: new Date().toISOString().slice(0, 10),
-      fecha_fin: ""
-    });
+    resetForm();
     setShowForm(false);
     load();
   }
 
   async function toggleCompletado(evento: BitacoraEvento) {
+    setError(null);
+    const vaACompletar = !evento.completado;
+
+    if (vaACompletar) {
+      const orden = ordenDeEvento(evento.tipo_evento);
+      if (orden !== null) {
+        const pendientes = pasosPendientesAnteriores(orden, eventos ?? []);
+        if (pendientes.length > 0) {
+          setError(
+            `No se puede completar "${evento.tipo_evento}" porque todavía faltan pasos anteriores: ${pendientes.join(", ")}.`
+          );
+          return;
+        }
+      }
+    }
+
     const res = await fetch(`/api/bitacora/${evento.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completado: !evento.completado })
+      body: JSON.stringify({ completado: vaACompletar })
     });
+    const json = await res.json();
     if (res.ok) load();
+    else setError(json.error);
   }
 
   return (
@@ -79,20 +131,44 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
         </button>
       </div>
 
-      {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+      {error && (
+        <div className="mb-3 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-3">
+          {error}
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="mb-4 space-y-3 border-b border-slate-100 pb-4">
           <div>
             <label className="label">Tipo de evento *</label>
-            <input
+            <select
               required
               className="input"
-              placeholder='Ej: "Inicia baja", "Pedido de traslado"'
               value={form.tipo_evento}
               onChange={(e) => setForm((f) => ({ ...f, tipo_evento: e.target.value }))}
-            />
+            >
+              <option value="">Seleccionar...</option>
+              {TIPOS_EVENTO.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.orden ? `${t.orden}. ${t.label}` : t.label}
+                </option>
+              ))}
+            </select>
           </div>
+
+          {form.tipo_evento === "otro" && (
+            <div>
+              <label className="label">Detalle del evento *</label>
+              <input
+                required
+                className="input"
+                placeholder="Describí el evento"
+                value={form.tipo_evento_otro}
+                onChange={(e) => setForm((f) => ({ ...f, tipo_evento_otro: e.target.value }))}
+              />
+            </div>
+          )}
+
           <div>
             <label className="label">Observación</label>
             <textarea
@@ -148,7 +224,7 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
 
       <ul className="space-y-3 max-h-[28rem] overflow-y-auto">
         {eventos?.map((ev) => (
-          <li key={ev.id} className="border border-slate-100 rounded-md p-3 text-sm">
+          <li key={ev.id} className="border border-slate-100 rounded-lg p-3 text-sm">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <p className="font-medium text-slate-800">

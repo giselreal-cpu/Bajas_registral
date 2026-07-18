@@ -3,33 +3,33 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-50 text-slate-900;
+  @apply bg-slate-100 text-slate-900 antialiased;
 }
 
 .badge {
-  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium tracking-tight;
 }
 
 .card {
-  @apply rounded-lg border border-slate-200 bg-white shadow-sm;
+  @apply rounded-xl border border-slate-200 bg-white shadow-sm;
 }
 
 .btn {
-  @apply inline-flex items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-primary {
-  @apply btn bg-brand-500 text-white hover:bg-brand-600;
+  @apply btn bg-brand-700 text-white hover:bg-brand-800 shadow-sm;
 }
 
 .btn-secondary {
-  @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50;
+  @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400;
 }
 
 .input {
-  @apply block w-full rounded-md border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500;
+  @apply block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100;
 }
 
 .label {
-  @apply block text-sm font-medium text-slate-700 mb-1;
+  @apply block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5;
 }

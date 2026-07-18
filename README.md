@@ -33,6 +33,15 @@ MVP en Next.js (App Router) + TypeScript + Supabase (Postgres), siguiendo el
 - Panel de control (`/panel`, página de inicio): casos totales/abiertos/
   cerrados, casos por estado con barra y link al listado filtrado, y los
   próximos 8 vencimientos con link directo al caso.
+- Bitácora con tipo de evento por lista desplegable (catálogo fijo en
+  `src/lib/eventosBitacora.ts`, basado en el flujo del `CLAUDE.md`) y
+  validación de secuencia: no se puede marcar un paso de la secuencia
+  principal como completado si los pasos anteriores todavía no lo están.
+  Los eventos de rama (robo, sucesión, prendado, etc.) no bloquean ni son
+  bloqueados por la secuencia principal.
+- Rediseño visual: paleta navy profesional (`tailwind.config.ts`), tipografía
+  Inter, y componentes (`card`, `btn`, `input`, `badge` en `globals.css`) más
+  pulidos.
 
 No incluido todavía (a propósito, según el `CLAUDE.md`): autenticación,
 módulo financiero, notificaciones automáticas y roles separados.
