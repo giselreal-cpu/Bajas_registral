@@ -55,8 +55,9 @@ siguiendo el `CLAUDE.md` del proyecto.
     bitácora, documentos). No ve observaciones internas salvo que sea el
     responsable del caso puntual.
   - **Administrador**: igual que operador, más: puede asignar roles (CRUD
-    de usuarios) y ve las observaciones internas de **cualquier** caso, sea
-    o no el responsable.
+    de usuarios), ve las observaciones internas de **cualquier** caso, y es
+    el único rol que puede **eliminar un caso** (botón "Eliminar caso" en
+    la cabecera del detalle, solo visible para este rol).
   - **Compañía**: vinculado a una aseguradora puntual (campo
     "Aseguradora" en su usuario). Solo puede **ver** (nunca crear/editar)
     los casos de esa aseguradora, y nunca ve observaciones internas ni
@@ -83,6 +84,8 @@ administrador/compañía, que sí están implementados).
    - `supabase/migrations/0002_seed_demo.sql` (opcional, datos de prueba)
    - `supabase/migrations/0003_auth.sql` (necesaria para el login)
    - `supabase/migrations/0004_roles.sql` (necesaria para los roles)
+   - `supabase/migrations/0005_solo_admin_borra_casos.sql` (restringe el
+     borrado de casos solo a administrador)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

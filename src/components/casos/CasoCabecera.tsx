@@ -19,6 +19,7 @@ interface Props {
   tiposBaja: TipoBaja[];
   usuarios: Usuario[];
   soloLectura?: boolean;
+  esAdministrador?: boolean;
 }
 
 export default function CasoCabecera({
@@ -27,11 +28,13 @@ export default function CasoCabecera({
   registros,
   tiposBaja,
   usuarios,
-  soloLectura
+  soloLectura,
+  esAdministrador
 }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
@@ -83,6 +86,30 @@ export default function CasoCabecera({
     router.refresh();
   }
 
+  async function handleDelete() {
+    if (
+      !confirm(
+        `¿Eliminar el caso ${caso.numero_siniestro}? Esta acción no se puede deshacer.`
+      )
+    ) {
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+
+    const res = await fetch(`/api/casos/${caso.id}`, { method: "DELETE" });
+    const json = await res.json();
+    setDeleting(false);
+
+    if (!res.ok) {
+      setError(json.error ?? "No se pudo eliminar el caso.");
+      return;
+    }
+
+    router.push("/casos");
+  }
+
   return (
     <div className="card p-5">
       <div className="flex items-start justify-between mb-4">
@@ -96,11 +123,22 @@ export default function CasoCabecera({
           </p>
         </div>
         {!editing ? (
-          !soloLectura && (
-            <button className="btn-secondary" onClick={() => setEditing(true)}>
-              Editar
-            </button>
-          )
+          <div className="flex gap-2">
+            {!soloLectura && (
+              <button className="btn-secondary" onClick={() => setEditing(true)}>
+                Editar
+              </button>
+            )}
+            {esAdministrador && (
+              <button
+                className="btn-secondary text-red-600 hover:bg-red-50 hover:border-red-300"
+                disabled={deleting}
+                onClick={handleDelete}
+              >
+                {deleting ? "Eliminando..." : "Eliminar caso"}
+              </button>
+            )}
+          </div>
         ) : (
           <div className="flex gap-2">
             <button

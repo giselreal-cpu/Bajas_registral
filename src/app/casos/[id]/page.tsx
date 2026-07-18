@@ -41,6 +41,7 @@ export default async function CasoDetallePage({
 
   const usuarioActual = await getUsuarioActual();
   const soloLectura = usuarioActual?.rol === "compania";
+  const esAdministrador = usuarioActual?.rol === "administrador";
 
   return (
     <div className="space-y-6">
@@ -51,6 +52,7 @@ export default async function CasoDetallePage({
         tiposBaja={tiposBaja ?? []}
         usuarios={usuarios ?? []}
         soloLectura={soloLectura}
+        esAdministrador={esAdministrador}
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BitacoraSection casoId={caso.id} soloLectura={soloLectura} />

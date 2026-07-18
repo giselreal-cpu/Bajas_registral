@@ -77,10 +77,23 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const supabase = createClient();
-  const { error } = await supabase.from("casos").delete().eq("id", params.id);
+  const { data, error } = await supabase
+    .from("casos")
+    .delete()
+    .eq("id", params.id)
+    .select();
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Si RLS bloqueó el borrado (por ejemplo, no sos administrador), Supabase
+  // no devuelve un error, simplemente no borra nada. Lo detectamos acá.
+  if (!data || data.length === 0) {
+    return NextResponse.json(
+      { error: "No tenés permiso para eliminar este caso." },
+      { status: 403 }
+    );
   }
 
   return NextResponse.json({ ok: true });
