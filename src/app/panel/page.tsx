@@ -18,6 +18,17 @@ interface VencimientoRow {
   } | null;
 }
 
+interface CasoResumen {
+  id: string;
+  estado: string;
+  numero_siniestro: string;
+  created_at: string;
+  asegurado: { nombre: string } | null;
+  responsable: { nombre: string } | null;
+}
+
+const DIAS_SIN_MOVIMIENTO = 7;
+
 function estadoBadgeClass(estado: string) {
   switch (estado) {
     case "cerrado":
@@ -34,22 +45,30 @@ function estadoBadgeClass(estado: string) {
 export default async function PanelPage() {
   const supabase = createClient();
 
-  const [{ data: casos, error: errorCasos }, { data: vencimientos, error: errorVenc }] =
-    await Promise.all([
-      supabase.from("casos").select("id, estado"),
-      supabase
-        .from("bitacora")
-        .select(
-          `
-          id, caso_id, tipo_evento, fecha_fin, completado,
-          caso:casos(numero_siniestro, estado, asegurado:asegurados(nombre), responsable:usuarios(nombre))
+  const [
+    { data: casos, error: errorCasos },
+    { data: vencimientos, error: errorVenc },
+    { data: movimientos, error: errorMov }
+  ] = await Promise.all([
+    supabase
+      .from("casos")
+      .select(
+        "id, estado, numero_siniestro, created_at, asegurado:asegurados(nombre), responsable:usuarios(nombre)"
+      ),
+    supabase
+      .from("bitacora")
+      .select(
         `
-        )
-        .eq("completado", false)
-        .not("fecha_fin", "is", null)
-        .order("fecha_fin", { ascending: true })
-        .limit(8)
-    ]);
+        id, caso_id, tipo_evento, fecha_fin, completado,
+        caso:casos(numero_siniestro, estado, asegurado:asegurados(nombre), responsable:usuarios(nombre))
+      `
+      )
+      .eq("completado", false)
+      .not("fecha_fin", "is", null)
+      .order("fecha_fin", { ascending: true })
+      .limit(8),
+    supabase.from("bitacora").select("caso_id, created_at")
+  ]);
 
   const totalCasos = casos?.length ?? 0;
   const casosAbiertos = casos?.filter((c) => c.estado !== "cerrado").length ?? 0;
@@ -65,6 +84,28 @@ export default async function PanelPage() {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
+  // Último movimiento (evento de bitácora más reciente) por caso. Si un
+  // caso no tiene ningún evento todavía, usamos su fecha de creación.
+  const ultimoMovimientoPorCaso = new Map<string, string>();
+  for (const m of movimientos ?? []) {
+    const actual = ultimoMovimientoPorCaso.get(m.caso_id);
+    if (!actual || m.created_at > actual) {
+      ultimoMovimientoPorCaso.set(m.caso_id, m.created_at);
+    }
+  }
+
+  const casosSinMovimiento = ((casos as CasoResumen[] | null) ?? [])
+    .filter((c) => c.estado !== "cerrado")
+    .map((c) => {
+      const ultimoMovimiento = ultimoMovimientoPorCaso.get(c.id) ?? c.created_at;
+      const dias = Math.floor(
+        (hoy.getTime() - new Date(ultimoMovimiento).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return { ...c, dias };
+    })
+    .filter((c) => c.dias >= DIAS_SIN_MOVIMIENTO)
+    .sort((a, b) => b.dias - a.dias);
+
   return (
     <div className="space-y-6">
       <div>
@@ -74,9 +115,9 @@ export default async function PanelPage() {
         </p>
       </div>
 
-      {(errorCasos || errorVenc) && (
+      {(errorCasos || errorVenc || errorMov) && (
         <div className="card p-3 text-sm text-red-600 border-red-200 bg-red-50">
-          {errorCasos?.message || errorVenc?.message}
+          {errorCasos?.message || errorVenc?.message || errorMov?.message}
         </div>
       )}
 
@@ -85,6 +126,36 @@ export default async function PanelPage() {
         <StatCard label="Casos abiertos" value={casosAbiertos} />
         <StatCard label="Casos cerrados" value={casosCerrados} />
       </div>
+
+      {casosSinMovimiento.length > 0 && (
+        <section className="card border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-medium text-amber-800">
+              ⚠ Casos sin movimiento hace {DIAS_SIN_MOVIMIENTO}+ días ({casosSinMovimiento.length})
+            </h2>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {casosSinMovimiento.map((c) => (
+              <div key={c.id} className="py-2 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Link
+                    href={`/casos/${c.id}`}
+                    className="text-brand-700 font-medium hover:underline text-sm"
+                  >
+                    {c.numero_siniestro}
+                  </Link>
+                  <p className="text-xs text-slate-500">
+                    {c.asegurado?.nombre} · {c.responsable?.nombre ?? "Sin responsable"}
+                  </p>
+                </div>
+                <span className="badge bg-amber-100 text-amber-800 shrink-0">
+                  {c.dias} días sin movimiento
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="card p-4">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { CasoConRelaciones, ESTADOS } from "@/types/database";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ export default async function CasosPage({
   }
 
   const { data: casos, error } = await query;
+  const usuarioActual = await getUsuarioActual();
+  const esCompania = usuarioActual?.rol === "compania";
 
   return (
     <div>
@@ -54,9 +57,11 @@ export default async function CasosPage({
             Bajas registrales por siniestro en curso
           </p>
         </div>
-        <Link href="/casos/nuevo" className="btn-primary">
-          + Nuevo caso
-        </Link>
+        {!esCompania && (
+          <Link href="/casos/nuevo" className="btn-primary">
+            + Nuevo caso
+          </Link>
+        )}
       </div>
 
       <form className="card p-4 mb-6 flex flex-wrap gap-3 items-end" method="get">

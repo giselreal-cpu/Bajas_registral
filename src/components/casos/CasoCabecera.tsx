@@ -18,6 +18,7 @@ interface Props {
   registros: RegistroAutomotor[];
   tiposBaja: TipoBaja[];
   usuarios: Usuario[];
+  soloLectura?: boolean;
 }
 
 export default function CasoCabecera({
@@ -25,7 +26,8 @@ export default function CasoCabecera({
   desarmaderos,
   registros,
   tiposBaja,
-  usuarios
+  usuarios,
+  soloLectura
 }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -94,9 +96,11 @@ export default function CasoCabecera({
           </p>
         </div>
         {!editing ? (
-          <button className="btn-secondary" onClick={() => setEditing(true)}>
-            Editar
-          </button>
+          !soloLectura && (
+            <button className="btn-secondary" onClick={() => setEditing(true)}>
+              Editar
+            </button>
+          )
         ) : (
           <div className="flex gap-2">
             <button

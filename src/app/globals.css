@@ -6,6 +6,14 @@ body {
   @apply bg-slate-100 text-slate-900 antialiased;
 }
 
+@layer base {
+  h1,
+  h2,
+  h3 {
+    @apply font-heading tracking-tight;
+  }
+}
+
 .badge {
   @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium tracking-tight;
 }
@@ -19,7 +27,7 @@ body {
 }
 
 .btn-primary {
-  @apply btn bg-brand-700 text-white hover:bg-brand-800 shadow-sm;
+  @apply btn bg-accent-600 text-white hover:bg-accent-700 shadow-sm;
 }
 
 .btn-secondary {

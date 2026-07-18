@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 
 // GET /api/agenda?responsable_id=xxx&incluir_completados=true
 // Devuelve los eventos de bitácora de todos los casos (no cerrados),
@@ -45,5 +46,13 @@ export async function GET(request: NextRequest) {
   // Dejamos afuera los eventos de casos ya cerrados: no aportan a la agenda.
   const activos = filtered?.filter((ev: any) => ev.caso?.estado !== "cerrado");
 
-  return NextResponse.json({ data: activos });
+  const usuarioActual = await getUsuarioActual();
+  const enmascarados = activos?.map((ev: any) => {
+    const puedeVer =
+      usuarioActual?.rol === "administrador" ||
+      ev.caso?.responsable?.id === usuarioActual?.id;
+    return ev.es_interna && !puedeVer ? { ...ev, observacion: null } : ev;
+  });
+
+  return NextResponse.json({ data: enmascarados });
 }

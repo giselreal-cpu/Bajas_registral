@@ -19,10 +19,21 @@ const config: Config = {
           700: "#183a56",
           800: "#122c42",
           900: "#0c1e2d"
+        },
+        accent: {
+          50: "#eafbf3",
+          100: "#c9f3de",
+          200: "#94e6bd",
+          300: "#5cd39c",
+          400: "#2fbd82",
+          500: "#1fa971",
+          600: "#178a5c",
+          700: "#116d48"
         }
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"]
+        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
+        heading: ["var(--font-poppins)", "var(--font-inter)", "system-ui", "sans-serif"]
       }
     }
   },

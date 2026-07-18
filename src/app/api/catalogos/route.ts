@@ -29,7 +29,9 @@ export async function GET() {
   return NextResponse.json({
     aseguradoras: aseguradoras.data,
     tipos_baja: tiposBaja.data,
-    usuarios: usuarios.data,
+    // Los usuarios con rol "compania" no son elegibles como responsables
+    // de un caso; se filtran acá para no ensuciar los combos de la app.
+    usuarios: (usuarios.data ?? []).filter((u: any) => u.rol !== "compania"),
     desarmaderos: desarmaderos.data,
     registros: registros.data
   });

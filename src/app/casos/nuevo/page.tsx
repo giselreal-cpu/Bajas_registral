@@ -1,6 +1,13 @@
+import { redirect } from "next/navigation";
 import CasoForm from "@/components/casos/CasoForm";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 
-export default function NuevoCasoPage() {
+export default async function NuevoCasoPage() {
+  const usuarioActual = await getUsuarioActual();
+  if (usuarioActual?.rol === "compania") {
+    redirect("/casos");
+  }
+
   return (
     <div className="max-w-3xl">
       <h1 className="text-xl font-semibold text-slate-900 mb-1">Nuevo caso</h1>

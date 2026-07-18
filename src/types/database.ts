@@ -87,10 +87,21 @@ export interface TipoBaja {
   descripcion: string | null;
 }
 
+export type RolUsuario = "operador" | "administrador" | "compania";
+
+export const ROLES: { value: RolUsuario; label: string }[] = [
+  { value: "operador", label: "Operador" },
+  { value: "administrador", label: "Administrador" },
+  { value: "compania", label: "Compañía" }
+];
+
 export interface Usuario {
   id: string;
   nombre: string;
   email: string | null;
+  auth_user_id: string | null;
+  rol: RolUsuario;
+  aseguradora_id: string | null;
 }
 
 export interface Caso {

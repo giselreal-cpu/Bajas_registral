@@ -6,7 +6,9 @@ export interface CatalogColumn {
   key: string;
   label: string;
   required?: boolean;
-  type?: "text" | "textarea";
+  type?: "text" | "textarea" | "select";
+  options?: { value: string; label: string }[];
+  displayValue?: (row: Row) => string;
 }
 
 interface Props {
@@ -141,6 +143,22 @@ export default function CatalogTable({ title, description, endpoint, columns }: 
                       setNewRow((r) => ({ ...r, [c.key]: e.target.value }))
                     }
                   />
+                ) : c.type === "select" ? (
+                  <select
+                    className="input"
+                    required={c.required}
+                    value={newRow[c.key] ?? ""}
+                    onChange={(e) =>
+                      setNewRow((r) => ({ ...r, [c.key]: e.target.value }))
+                    }
+                  >
+                    <option value="">Seleccionar...</option>
+                    {c.options?.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
                 ) : (
                   <input
                     className="input"
@@ -189,6 +207,21 @@ export default function CatalogTable({ title, description, endpoint, columns }: 
                               setEditRow((r) => ({ ...r, [c.key]: e.target.value }))
                             }
                           />
+                        ) : c.type === "select" ? (
+                          <select
+                            className="input"
+                            value={editRow[c.key] ?? ""}
+                            onChange={(e) =>
+                              setEditRow((r) => ({ ...r, [c.key]: e.target.value }))
+                            }
+                          >
+                            <option value="">Seleccionar...</option>
+                            {c.options?.map((o) => (
+                              <option key={o.value} value={o.value}>
+                                {o.label}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
                           <input
                             className="input"
@@ -198,6 +231,8 @@ export default function CatalogTable({ title, description, endpoint, columns }: 
                             }
                           />
                         )
+                      ) : c.type === "select" ? (
+                        c.options?.find((o) => o.value === row[c.key])?.label ?? "—"
                       ) : (
                         row[c.key] || "—"
                       )}

@@ -2,23 +2,42 @@
 
 import { useEffect, useState } from "react";
 import { BitacoraEvento } from "@/types/database";
-import { TIPOS_EVENTO, ordenDeEvento, pasosPendientesAnteriores } from "@/lib/eventosBitacora";
+import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
 
-export default function BitacoraSection({ casoId }: { casoId: string }) {
-  const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [saving, setSaving] = useState(false);
+interface Props {
+  casoId: string;
+  soloLectura?: boolean;
+}
 
-  const [form, setForm] = useState({
+interface FormEvento {
+  tipo_evento: string;
+  observacion: string;
+  es_interna: boolean;
+  completado: boolean;
+  fecha_inicio: string;
+  fecha_fin: string;
+}
+
+function formVacio(): FormEvento {
+  return {
     tipo_evento: "",
-    tipo_evento_otro: "",
     observacion: "",
     es_interna: false,
     completado: false,
     fecha_inicio: new Date().toISOString().slice(0, 10),
     fecha_fin: ""
-  });
+  };
+}
+
+export default function BitacoraSection({ casoId, soloLectura }: Props) {
+  const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState<FormEvento>(formVacio());
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<FormEvento>(formVacio());
 
   async function load() {
     const res = await fetch(`/api/casos/${casoId}/bitacora`);
@@ -32,39 +51,19 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [casoId]);
 
-  function resetForm() {
-    setForm({
-      tipo_evento: "",
-      tipo_evento_otro: "",
-      observacion: "",
-      es_interna: false,
-      completado: false,
-      fecha_inicio: new Date().toISOString().slice(0, 10),
-      fecha_fin: ""
-    });
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    const etiquetaFinal =
-      form.tipo_evento === "otro" ? form.tipo_evento_otro.trim() : form.tipo_evento;
-
-    if (!etiquetaFinal) {
-      setError('Elegí un tipo de evento (o completá el detalle si elegiste "Otro").');
+    if (!form.tipo_evento) {
+      setError("Elegí un tipo de evento.");
       return;
     }
 
-    // Validación de secuencia: no dejamos completar un paso de la secuencia
-    // principal si los pasos anteriores todavía no están completados.
-    const orden = ordenDeEvento(etiquetaFinal);
-    if (orden !== null && form.completado) {
-      const pendientes = pasosPendientesAnteriores(orden, eventos ?? []);
-      if (pendientes.length > 0) {
-        setError(
-          `No se puede marcar como completado "${etiquetaFinal}" porque todavía faltan pasos anteriores: ${pendientes.join(", ")}.`
-        );
+    if (form.completado) {
+      const bloqueo = motivoBloqueo(form.tipo_evento, eventos ?? []);
+      if (bloqueo) {
+        setError(bloqueo);
         return;
       }
     }
@@ -74,7 +73,7 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        tipo_evento: etiquetaFinal,
+        tipo_evento: form.tipo_evento,
         observacion: form.observacion,
         es_interna: form.es_interna,
         completado: form.completado,
@@ -90,8 +89,57 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
       return;
     }
 
-    resetForm();
+    setForm(formVacio());
     setShowForm(false);
+    load();
+  }
+
+  function empezarEdicion(ev: BitacoraEvento) {
+    setError(null);
+    setEditingId(ev.id);
+    setEditForm({
+      tipo_evento: ev.tipo_evento,
+      observacion: ev.observacion ?? "",
+      es_interna: ev.es_interna,
+      completado: ev.completado,
+      fecha_inicio: ev.fecha_inicio,
+      fecha_fin: ev.fecha_fin ?? ""
+    });
+  }
+
+  async function guardarEdicion(id: string) {
+    setError(null);
+
+    if (editForm.completado) {
+      const bloqueo = motivoBloqueo(editForm.tipo_evento, eventos ?? [], id);
+      if (bloqueo) {
+        setError(bloqueo);
+        return;
+      }
+    }
+
+    setSaving(true);
+    const res = await fetch(`/api/bitacora/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tipo_evento: editForm.tipo_evento,
+        observacion: editForm.observacion,
+        es_interna: editForm.es_interna,
+        completado: editForm.completado,
+        fecha_inicio: editForm.fecha_inicio,
+        fecha_fin: editForm.fecha_fin || null
+      })
+    });
+    const json = await res.json();
+    setSaving(false);
+
+    if (!res.ok) {
+      setError(json.error);
+      return;
+    }
+
+    setEditingId(null);
     load();
   }
 
@@ -100,15 +148,10 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
     const vaACompletar = !evento.completado;
 
     if (vaACompletar) {
-      const orden = ordenDeEvento(evento.tipo_evento);
-      if (orden !== null) {
-        const pendientes = pasosPendientesAnteriores(orden, eventos ?? []);
-        if (pendientes.length > 0) {
-          setError(
-            `No se puede completar "${evento.tipo_evento}" porque todavía faltan pasos anteriores: ${pendientes.join(", ")}.`
-          );
-          return;
-        }
+      const bloqueo = motivoBloqueo(evento.tipo_evento, eventos ?? [], evento.id);
+      if (bloqueo) {
+        setError(bloqueo);
+        return;
       }
     }
 
@@ -126,9 +169,11 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
     <section className="card p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-medium text-slate-800">Bitácora</h2>
-        <button className="btn-secondary text-xs" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancelar" : "+ Agregar evento"}
-        </button>
+        {!soloLectura && (
+          <button className="btn-secondary text-xs" onClick={() => setShowForm((s) => !s)}>
+            {showForm ? "Cancelar" : "+ Agregar evento"}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -149,26 +194,12 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
             >
               <option value="">Seleccionar...</option>
               {TIPOS_EVENTO.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.orden ? `${t.orden}. ${t.label}` : t.label}
+                <option key={t.value} value={t.label}>
+                  {t.label}
                 </option>
               ))}
             </select>
           </div>
-
-          {form.tipo_evento === "otro" && (
-            <div>
-              <label className="label">Detalle del evento *</label>
-              <input
-                required
-                className="input"
-                placeholder="Describí el evento"
-                value={form.tipo_evento_otro}
-                onChange={(e) => setForm((f) => ({ ...f, tipo_evento_otro: e.target.value }))}
-              />
-            </div>
-          )}
-
           <div>
             <label className="label">Observación</label>
             <textarea
@@ -223,38 +254,154 @@ export default function BitacoraSection({ casoId }: { casoId: string }) {
       )}
 
       <ul className="space-y-3 max-h-[28rem] overflow-y-auto">
-        {eventos?.map((ev) => (
-          <li key={ev.id} className="border border-slate-100 rounded-lg p-3 text-sm">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <p className="font-medium text-slate-800">
-                  {ev.tipo_evento}
-                  {ev.es_interna && (
-                    <span className="badge bg-slate-100 text-slate-500 ml-2">interna</span>
+        {eventos?.map((ev) => {
+          const enEdicion = editingId === ev.id;
+          const observacionOculta = ev.es_interna && ev.observacion === null;
+
+          if (enEdicion) {
+            return (
+              <li key={ev.id} className="border border-brand-200 bg-brand-50/40 rounded-lg p-3 text-sm space-y-3">
+                <div>
+                  <label className="label">Tipo de evento</label>
+                  <select
+                    className="input"
+                    value={editForm.tipo_evento}
+                    onChange={(e) => setEditForm((f) => ({ ...f, tipo_evento: e.target.value }))}
+                  >
+                    {TIPOS_EVENTO.map((t) => (
+                      <option key={t.value} value={t.label}>
+                        {t.label}
+                      </option>
+                    ))}
+                    {!TIPOS_EVENTO.some((t) => t.label === editForm.tipo_evento) && (
+                      <option value={editForm.tipo_evento}>{editForm.tipo_evento}</option>
+                    )}
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Observación</label>
+                  <textarea
+                    className="input"
+                    rows={2}
+                    value={editForm.observacion}
+                    onChange={(e) => setEditForm((f) => ({ ...f, observacion: e.target.value }))}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Fecha inicio</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={editForm.fecha_inicio}
+                      onChange={(e) => setEditForm((f) => ({ ...f, fecha_inicio: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Fecha fin</label>
+                    <input
+                      type="date"
+                      className="input"
+                      value={editForm.fecha_fin}
+                      onChange={(e) => setEditForm((f) => ({ ...f, fecha_fin: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editForm.es_interna}
+                      onChange={(e) => setEditForm((f) => ({ ...f, es_interna: e.target.checked }))}
+                    />
+                    Observación interna
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editForm.completado}
+                      onChange={(e) => setEditForm((f) => ({ ...f, completado: e.target.checked }))}
+                    />
+                    Completada
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    className="btn-primary text-xs"
+                    disabled={saving}
+                    onClick={() => guardarEdicion(ev.id)}
+                  >
+                    Guardar
+                  </button>
+                  <button className="btn-secondary text-xs" onClick={() => setEditingId(null)}>
+                    Cancelar
+                  </button>
+                </div>
+              </li>
+            );
+          }
+
+          return (
+            <li key={ev.id} className="border border-slate-100 rounded-lg p-3 text-sm">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-800">
+                    {ev.tipo_evento}
+                    {ev.es_interna && (
+                      <span className="badge bg-slate-100 text-slate-500 ml-2">interna</span>
+                    )}
+                  </p>
+                  {observacionOculta ? (
+                    <p className="text-slate-400 italic">
+                      🔒 Observación interna (visible solo para el responsable del caso)
+                    </p>
+                  ) : (
+                    ev.observacion && (
+                      <p className="text-slate-600 whitespace-pre-wrap">{ev.observacion}</p>
+                    )
                   )}
-                </p>
-                {ev.observacion && (
-                  <p className="text-slate-600 whitespace-pre-wrap">{ev.observacion}</p>
-                )}
-                <p className="text-xs text-slate-400 mt-1">
-                  {new Date(ev.fecha_inicio).toLocaleDateString("es-AR")}
-                  {ev.fecha_fin &&
-                    ` → ${new Date(ev.fecha_fin).toLocaleDateString("es-AR")}`}
-                </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {new Date(ev.fecha_inicio).toLocaleDateString("es-AR")}
+                    {ev.fecha_fin &&
+                      ` → ${new Date(ev.fecha_fin).toLocaleDateString("es-AR")}`}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  {soloLectura ? (
+                    <span
+                      className={`badge ${
+                        ev.completado
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {ev.completado ? "Completada" : "Pendiente"}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => toggleCompletado(ev)}
+                      className={`badge ${
+                        ev.completado
+                          ? "bg-emerald-100 text-emerald-700"
+                          : "bg-amber-100 text-amber-700"
+                      }`}
+                    >
+                      {ev.completado ? "Completada" : "Pendiente"}
+                    </button>
+                  )}
+                  {!observacionOculta && !soloLectura && (
+                    <button
+                      className="text-xs text-slate-400 hover:text-brand-700"
+                      onClick={() => empezarEdicion(ev)}
+                    >
+                      Editar
+                    </button>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={() => toggleCompletado(ev)}
-                className={`badge shrink-0 ${
-                  ev.completado
-                    ? "bg-emerald-100 text-emerald-700"
-                    : "bg-amber-100 text-amber-700"
-                }`}
-              >
-                {ev.completado ? "Completada" : "Pendiente"}
-              </button>
-            </div>
-          </li>
-        ))}
+            </li>
+          );
+        })}
         {eventos?.length === 0 && (
           <p className="text-sm text-slate-500">Todavía no hay eventos cargados.</p>
         )}

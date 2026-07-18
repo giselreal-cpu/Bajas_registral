@@ -8,7 +8,13 @@ const CATEGORIAS: { value: Documento["categoria"]; label: string }[] = [
   { value: "documento_compania", label: "Documento para la compañía" }
 ];
 
-export default function DocumentosSection({ casoId }: { casoId: string }) {
+export default function DocumentosSection({
+  casoId,
+  soloLectura
+}: {
+  casoId: string;
+  soloLectura?: boolean;
+}) {
   const [documentos, setDocumentos] = useState<Documento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -63,9 +69,11 @@ export default function DocumentosSection({ casoId }: { casoId: string }) {
     <section className="card p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-medium text-slate-800">Documentos</h2>
-        <button className="btn-secondary text-xs" onClick={() => setShowForm((s) => !s)}>
-          {showForm ? "Cancelar" : "+ Agregar documento"}
-        </button>
+        {!soloLectura && (
+          <button className="btn-secondary text-xs" onClick={() => setShowForm((s) => !s)}>
+            {showForm ? "Cancelar" : "+ Agregar documento"}
+          </button>
+        )}
       </div>
 
       {error && <p className="text-sm text-red-600 mb-2">{error}</p>}

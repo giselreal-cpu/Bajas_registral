@@ -2,5 +2,6 @@ import { createCatalogListHandlers } from "@/lib/api/catalogHandlers";
 
 export const { GET, POST } = createCatalogListHandlers("usuarios", "nombre", [
   "nombre",
-  "email"
+  "email",
+  "auth_user_id"
 ]);

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CasoConRelaciones } from "@/types/database";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import CasoCabecera from "@/components/casos/CasoCabecera";
 import BitacoraSection from "@/components/casos/BitacoraSection";
 import DocumentosSection from "@/components/casos/DocumentosSection";
@@ -38,6 +39,9 @@ export default async function CasoDetallePage({
     notFound();
   }
 
+  const usuarioActual = await getUsuarioActual();
+  const soloLectura = usuarioActual?.rol === "compania";
+
   return (
     <div className="space-y-6">
       <CasoCabecera
@@ -46,10 +50,11 @@ export default async function CasoDetallePage({
         registros={registros ?? []}
         tiposBaja={tiposBaja ?? []}
         usuarios={usuarios ?? []}
+        soloLectura={soloLectura}
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BitacoraSection casoId={caso.id} />
-        <DocumentosSection casoId={caso.id} />
+        <BitacoraSection casoId={caso.id} soloLectura={soloLectura} />
+        <DocumentosSection casoId={caso.id} soloLectura={soloLectura} />
       </div>
     </div>
   );
