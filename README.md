@@ -23,9 +23,19 @@ MVP en Next.js (App Router) + TypeScript + Supabase (Postgres), siguiendo el
       la compañía (por ahora vía URL; se puede sumar upload real a Supabase
       Storage más adelante).
 
+- CRUD de catálogos (`/catalogos`): aseguradoras, desarmaderos, registros
+  automotores, tipos de baja y usuarios, cada uno con alta, edición inline y
+  borrado.
+- Agenda de vencimientos (`/agenda`): junta los eventos de bitácora
+  pendientes de todos los casos abiertos y los agrupa en Vencidos / Próximos
+  7 días / Más adelante / Sin fecha de vencimiento, con filtro por
+  responsable y marcado de completado sin salir de la pantalla.
+- Panel de control (`/panel`, página de inicio): casos totales/abiertos/
+  cerrados, casos por estado con barra y link al listado filtrado, y los
+  próximos 8 vencimientos con link directo al caso.
+
 No incluido todavía (a propósito, según el `CLAUDE.md`): autenticación,
-módulo financiero, notificaciones automáticas, roles separados, agenda y
-panel de control.
+módulo financiero, notificaciones automáticas y roles separados.
 
 ## Puesta en marcha
 
@@ -61,15 +71,20 @@ La app queda disponible en http://localhost:3000 (redirige a `/casos`).
 
 ## Notas importantes
 
+- **Vencimientos**: el modelo de datos no tiene una tabla separada de
+  "vencimientos"; la agenda usa el `fecha_fin` de cada evento de bitácora
+  como su fecha de vencimiento. Si en algún momento se necesita distinguir
+  "vencimiento" de "fecha de fin real del evento", conviene sumar una
+  columna nueva (`fecha_vencimiento`) en vez de reusar `fecha_fin`.
+
 - **RLS**: las tablas tienen Row Level Security habilitado con políticas
   permisivas (`allow_all_*`) porque todavía no hay autenticación (ver
   "Estado actual del proyecto" en `CLAUDE.md`). Cuando se implemente
   autenticación básica, hay que reemplazar esas políticas por reglas que
   validen `auth.uid()` / rol del usuario.
 - **Catálogos**: `aseguradoras`, `desarmaderos`, `registros_automotores`,
-  `tipos_baja` y `usuarios` no tienen todavía una pantalla de alta en la UI;
-  se cargan por ahora directamente en Supabase (Table Editor o SQL). Agregar
-  ese CRUD de catálogos es un buen próximo paso.
+  `tipos_baja` y `usuarios` ya tienen su propia pantalla de alta/edición/
+  borrado en `/catalogos`.
 - **Documentos**: el campo `url` se carga a mano. Para subir archivos reales
   conviene crear un bucket en Supabase Storage y, al subir el archivo desde
   el formulario, guardar acá la URL pública o firmada resultante.
@@ -80,8 +95,3 @@ La app queda disponible en http://localhost:3000 (redirige a `/casos`).
 ## Próximos pasos sugeridos (ver `CLAUDE.md`)
 
 - Autenticación básica.
-- Agenda / vencimientos.
-- Panel de control (casos por estado, próximos vencimientos).
-- CRUD de catálogos (aseguradoras, desarmaderos, registros, tipos de baja,
-  usuarios).
-
