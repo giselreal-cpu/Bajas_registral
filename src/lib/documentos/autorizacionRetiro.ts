@@ -33,11 +33,11 @@ function fechaLarga(): string {
   return `Buenos Aires, ${hoy.getDate()} de ${MESES[hoy.getMonth()]} de ${hoy.getFullYear()}`;
 }
 
-function parrafo(children: TextRun[], opciones: ConstructorParameters<typeof Paragraph>[0] = {}) {
+function parrafo(children: TextRun[], opciones: Record<string, any> = {}) {
   return new Paragraph({ spacing: { after: 110 }, ...opciones, children });
 }
 
-function texto(text: string, opciones: ConstructorParameters<typeof TextRun>[0] = {}) {
+function texto(text: string, opciones: Record<string, any> = {}) {
   return new TextRun({ text, ...opciones });
 }
 
