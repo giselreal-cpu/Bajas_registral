@@ -26,31 +26,36 @@ export async function GET(
     return NextResponse.json({ error: error?.message ?? "Caso no encontrado." }, { status: 404 });
   }
 
+  // TypeScript infiere las relaciones anidadas del select como arrays
+  // aunque en la base sean de a uno; casteamos acá (mismo patrón que en
+  // /api/export y /api/agenda) para poder acceder a los campos.
+  const c = caso as any;
+
   const buffer = await generarAutorizacion({
-    aseguradoraNombre: caso.aseguradora?.nombre ?? "",
-    numeroSiniestro: caso.numero_siniestro,
-    numeroPoliza: caso.numero_poliza ?? null,
-    itemPoliza: caso.item_poliza ?? null,
-    vehiculoMarca: caso.vehiculo?.marca ?? null,
-    vehiculoModelo: caso.vehiculo?.modelo ?? null,
-    vehiculoDominio: caso.vehiculo?.dominio ?? "",
-    aseguradoNombre: caso.asegurado?.nombre ?? "",
-    aseguradoDireccion: caso.asegurado?.direccion ?? null,
-    aseguradoEntreCalles: caso.asegurado?.entre_calles ?? null,
-    aseguradoLocalidad: caso.asegurado?.localidad ?? null,
-    aseguradoPartido: caso.asegurado?.partido ?? null,
-    aseguradoProvincia: caso.asegurado?.provincia ?? null,
-    aseguradoTelefono: caso.asegurado?.telefono ?? null,
-    destinoNombre: caso.desarmadero?.nombre ?? null,
-    destinoDireccion: caso.desarmadero?.direccion ?? null,
-    destinoProvincia: caso.desarmadero?.provincia ?? null
+    aseguradoraNombre: c.aseguradora?.nombre ?? "",
+    numeroSiniestro: c.numero_siniestro,
+    numeroPoliza: c.numero_poliza ?? null,
+    itemPoliza: c.item_poliza ?? null,
+    vehiculoMarca: c.vehiculo?.marca ?? null,
+    vehiculoModelo: c.vehiculo?.modelo ?? null,
+    vehiculoDominio: c.vehiculo?.dominio ?? "",
+    aseguradoNombre: c.asegurado?.nombre ?? "",
+    aseguradoDireccion: c.asegurado?.direccion ?? null,
+    aseguradoEntreCalles: c.asegurado?.entre_calles ?? null,
+    aseguradoLocalidad: c.asegurado?.localidad ?? null,
+    aseguradoPartido: c.asegurado?.partido ?? null,
+    aseguradoProvincia: c.asegurado?.provincia ?? null,
+    aseguradoTelefono: c.asegurado?.telefono ?? null,
+    destinoNombre: c.desarmadero?.nombre ?? null,
+    destinoDireccion: c.desarmadero?.direccion ?? null,
+    destinoProvincia: c.desarmadero?.provincia ?? null
   });
 
   return new NextResponse(buffer, {
     status: 200,
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "Content-Disposition": `attachment; filename="autorizacion_retiro_traslado_${caso.numero_siniestro}.docx"`
+      "Content-Disposition": `attachment; filename="autorizacion_retiro_traslado_${c.numero_siniestro}.docx"`
     }
   });
 }
