@@ -51,8 +51,10 @@ siguiendo el `CLAUDE.md` del proyecto.
 - **Exportar datos** (`/exportar`): CSV de casos, bitácora y documentos (con
   relaciones ya resueltas, listo para Excel) más un backup completo en JSON
   de todas las tablas.
-- **Autenticación básica** (Supabase Auth): login con email/contraseña,
-  todas las rutas y toda la API requieren sesión iniciada.
+- **Autenticación básica** (Supabase Auth): login con email/contraseña, y
+  opcionalmente con **Google** (botón "Continuar con Google" en `/login`,
+  requiere configuración externa — ver sección "Login con Google" más
+  abajo). Todas las rutas y toda la API requieren sesión iniciada.
 - **Roles de usuario** (`operador`, `administrador`, `compania`), asignables
   desde `/catalogos/usuarios`:
   - **Operador**: acceso normal de siempre (crear/editar casos, catálogos,
@@ -71,7 +73,9 @@ siguiendo el `CLAUDE.md` del proyecto.
 - **Rediseño visual**: paleta de dos tonos — navy (`brand`, estructura,
   header, links, marca) + verde (`accent`, botones de acción principal),
   tipografía Poppins bold para títulos (`font-heading`) + Inter para el
-  resto, componentes (`card`, `btn`, `input`, `badge`) pulidos.
+  resto, componentes (`card`, `btn`, `input`, `badge`) pulidos. Interfaz
+  responsiva: menú hamburguesa en mobile, tablas con scroll horizontal en
+  pantallas chicas, formularios que pasan a una sola columna.
 
 No incluido todavía (a propósito, según el `CLAUDE.md`): módulo financiero,
 notificaciones automáticas y roles separados internos (gestor/tramitador
@@ -144,21 +148,64 @@ ningún caso a los fines de las observaciones internas.
 
 - El middleware (`src/middleware.ts`) exige sesión iniciada para **todas**
   las rutas y toda la API. Si no hay sesión, redirige a `/login` (páginas)
-  o devuelve 401 (API).
-- **RLS**: todas las tablas exigen `auth.role() = 'authenticated'` para
-  cualquier operación (ver `0003_auth.sql`). Ya no hay políticas
-  permisivas para anónimos.
+  o devuelve 401 (API). Las rutas `/login` y `/auth/*` quedan afuera de
+  esta exigencia (son las que permiten loguearse).
+- **RLS por rol**: cada tabla tiene políticas que dependen del rol del
+  usuario logueado (`operador` / `administrador` / `compania`) — ver
+  `0004_roles.sql` y `0005_solo_admin_borra_casos.sql`. El rol "compañía"
+  solo lee los casos de su propia aseguradora.
 - **Observaciones internas**: el campo `observacion` de un evento de
   bitácora marcado como "interna" se pone en `null` **en el servidor**
-  (en las rutas de la API) antes de mandarlo al navegador, salvo que quien
-  esté logueado sea el responsable de ese caso. Esto es real, no se puede
-  esquivar editando el navegador.
-- **Limitación actual**: solo hay un nivel de acceso (cualquier cuenta
-  autenticada puede ver/crear/editar cualquier caso, catálogo, etc.). La
-  única restricción puntual es la de observaciones internas por
-  responsable. Si más adelante necesitan roles (ej: un admin que vea todo,
-  gestores que solo vean sus propios casos), eso es una extensión de este
-  mismo esquema de auth, no un cambio de raíz.
+  antes de mandarlo al navegador, salvo que quien esté logueado sea
+  administrador o el responsable de ese caso puntual.
+- **Login con Google** (opcional, además del de email/contraseña): ver la
+  sección siguiente para activarlo. Sea cual sea el método de login, la
+  cuenta necesita estar vinculada en `/catalogos/usuarios` (campo "ID de
+  cuenta") para que el sistema la reconozca con un rol — si alguien se
+  loguea con Google pero nadie lo vinculó todavía, va a entrar pero no va
+  a poder ver casos, bitácora ni documentos (esas tablas exigen un rol
+  válido). Sí va a poder leer los catálogos (aseguradoras, tipos de baja,
+  etc.), que están abiertos a cualquier cuenta autenticada — tenerlo en
+  cuenta si activan Google login sin restringirlo a un dominio de correo
+  propio.
+
+## Login con Google (opcional)
+
+Esto requiere configurar credenciales en Google Cloud y activarlas en
+Supabase. El código ya está listo (botón "Continuar con Google" en
+`/login` + ruta `/auth/callback`); falta esta parte de configuración.
+
+1. **Google Cloud Console** (https://console.cloud.google.com):
+   - Creá un proyecto (o usá uno existente) → **APIs & Services → OAuth
+     consent screen**: completá los datos básicos (nombre de la app, email
+     de soporte). Con "External" alcanza si no usan Google Workspace.
+   - **APIs & Services → Credentials → Create Credentials → OAuth client
+     ID** → tipo **"Web application"**.
+   - En **Authorized redirect URIs**, agregá:
+     `https://TU-PROYECTO.supabase.co/auth/v1/callback`
+     (reemplazá `TU-PROYECTO` por el ID de tu proyecto de Supabase; ese
+     dominio es el mismo que usás como `NEXT_PUBLIC_SUPABASE_URL`, sin el
+     `https://` duplicado).
+   - Guardá y copiá el **Client ID** y el **Client Secret** que te muestra.
+
+2. **Supabase → Authentication → Providers → Google**:
+   - Activá el toggle de Google.
+   - Pegá el Client ID y el Client Secret del paso anterior.
+   - Guardá.
+
+3. **Supabase → Authentication → URL Configuration**:
+   - En "Site URL" poné la URL de tu app en producción (ej:
+     `https://bajas-registral.vercel.app`).
+   - En "Redirect URLs" agregá esa misma URL seguida de `/**` (ej:
+     `https://bajas-registral.vercel.app/**`) para que Supabase acepte
+     redirigir de vuelta a tu app después del login con Google. Si
+     también probás en `http://localhost:3000`, agregá esa URL también.
+
+4. Probá el botón "Continuar con Google" en `/login`. La primera vez que
+   alguien entra así, Supabase le crea una cuenta nueva en
+   Authentication → Users; hay que vincularla igual que cualquier otra
+   (copiar su User UID y pegarlo en `/catalogos/usuarios`, asignándole un
+   rol) para que pueda ver algo más que los catálogos.
 
 ## Notas importantes
 

@@ -112,7 +112,7 @@ export default function CasoCabecera({
 
   return (
     <div className="card p-5">
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">
             Siniestro {caso.numero_siniestro}
@@ -167,7 +167,7 @@ export default function CasoCabecera({
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
         <Field label="Estado">
           {editing ? (
             <select

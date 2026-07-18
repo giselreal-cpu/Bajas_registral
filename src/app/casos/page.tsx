@@ -50,7 +50,7 @@ export default async function CasosPage({
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Casos</h1>
           <p className="text-sm text-slate-500">
@@ -65,7 +65,7 @@ export default async function CasosPage({
       </div>
 
       <form className="card p-4 mb-6 flex flex-wrap gap-3 items-end" method="get">
-        <div>
+        <div className="flex-1 min-w-[140px]">
           <label className="label">N° de siniestro</label>
           <input
             name="q"
@@ -74,7 +74,7 @@ export default async function CasosPage({
             placeholder="Buscar..."
           />
         </div>
-        <div>
+        <div className="flex-1 min-w-[140px]">
           <label className="label">Estado</label>
           <select
             name="estado"
@@ -100,7 +100,7 @@ export default async function CasosPage({
         </div>
       )}
 
-      <div className="card overflow-hidden">
+      <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>

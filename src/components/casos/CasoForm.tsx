@@ -95,7 +95,7 @@ export default function CasoForm() {
 
       <section className="card p-4 space-y-4">
         <h2 className="font-medium text-slate-800">Datos del caso</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">N° de siniestro *</label>
             <input
@@ -165,7 +165,7 @@ export default function CasoForm() {
 
       <section className="card p-4 space-y-4">
         <h2 className="font-medium text-slate-800">Asegurado / titular</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Nombre *</label>
             <input
@@ -205,7 +205,7 @@ export default function CasoForm() {
 
       <section className="card p-4 space-y-4">
         <h2 className="font-medium text-slate-800">Vehículo</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="label">Dominio *</label>
             <input

@@ -106,7 +106,7 @@ export default function AgendaList() {
       </div>
 
       <div className="card p-4 mb-6 flex flex-wrap gap-3 items-end">
-        <div>
+        <div className="min-w-[160px]">
           <label className="label">Responsable</label>
           <select
             className="input"

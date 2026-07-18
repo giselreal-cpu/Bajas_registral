@@ -46,14 +46,16 @@ function ExportCard({
   destacado?: boolean;
 }) {
   return (
-    <div className="card p-4 flex items-center justify-between gap-4">
+    <div className="card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div>
         <h2 className="font-medium text-slate-800">{titulo}</h2>
         <p className="text-sm text-slate-500">{descripcion}</p>
       </div>
       <a
         href={href}
-        className={destacado ? "btn-primary shrink-0" : "btn-secondary shrink-0"}
+        className={
+          (destacado ? "btn-primary" : "btn-secondary") + " shrink-0 self-start sm:self-auto"
+        }
       >
         Descargar
       </a>

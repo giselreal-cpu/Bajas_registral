@@ -32,13 +32,14 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const esLogin = pathname.startsWith("/login");
+  const esAuthCallback = pathname.startsWith("/auth");
   const esApi = pathname.startsWith("/api");
 
   if (!user) {
     if (esApi) {
       return NextResponse.json({ error: "No autenticado." }, { status: 401 });
     }
-    if (!esLogin) {
+    if (!esLogin && !esAuthCallback) {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("redirectTo", pathname);

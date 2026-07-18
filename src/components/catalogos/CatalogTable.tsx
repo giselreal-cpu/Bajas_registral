@@ -108,7 +108,7 @@ export default function CatalogTable({ title, description, endpoint, columns }: 
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">{title}</h1>
           {description && <p className="text-sm text-slate-500">{description}</p>}
@@ -126,7 +126,7 @@ export default function CatalogTable({ title, description, endpoint, columns }: 
 
       {showNew && (
         <form onSubmit={handleCreate} className="card p-4 mb-4 space-y-3">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {columns.map((c) => (
               <div key={c.key}>
                 <label className="label">
@@ -178,7 +178,7 @@ export default function CatalogTable({ title, description, endpoint, columns }: 
         </form>
       )}
 
-      <div className="card overflow-hidden">
+      <div className="card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>

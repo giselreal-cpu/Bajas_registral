@@ -67,7 +67,7 @@ export default function DocumentosSection({
 
   return (
     <section className="card p-4">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <h2 className="font-medium text-slate-800">Documentos</h2>
         {!soloLectura && (
           <button className="btn-secondary text-xs" onClick={() => setShowForm((s) => !s)}>
