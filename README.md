@@ -84,3 +84,4 @@ La app queda disponible en http://localhost:3000 (redirige a `/casos`).
 - Panel de control (casos por estado, próximos vencimientos).
 - CRUD de catálogos (aseguradoras, desarmaderos, registros, tipos de baja,
   usuarios).
+
