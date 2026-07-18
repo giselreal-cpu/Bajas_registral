@@ -24,8 +24,12 @@ siguiendo el `CLAUDE.md` del proyecto.
   adelante / Sin fecha, con filtro por responsable.
 - **Panel de control** (`/panel`, página de inicio): casos totales/abiertos/
   cerrados, casos por estado, alerta de **casos sin movimiento hace 7+ días**
-  (configurable en `DIAS_SIN_MOVIMIENTO` en `src/app/panel/page.tsx`), y
-  próximos vencimientos.
+  (configurable en `DIAS_SIN_MOVIMIENTO` en `src/app/panel/page.tsx`, solo
+  aparece si hay algún caso en esa situación), próximos vencimientos, y un
+  **dashboard de tiempos de trámite** (visible para operador/administrador,
+  oculto para el rol compañía): tiempo promedio de trámite completo (fecha
+  de ingreso → fecha de cierre) y tiempo promedio entre "Presentación de
+  Baja" completada y el cierre, con tabla de los últimos casos cerrados.
 - **Bitácora**:
   - Tipo de evento por lista desplegable, con un catálogo **cerrado** de 10
     tipos (`src/lib/eventosBitacora.ts`): Ingreso de caso, Petición de

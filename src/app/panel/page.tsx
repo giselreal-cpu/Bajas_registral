@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS, Estado } from "@/types/database";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +49,9 @@ export default async function PanelPage() {
   const [
     { data: casos, error: errorCasos },
     { data: vencimientos, error: errorVenc },
-    { data: movimientos, error: errorMov }
+    { data: movimientos, error: errorMov },
+    { data: casosCerradosConFechas, error: errorCerrados },
+    { data: eventosPresentacion, error: errorPresentacion }
   ] = await Promise.all([
     supabase
       .from("casos")
@@ -67,8 +70,21 @@ export default async function PanelPage() {
       .not("fecha_fin", "is", null)
       .order("fecha_fin", { ascending: true })
       .limit(8),
-    supabase.from("bitacora").select("caso_id, created_at")
+    supabase.from("bitacora").select("caso_id, created_at"),
+    supabase
+      .from("casos")
+      .select("id, numero_siniestro, fecha_ingreso, fecha_cierre")
+      .eq("estado", "cerrado")
+      .not("fecha_cierre", "is", null),
+    supabase
+      .from("bitacora")
+      .select("caso_id, fecha_inicio, fecha_fin")
+      .eq("tipo_evento", "Presentación de Baja")
+      .eq("completado", true)
   ]);
+
+  const usuarioActual = await getUsuarioActual();
+  const puedeVerTiempos = usuarioActual?.rol !== "compania";
 
   const totalCasos = casos?.length ?? 0;
   const casosAbiertos = casos?.filter((c) => c.estado !== "cerrado").length ?? 0;
@@ -106,6 +122,48 @@ export default async function PanelPage() {
     .filter((c) => c.dias >= DIAS_SIN_MOVIMIENTO)
     .sort((a, b) => b.dias - a.dias);
 
+  // Días entre dos fechas (ISO date, sin horas).
+  function diasEntre(desde: string, hasta: string) {
+    return Math.round(
+      (new Date(hasta).getTime() - new Date(desde).getTime()) / (1000 * 60 * 60 * 24)
+    );
+  }
+
+  // Última "Presentación de Baja" completada por caso (por si hubiera más
+  // de una cargada, tomamos la más tardía).
+  const presentacionPorCaso = new Map<string, string>();
+  for (const ev of eventosPresentacion ?? []) {
+    const fecha = ev.fecha_fin ?? ev.fecha_inicio;
+    const actual = presentacionPorCaso.get(ev.caso_id);
+    if (!actual || fecha > actual) presentacionPorCaso.set(ev.caso_id, fecha);
+  }
+
+  const casosConTiempos = (casosCerradosConFechas ?? []).map((c) => {
+    const diasTramite = diasEntre(c.fecha_ingreso, c.fecha_cierre!);
+    const fechaPresentacion = presentacionPorCaso.get(c.id);
+    const diasPresentacionCierre = fechaPresentacion
+      ? diasEntre(fechaPresentacion, c.fecha_cierre!)
+      : null;
+    return { ...c, diasTramite, diasPresentacionCierre };
+  });
+
+  const promedio = (valores: number[]) =>
+    valores.length === 0
+      ? null
+      : Math.round((valores.reduce((a, b) => a + b, 0) / valores.length) * 10) / 10;
+
+  const promedioTramite = promedio(casosConTiempos.map((c) => c.diasTramite));
+  const casosConPresentacion = casosConTiempos.filter(
+    (c) => c.diasPresentacionCierre !== null
+  );
+  const promedioPresentacionCierre = promedio(
+    casosConPresentacion.map((c) => c.diasPresentacionCierre as number)
+  );
+
+  const casosCerradosRecientes = [...casosConTiempos]
+    .sort((a, b) => (b.fecha_cierre! > a.fecha_cierre! ? 1 : -1))
+    .slice(0, 8);
+
   return (
     <div className="space-y-6">
       <div>
@@ -115,9 +173,13 @@ export default async function PanelPage() {
         </p>
       </div>
 
-      {(errorCasos || errorVenc || errorMov) && (
+      {(errorCasos || errorVenc || errorMov || errorCerrados || errorPresentacion) && (
         <div className="card p-3 text-sm text-red-600 border-red-200 bg-red-50">
-          {errorCasos?.message || errorVenc?.message || errorMov?.message}
+          {errorCasos?.message ||
+            errorVenc?.message ||
+            errorMov?.message ||
+            errorCerrados?.message ||
+            errorPresentacion?.message}
         </div>
       )}
 
@@ -235,15 +297,98 @@ export default async function PanelPage() {
           </div>
         </section>
       </div>
+
+      {puedeVerTiempos && (
+        <section className="card p-4">
+          <h2 className="font-medium text-slate-800 mb-3">
+            Tiempos de trámite (casos cerrados)
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-4">
+            <StatCard
+              label="Trámite completo (promedio)"
+              value={promedioTramite ?? 0}
+              sufijo=" días"
+            />
+            <StatCard
+              label="Casos cerrados analizados"
+              value={casosConTiempos.length}
+            />
+            <StatCard
+              label="Presentación → cierre (promedio)"
+              value={promedioPresentacionCierre ?? 0}
+              sufijo=" días"
+            />
+            <StatCard
+              label="Casos con ese dato"
+              value={casosConPresentacion.length}
+            />
+          </div>
+
+          {casosCerradosRecientes.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-slate-500">
+                  <tr>
+                    <th className="py-1 pr-4 font-medium">N° siniestro</th>
+                    <th className="py-1 pr-4 font-medium">Ingreso</th>
+                    <th className="py-1 pr-4 font-medium">Cierre</th>
+                    <th className="py-1 pr-4 font-medium">Días trámite</th>
+                    <th className="py-1 pr-4 font-medium">Días presentación → cierre</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {casosCerradosRecientes.map((c) => (
+                    <tr key={c.id} className="border-t border-slate-100">
+                      <td className="py-1.5 pr-4">
+                        <Link
+                          href={`/casos/${c.id}`}
+                          className="text-brand-600 font-medium hover:underline"
+                        >
+                          {c.numero_siniestro}
+                        </Link>
+                      </td>
+                      <td className="py-1.5 pr-4">
+                        {new Date(c.fecha_ingreso).toLocaleDateString("es-AR")}
+                      </td>
+                      <td className="py-1.5 pr-4">
+                        {new Date(c.fecha_cierre!).toLocaleDateString("es-AR")}
+                      </td>
+                      <td className="py-1.5 pr-4">{c.diasTramite}</td>
+                      <td className="py-1.5 pr-4">
+                        {c.diasPresentacionCierre ?? "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Todavía no hay casos cerrados con fecha de cierre cargada.
+            </p>
+          )}
+        </section>
+      )}
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({
+  label,
+  value,
+  sufijo
+}: {
+  label: string;
+  value: number;
+  sufijo?: string;
+}) {
   return (
     <div className="card p-4">
       <p className="text-sm text-slate-500">{label}</p>
-      <p className="text-2xl font-semibold text-slate-900">{value}</p>
+      <p className="text-2xl font-semibold text-slate-900">
+        {value}
+        {sufijo && <span className="text-base font-normal text-slate-500">{sufijo}</span>}
+      </p>
     </div>
   );
 }
