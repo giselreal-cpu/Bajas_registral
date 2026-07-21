@@ -129,6 +129,10 @@ export interface Caso {
   deuda_patentes: number | null;
   deuda_multas: number | null;
   observaciones: string | null;
+  tercero_nombre: string | null;
+  tercero_dni: string | null;
+  tercero_contacto: string | null;
+  suma_asegurada: number | null;
   created_at: string;
   updated_at: string;
 }

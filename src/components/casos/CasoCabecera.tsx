@@ -38,6 +38,8 @@ export default function CasoCabecera({
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState({
+    numero_siniestro: caso.numero_siniestro,
+    vehiculo_dominio: caso.vehiculo?.dominio ?? "",
     numero_poliza: caso.numero_poliza ?? "",
     item_poliza: caso.item_poliza ?? "",
     estado: caso.estado,
@@ -49,8 +51,12 @@ export default function CasoCabecera({
     responsable_id: caso.responsable_id ?? "",
     deuda_patentes: caso.deuda_patentes ?? 0,
     deuda_multas: caso.deuda_multas ?? 0,
+    suma_asegurada: caso.suma_asegurada ?? 0,
     fecha_cierre: caso.fecha_cierre ?? "",
-    observaciones: caso.observaciones ?? ""
+    observaciones: caso.observaciones ?? "",
+    tercero_nombre: caso.tercero_nombre ?? "",
+    tercero_dni: caso.tercero_dni ?? "",
+    tercero_contacto: caso.tercero_contacto ?? ""
   });
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -61,26 +67,36 @@ export default function CasoCabecera({
     setSaving(true);
     setError(null);
 
-    const res = await fetch(`/api/casos/${caso.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        rama: form.rama || null,
-        tipo_tramite: form.tipo_tramite || null,
-        desarmadero_id: form.desarmadero_id || null,
-        registro_id: form.registro_id || null,
-        tipo_baja_id: form.tipo_baja_id || null,
-        responsable_id: form.responsable_id || null,
-        fecha_cierre: form.fecha_cierre || null
+    const [resCaso, resVehiculo] = await Promise.all([
+      fetch(`/api/casos/${caso.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          rama: form.rama || null,
+          tipo_tramite: form.tipo_tramite || null,
+          desarmadero_id: form.desarmadero_id || null,
+          registro_id: form.registro_id || null,
+          tipo_baja_id: form.tipo_baja_id || null,
+          responsable_id: form.responsable_id || null,
+          fecha_cierre: form.fecha_cierre || null,
+          tercero_nombre: form.tercero_nombre || null,
+          tercero_dni: form.tercero_dni || null,
+          tercero_contacto: form.tercero_contacto || null
+        })
+      }),
+      fetch(`/api/vehiculos/${caso.vehiculo_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ dominio: form.vehiculo_dominio.toUpperCase() })
       })
-    });
+    ]);
 
-    const json = await res.json();
+    const [jsonCaso, jsonVehiculo] = await Promise.all([resCaso.json(), resVehiculo.json()]);
     setSaving(false);
 
-    if (!res.ok) {
-      setError(json.error ?? "No se pudo guardar el caso.");
+    if (!resCaso.ok || !resVehiculo.ok) {
+      setError(jsonCaso.error ?? jsonVehiculo.error ?? "No se pudo guardar el caso.");
       return;
     }
 
@@ -170,6 +186,44 @@ export default function CasoCabecera({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <Field label="N° de siniestro">
+          {editing ? (
+            <input
+              className="input"
+              value={form.numero_siniestro}
+              onChange={(e) => update("numero_siniestro", e.target.value)}
+            />
+          ) : (
+            caso.numero_siniestro
+          )}
+        </Field>
+
+        <Field label="Dominio">
+          {editing ? (
+            <input
+              className="input uppercase"
+              value={form.vehiculo_dominio}
+              onChange={(e) => update("vehiculo_dominio", e.target.value)}
+            />
+          ) : (
+            caso.vehiculo?.dominio || "—"
+          )}
+        </Field>
+
+        <Field label="Suma asegurada">
+          {editing ? (
+            <input
+              type="number"
+              step="0.01"
+              className="input"
+              value={form.suma_asegurada}
+              onChange={(e) => update("suma_asegurada", Number(e.target.value))}
+            />
+          ) : (
+            formatCurrency(caso.suma_asegurada)
+          )}
+        </Field>
+
         <Field label="N° de póliza">
           {editing ? (
             <input
@@ -392,6 +446,47 @@ export default function CasoCabecera({
             {caso.observaciones || "—"}
           </p>
         )}
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-slate-100">
+        <div className="label">
+          Tercero autorizado a entregar la unidad (si no es el asegurado)
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+          <Field label="Nombre y apellido">
+            {editing ? (
+              <input
+                className="input"
+                value={form.tercero_nombre}
+                onChange={(e) => update("tercero_nombre", e.target.value)}
+              />
+            ) : (
+              caso.tercero_nombre || "—"
+            )}
+          </Field>
+          <Field label="DNI">
+            {editing ? (
+              <input
+                className="input"
+                value={form.tercero_dni}
+                onChange={(e) => update("tercero_dni", e.target.value)}
+              />
+            ) : (
+              caso.tercero_dni || "—"
+            )}
+          </Field>
+          <Field label="Contacto">
+            {editing ? (
+              <input
+                className="input"
+                value={form.tercero_contacto}
+                onChange={(e) => update("tercero_contacto", e.target.value)}
+              />
+            ) : (
+              caso.tercero_contacto || "—"
+            )}
+          </Field>
+        </div>
       </div>
     </div>
   );

@@ -52,7 +52,11 @@ export async function PUT(
     "fecha_cierre",
     "deuda_patentes",
     "deuda_multas",
-    "observaciones"
+    "observaciones",
+    "tercero_nombre",
+    "tercero_dni",
+    "tercero_contacto",
+    "suma_asegurada"
   ];
 
   const update: Record<string, unknown> = {};

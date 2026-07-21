@@ -13,9 +13,12 @@ siguiendo el `CLAUDE.md` del proyecto.
   - Listado con filtro por estado y por número de siniestro (`/casos`).
   - Alta de caso, creando en el mismo paso el asegurado y el vehículo
     (`/casos/nuevo`).
-  - Vista de detalle (`/casos/[id]`) con cabecera editable (estado, rama,
-    tipo de trámite, tipo de baja, responsable, desarmadero, registro,
-    deudas, fechas, observaciones), bitácora y documentos.
+  - Vista de detalle (`/casos/[id]`) con cabecera editable (número de
+    siniestro, dominio del vehículo, suma asegurada, estado, rama, tipo de
+    trámite, tipo de baja, responsable, desarmadero, registro, deudas,
+    fechas, observaciones, y el tercero autorizado a entregar la unidad),
+    bitácora y documentos. Editar el dominio actualiza la tabla
+    `vehiculos` por separado (`/api/vehiculos/[id]`).
 - **CRUD de catálogos** (`/catalogos`): aseguradoras, desarmaderos, registros
   automotores, tipos de baja y usuarios, cada uno con alta, edición inline y
   borrado.
@@ -31,11 +34,12 @@ siguiendo el `CLAUDE.md` del proyecto.
   de ingreso → fecha de cierre) y tiempo promedio entre "Presentación de
   Baja" completada y el cierre, con tabla de los últimos casos cerrados.
 - **Bitácora**:
-  - Tipo de evento por lista desplegable, con un catálogo **cerrado** de 10
+  - Tipo de evento por lista desplegable, con un catálogo **cerrado** de 11
     tipos (`src/lib/eventosBitacora.ts`): Ingreso de caso, Petición de
     Informes, Contacto con el asegurado, Autorización de traslado,
     Asignación de desarmadero, Traslado, Formulario de Baja, Presentación
-    de Baja, Envío de documentación Cía, Cierre de Caso.
+    de Baja, Envío de documentación Cía, Cierre de Caso, Observaciones (sin
+    prerequisito, para anotaciones sueltas que no encajan en los otros).
   - Cada tipo tiene su propio prerequisito puntual: "Autorización de
     traslado" requiere "Contacto con el asegurado" completado; "Asignación
     de desarmadero" requiere "Autorización de traslado" completado;
@@ -62,7 +66,13 @@ siguiendo el `CLAUDE.md` del proyecto.
   dos modelos reales que nos pasó el usuario
   (`src/lib/documentos/autorizacionRetiro.ts`). Requirió agregar campos
   nuevos: `numero_poliza`/`item_poliza` en casos, `entre_calles`/`partido`
-  en asegurados, y `provincia` en desarmaderos.
+  en asegurados, y `provincia` en desarmaderos. Si en la cabecera del caso
+  se carga un **tercero autorizado a entregar la unidad** (nombre, DNI,
+  contacto), sus datos **reemplazan** (no se suman) a los del asegurado en
+  la sección "quien hará entrega del vehículo", y se agrega una frase que
+  autoriza expresamente a esa persona a entregarla en representación del
+  asegurado. Si no se carga ningún tercero, esa sección usa los datos del
+  asegurado como siempre.
 - **Autenticación básica** (Supabase Auth): login con email/contraseña, y
   opcionalmente con **Google** (botón "Continuar con Google" en `/login`,
   requiere configuración externa — ver sección "Login con Google" más
@@ -113,6 +123,8 @@ administrador/compañía, que sí están implementados).
    - `supabase/migrations/0008_autorizacion_traslado.sql` (agrega póliza/
      ítem al caso, entre calles/partido al asegurado, y provincia al
      desarmadero, para la autorización de traslado)
+   - `supabase/migrations/0009_tercero_suma_asegurada.sql` (agrega el
+     tercero autorizado a entregar la unidad y la suma asegurada del caso)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

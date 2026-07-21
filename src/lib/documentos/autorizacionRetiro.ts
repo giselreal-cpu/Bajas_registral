@@ -11,6 +11,7 @@ export interface DatosAutorizacion {
   vehiculoDominio: string;
 
   aseguradoNombre: string;
+  aseguradoDni: string | null;
   aseguradoDireccion: string | null;
   aseguradoEntreCalles: string | null;
   aseguradoLocalidad: string | null;
@@ -21,6 +22,10 @@ export interface DatosAutorizacion {
   destinoNombre: string | null;
   destinoDireccion: string | null;
   destinoProvincia: string | null;
+
+  terceroNombre: string | null;
+  terceroDni: string | null;
+  terceroContacto: string | null;
 }
 
 const MESES = [
@@ -34,7 +39,7 @@ function fechaLarga(): string {
 }
 
 function parrafo(children: TextRun[], opciones: Record<string, any> = {}) {
-  return new Paragraph({ spacing: { after: 110 }, ...opciones, children });
+  return new Paragraph({ spacing: { after: 90 }, ...opciones, children });
 }
 
 function texto(text: string, opciones: Record<string, any> = {}) {
@@ -60,6 +65,14 @@ function camposEnLinea(pares: [string, string | null][]) {
 // contacto para coordinarlo), para que alcance un solo documento firmado.
 export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buffer> {
   const destino = [datos.destinoNombre, datos.destinoDireccion].filter(Boolean).join(" - ");
+  const hayTercero = !!datos.terceroNombre;
+
+  // Si se cargó un tercero autorizado, sus datos reemplazan a los del
+  // asegurado en la sección de "quien hará entrega"; si no, es el propio
+  // asegurado.
+  const entregaNombre = hayTercero ? datos.terceroNombre : datos.aseguradoNombre;
+  const entregaDni = hayTercero ? datos.terceroDni : datos.aseguradoDni;
+  const entregaTelefono = hayTercero ? datos.terceroContacto : datos.aseguradoTelefono;
 
   const doc = new Document({
     sections: [
@@ -67,7 +80,7 @@ export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buf
         properties: {
           page: {
             size: { width: 12240, height: 15840 },
-            margin: { top: 800, bottom: 800, left: 1350, right: 1350 }
+            margin: { top: 650, bottom: 650, left: 1350, right: 1350 }
           }
         },
         children: [
@@ -117,9 +130,21 @@ export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buf
             texto(destino || "")
           ]),
           parrafo([texto("Datos de quien hará entrega del vehículo:")]),
-          campo("Nombre y apellido", datos.aseguradoNombre),
-          campo("Teléfono", datos.aseguradoTelefono),
-          campo("Teléfono alternativo", null),
+          campo("Nombre y apellido", entregaNombre),
+          campo("DNI", entregaDni),
+          campo("Teléfono", entregaTelefono),
+          ...(hayTercero
+            ? [
+                parrafo([
+                  texto(
+                    `El Asegurado autoriza expresamente a ${datos.terceroNombre}${
+                      datos.terceroDni ? ` (DNI ${datos.terceroDni})` : ""
+                    } a hacer entrega de la unidad en su representación, con el mismo alcance que si la entrega fuera realizada por el propio Asegurado.`,
+                    { italics: true }
+                  )
+                ])
+              ]
+            : []),
           parrafo([texto(" ")], {
             border: {
               bottom: { color: "000000", space: 1, style: BorderStyle.SINGLE, size: 6 }
@@ -152,9 +177,7 @@ export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buf
               { italics: true }
             )
           ]),
-          parrafo([texto(" ")]),
           parrafo([texto("Sin otro particular, saluda a Uds. atentamente.")]),
-          parrafo([texto(" ")]),
           parrafo([
             texto(
               "Firma: ................................          Aclaración: ................................          DNI: ..................."

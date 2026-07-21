@@ -1,1 +1,9 @@
-import { createCatalogItemHandlers } from "@/lib/api/catalogHandlers"; export const { PUT, DELETE } = createCatalogItemHandlers("usuarios", [ "nombre", "email", "auth_user_id", "rol", "aseguradora_id" ]);
+import { createCatalogListHandlers } from "@/lib/api/catalogHandlers";
+
+export const { GET, POST } = createCatalogListHandlers("usuarios", "nombre", [
+  "nombre",
+  "email",
+  "auth_user_id",
+  "rol",
+  "aseguradora_id"
+]);

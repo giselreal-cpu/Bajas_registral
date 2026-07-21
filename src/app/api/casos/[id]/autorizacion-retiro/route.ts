@@ -13,8 +13,9 @@ export async function GET(
     .select(
       `
       numero_siniestro, numero_poliza, item_poliza,
+      tercero_nombre, tercero_dni, tercero_contacto,
       aseguradora:aseguradoras(nombre),
-      asegurado:asegurados(nombre, direccion, entre_calles, localidad, partido, provincia, telefono),
+      asegurado:asegurados(nombre, dni, direccion, entre_calles, localidad, partido, provincia, telefono),
       vehiculo:vehiculos(marca, modelo, dominio),
       desarmadero:desarmaderos(nombre, direccion, provincia)
     `
@@ -40,6 +41,7 @@ export async function GET(
     vehiculoModelo: c.vehiculo?.modelo ?? null,
     vehiculoDominio: c.vehiculo?.dominio ?? "",
     aseguradoNombre: c.asegurado?.nombre ?? "",
+    aseguradoDni: c.asegurado?.dni ?? null,
     aseguradoDireccion: c.asegurado?.direccion ?? null,
     aseguradoEntreCalles: c.asegurado?.entre_calles ?? null,
     aseguradoLocalidad: c.asegurado?.localidad ?? null,
@@ -48,7 +50,10 @@ export async function GET(
     aseguradoTelefono: c.asegurado?.telefono ?? null,
     destinoNombre: c.desarmadero?.nombre ?? null,
     destinoDireccion: c.desarmadero?.direccion ?? null,
-    destinoProvincia: c.desarmadero?.provincia ?? null
+    destinoProvincia: c.desarmadero?.provincia ?? null,
+    terceroNombre: c.tercero_nombre ?? null,
+    terceroDni: c.tercero_dni ?? null,
+    terceroContacto: c.tercero_contacto ?? null
   });
 
   return new NextResponse(new Uint8Array(buffer), {
