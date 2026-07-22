@@ -32,20 +32,32 @@ const EVENTO_A_ESTADO: Record<string, Estado> = {
 // corresponde a "cerrado" y todavía no tenía una cargada).
 export async function avanzarEstadoSiCorresponde(casoId: string, tipoEvento: string) {
   const nuevoEstado = EVENTO_A_ESTADO[tipoEvento];
-  if (!nuevoEstado) return;
+  if (!nuevoEstado) {
+    return { intentado: false, motivo: "El tipo de evento no tiene un estado asociado." };
+  }
 
   const supabase = createClient();
-  const { data: caso } = await supabase
+  const { data: caso, error: errorLectura } = await supabase
     .from("casos")
     .select("estado, fecha_cierre")
     .eq("id", casoId)
     .maybeSingle();
 
-  if (!caso) return;
+  if (errorLectura || !caso) {
+    return {
+      intentado: false,
+      motivo: `No se pudo leer el caso: ${errorLectura?.message ?? "no encontrado"}`
+    };
+  }
 
   const rankActual = ORDEN_ESTADOS.indexOf(caso.estado as Estado);
   const rankNuevo = ORDEN_ESTADOS.indexOf(nuevoEstado);
-  if (rankNuevo <= rankActual) return;
+  if (rankNuevo <= rankActual) {
+    return {
+      intentado: false,
+      motivo: `El estado actual ("${caso.estado}") ya está igual o más avanzado que "${nuevoEstado}".`
+    };
+  }
 
   const update: Record<string, unknown> = { estado: nuevoEstado };
   if (nuevoEstado === "cerrado" && !caso.fecha_cierre) {
@@ -56,25 +68,19 @@ export async function avanzarEstadoSiCorresponde(casoId: string, tipoEvento: str
     .from("casos")
     .update(update)
     .eq("id", casoId)
-    .select("id");
+    .select("id, estado");
 
   if (error) {
-    // eslint-disable-next-line no-console
-    console.error("No se pudo avanzar el estado del caso automáticamente:", error.message, {
-      casoId,
-      tipoEvento,
-      nuevoEstado
-    });
-    return;
+    return { intentado: true, ok: false, motivo: `Error al actualizar: ${error.message}` };
   }
 
   if (!actualizado || actualizado.length === 0) {
-    // El pedido "salió bien" pero no tocó ninguna fila (por ejemplo,
-    // bloqueado en silencio por RLS). Lo dejamos bien visible en los logs.
-    // eslint-disable-next-line no-console
-    console.error(
-      "avanzarEstadoSiCorresponde: el UPDATE no afectó ninguna fila (posible bloqueo de RLS).",
-      { casoId, tipoEvento, nuevoEstado }
-    );
+    return {
+      intentado: true,
+      ok: false,
+      motivo: "El UPDATE no afectó ninguna fila (probablemente bloqueado por RLS)."
+    };
   }
+
+  return { intentado: true, ok: true, nuevoEstado: actualizado[0].estado };
 }

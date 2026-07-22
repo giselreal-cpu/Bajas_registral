@@ -77,9 +77,10 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  let estadoDebug = null;
   if (data.completado) {
-    await avanzarEstadoSiCorresponde(params.id, data.tipo_evento);
+    estadoDebug = await avanzarEstadoSiCorresponde(params.id, data.tipo_evento);
   }
 
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json({ data, estadoDebug }, { status: 201 });
 }

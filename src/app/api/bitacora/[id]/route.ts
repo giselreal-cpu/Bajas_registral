@@ -65,11 +65,12 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  let estadoDebug = null;
   if (data.completado) {
-    await avanzarEstadoSiCorresponde(data.caso_id, data.tipo_evento);
+    estadoDebug = await avanzarEstadoSiCorresponde(data.caso_id, data.tipo_evento);
   }
 
-  return NextResponse.json({ data });
+  return NextResponse.json({ data, estadoDebug });
 }
 
 export async function DELETE(
