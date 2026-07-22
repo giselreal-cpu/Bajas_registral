@@ -52,5 +52,29 @@ export async function avanzarEstadoSiCorresponde(casoId: string, tipoEvento: str
     update.fecha_cierre = new Date().toISOString().slice(0, 10);
   }
 
-  await supabase.from("casos").update(update).eq("id", casoId);
+  const { data: actualizado, error } = await supabase
+    .from("casos")
+    .update(update)
+    .eq("id", casoId)
+    .select("id");
+
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.error("No se pudo avanzar el estado del caso automáticamente:", error.message, {
+      casoId,
+      tipoEvento,
+      nuevoEstado
+    });
+    return;
+  }
+
+  if (!actualizado || actualizado.length === 0) {
+    // El pedido "salió bien" pero no tocó ninguna fila (por ejemplo,
+    // bloqueado en silencio por RLS). Lo dejamos bien visible en los logs.
+    // eslint-disable-next-line no-console
+    console.error(
+      "avanzarEstadoSiCorresponde: el UPDATE no afectó ninguna fila (posible bloqueo de RLS).",
+      { casoId, tipoEvento, nuevoEstado }
+    );
+  }
 }
