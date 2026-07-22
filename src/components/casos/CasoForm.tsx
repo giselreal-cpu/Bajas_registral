@@ -20,6 +20,7 @@ export default function CasoForm() {
     numero_siniestro: "",
     numero_poliza: "",
     item_poliza: "",
+    suma_asegurada: "",
     aseguradora_id: "",
     tipo_baja_id: "",
     responsable_id: "",
@@ -59,6 +60,7 @@ export default function CasoForm() {
       numero_siniestro: form.numero_siniestro,
       numero_poliza: form.numero_poliza || null,
       item_poliza: form.item_poliza || null,
+      suma_asegurada: form.suma_asegurada ? Number(form.suma_asegurada) : null,
       aseguradora_id: form.aseguradora_id,
       tipo_baja_id: form.tipo_baja_id || null,
       responsable_id: form.responsable_id || null,
@@ -133,6 +135,16 @@ export default function CasoForm() {
               className="input"
               value={form.item_poliza}
               onChange={(e) => update("item_poliza", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label">Suma asegurada</label>
+            <input
+              type="number"
+              step="0.01"
+              className="input"
+              value={form.suma_asegurada}
+              onChange={(e) => update("suma_asegurada", e.target.value)}
             />
           </div>
           <div>

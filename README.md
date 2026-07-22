@@ -33,6 +33,19 @@ siguiendo el `CLAUDE.md` del proyecto.
   oculto para el rol compañía): tiempo promedio de trámite completo (fecha
   de ingreso → fecha de cierre) y tiempo promedio entre "Presentación de
   Baja" completada y el cierre, con tabla de los últimos casos cerrados.
+- **Avance automático de estado**: al marcar como completado alguno de
+  estos eventos de bitácora, el `estado` del caso avanza solo (se ve
+  reflejado en el Panel y en el listado de Casos): "Petición de Informes" →
+  `informes_solicitados`; "Contacto con el asegurado" → `en_verificacion`;
+  "Autorización de traslado" → `autorizacion_traslado`; "Asignación de
+  desarmadero" → `desarmadero_asignado`; "Formulario de Baja" o
+  "Presentación de Baja" → `baja_en_tramite`; "Cierre de Caso" → `cerrado`
+  (y completa `fecha_cierre` con la fecha de hoy si todavía no tenía una).
+  Solo avanza hacia adelante — nunca retrocede el estado automáticamente,
+  aunque se destilde un evento ya completado o se complete uno "de una
+  etapa anterior" más tarde. Ver `src/lib/estadoAutomatico.ts`. El estado
+  se puede seguir cambiando a mano en cualquier momento desde la cabecera
+  del caso, esto es un adicional, no un reemplazo.
 - **Bitácora**:
   - Tipo de evento por lista desplegable, con un catálogo **cerrado** de 11
     tipos (`src/lib/eventosBitacora.ts`): Ingreso de caso, Petición de

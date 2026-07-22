@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { avanzarEstadoSiCorresponde } from "@/lib/estadoAutomatico";
 
 // PUT /api/bitacora/[id] -> ej. marcar como completada, editar fecha_fin, etc.
 export async function PUT(
@@ -62,6 +63,10 @@ export async function PUT(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (data.completado) {
+    await avanzarEstadoSiCorresponde(data.caso_id, data.tipo_evento);
   }
 
   return NextResponse.json({ data });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual, getUsuarioActualId } from "@/lib/auth/usuarioActual";
+import { avanzarEstadoSiCorresponde } from "@/lib/estadoAutomatico";
 
 export async function GET(
   _request: NextRequest,
@@ -74,6 +75,10 @@ export async function POST(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (data.completado) {
+    await avanzarEstadoSiCorresponde(params.id, data.tipo_evento);
   }
 
   return NextResponse.json({ data }, { status: 201 });
