@@ -10,19 +10,27 @@ const ORDEN_ESTADOS: Estado[] = [
   "en_verificacion",
   "autorizacion_traslado",
   "desarmadero_asignado",
+  "traslado_realizado",
   "baja_en_tramite",
+  "presentado_en_registro",
+  "documentacion_enviada",
   "cerrado"
 ];
 
 // Qué evento de bitácora (por label, tal cual aparece en TIPOS_EVENTO)
-// hace avanzar a qué estado del caso, una vez completado.
+// hace avanzar a qué estado del caso, una vez completado. Cada evento
+// clave tiene su propio estado (uno a uno), salvo "Ingreso de caso" (ya
+// arranca en "iniciado") y "Observaciones" (no representa un paso del
+// proceso).
 const EVENTO_A_ESTADO: Record<string, Estado> = {
   "Petición de Informes": "informes_solicitados",
   "Contacto con el asegurado": "en_verificacion",
   "Autorización de traslado": "autorizacion_traslado",
   "Asignación de desarmadero": "desarmadero_asignado",
+  Traslado: "traslado_realizado",
   "Formulario de Baja": "baja_en_tramite",
-  "Presentación de Baja": "baja_en_tramite",
+  "Presentación de Baja": "presentado_en_registro",
+  "Envío de documentación Cía": "documentacion_enviada",
   "Cierre de Caso": "cerrado"
 };
 

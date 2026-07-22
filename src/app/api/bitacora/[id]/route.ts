@@ -25,17 +25,17 @@ export async function PUT(
     if (field in body) update[field] = body[field];
   }
 
+  const { data: existente } = await supabase
+    .from("bitacora")
+    .select("caso_id, es_interna, tipo_evento, completado")
+    .eq("id", params.id)
+    .maybeSingle();
+
   // Si el evento es (o va a ser) interno y el pedido intenta tocar la
   // observación, solo lo permitimos si quien pide el cambio es el
   // responsable del caso. Esto evita que alguien sin acceso a ver una
   // observación interna la pise/borre editando "a ciegas".
   if ("observacion" in update) {
-    const { data: existente } = await supabase
-      .from("bitacora")
-      .select("caso_id, es_interna")
-      .eq("id", params.id)
-      .maybeSingle();
-
     const seraInterna =
       "es_interna" in update ? !!update.es_interna : !!existente?.es_interna;
 
@@ -50,6 +50,36 @@ export async function PUT(
 
       if (!puedeEditar) {
         delete update.observacion;
+      }
+    }
+  }
+
+  // Un evento ya cumplido no se puede volver a cargar para el mismo caso
+  // (salvo "Observaciones"). Esto cubre el caso de editar un evento
+  // pendiente y cambiarle el tipo (o marcarlo completado) hacia uno que
+  // ya está cumplido en otra fila de este mismo caso.
+  if (existente) {
+    const tipoFinal = ("tipo_evento" in update ? update.tipo_evento : existente.tipo_evento) as string;
+    const completadoFinal = "completado" in update ? !!update.completado : existente.completado;
+
+    if (completadoFinal && tipoFinal !== "Observaciones") {
+      const { data: otroCompletado } = await supabase
+        .from("bitacora")
+        .select("id")
+        .eq("caso_id", existente.caso_id)
+        .eq("tipo_evento", tipoFinal)
+        .eq("completado", true)
+        .neq("id", params.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (otroCompletado) {
+        return NextResponse.json(
+          {
+            error: `El evento "${tipoFinal}" ya fue completado para este caso. No se puede volver a cargar.`
+          },
+          { status: 409 }
+        );
       }
     }
   }

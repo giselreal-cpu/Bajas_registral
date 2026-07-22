@@ -33,20 +33,35 @@ siguiendo el `CLAUDE.md` del proyecto.
   oculto para el rol compañía): tiempo promedio de trámite completo (fecha
   de ingreso → fecha de cierre) y tiempo promedio entre "Presentación de
   Baja" completada y el cierre, con tabla de los últimos casos cerrados.
-- **Avance automático de estado**: al marcar como completado alguno de
-  estos eventos de bitácora, el `estado` del caso avanza solo (se ve
-  reflejado en el Panel y en el listado de Casos): "Petición de Informes" →
-  `informes_solicitados`; "Contacto con el asegurado" → `en_verificacion`;
-  "Autorización de traslado" → `autorizacion_traslado`; "Asignación de
-  desarmadero" → `desarmadero_asignado`; "Formulario de Baja" o
-  "Presentación de Baja" → `baja_en_tramite`; "Cierre de Caso" → `cerrado`
-  (y completa `fecha_cierre` con la fecha de hoy si todavía no tenía una).
-  Solo avanza hacia adelante — nunca retrocede el estado automáticamente,
+- **Avance automático de estado**: el catálogo de estados del caso tiene un
+  paso propio por cada evento clave de la bitácora (`0010_estados_por_evento.sql`),
+  así el seguimiento es más preciso. Al marcar como completado alguno de
+  estos eventos, el `estado` del caso avanza solo (se ve reflejado en el
+  Panel y en el listado de Casos):
+  - "Petición de Informes" → Informes solicitados
+  - "Contacto con el asegurado" → En verificación
+  - "Autorización de traslado" → Autorización de traslado
+  - "Asignación de desarmadero" → Desarmadero asignado
+  - "Traslado" → Traslado realizado
+  - "Formulario de Baja" → Formulario de baja presentado
+  - "Presentación de Baja" → Presentado en el registro
+  - "Envío de documentación Cía" → Documentación enviada a la Cía
+  - "Cierre de Caso" → Cerrado (completa `fecha_cierre` con la fecha de hoy
+    si todavía no tenía una)
+
+  "Ingreso de caso" y "Observaciones" no mueven el estado (el primero ya
+  arranca en "Iniciado"; el segundo es solo una anotación libre). Solo
+  avanza hacia adelante — nunca retrocede el estado automáticamente,
   aunque se destilde un evento ya completado o se complete uno "de una
   etapa anterior" más tarde. Ver `src/lib/estadoAutomatico.ts`. El estado
   se puede seguir cambiando a mano en cualquier momento desde la cabecera
   del caso, esto es un adicional, no un reemplazo.
 - **Bitácora**:
+  - Un evento ya completado no se puede volver a cargar para el mismo
+    caso (el desplegable ya no lo ofrece, y el servidor lo bloquea igual
+    si se intenta por otra vía) — salvo **"Observaciones"**, que no tiene
+    prelación ni conexión con nada y se puede repetir todas las veces que
+    haga falta.
   - Tipo de evento por lista desplegable, con un catálogo **cerrado** de 11
     tipos (`src/lib/eventosBitacora.ts`): Ingreso de caso, Petición de
     Informes, Contacto con el asegurado, Autorización de traslado,
@@ -138,6 +153,8 @@ administrador/compañía, que sí están implementados).
      desarmadero, para la autorización de traslado)
    - `supabase/migrations/0009_tercero_suma_asegurada.sql` (agrega el
      tercero autorizado a entregar la unidad y la suma asegurada del caso)
+   - `supabase/migrations/0010_estados_por_evento.sql` (amplía los estados
+     posibles del caso para que cada evento clave tenga su propio paso)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

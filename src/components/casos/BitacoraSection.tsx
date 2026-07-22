@@ -165,6 +165,13 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
     else setError(json.error);
   }
 
+  const tiposCompletados = new Set(
+    (eventos ?? []).filter((ev) => ev.completado).map((ev) => ev.tipo_evento)
+  );
+  const tiposDisponiblesNuevo = TIPOS_EVENTO.filter(
+    (t) => t.label === "Observaciones" || !tiposCompletados.has(t.label)
+  );
+
   return (
     <section className="card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -193,7 +200,7 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
               onChange={(e) => setForm((f) => ({ ...f, tipo_evento: e.target.value }))}
             >
               <option value="">Seleccionar...</option>
-              {TIPOS_EVENTO.map((t) => (
+              {tiposDisponiblesNuevo.map((t) => (
                 <option key={t.value} value={t.label}>
                   {t.label}
                 </option>
@@ -268,12 +275,12 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
                     value={editForm.tipo_evento}
                     onChange={(e) => setEditForm((f) => ({ ...f, tipo_evento: e.target.value }))}
                   >
-                    {TIPOS_EVENTO.map((t) => (
+                    {tiposDisponiblesNuevo.map((t) => (
                       <option key={t.value} value={t.label}>
                         {t.label}
                       </option>
                     ))}
-                    {!TIPOS_EVENTO.some((t) => t.label === editForm.tipo_evento) && (
+                    {!tiposDisponiblesNuevo.some((t) => t.label === editForm.tipo_evento) && (
                       <option value={editForm.tipo_evento}>{editForm.tipo_evento}</option>
                     )}
                   </select>

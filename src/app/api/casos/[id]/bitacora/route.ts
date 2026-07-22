@@ -58,6 +58,29 @@ export async function POST(
     );
   }
 
+  // Un evento ya cumplido no se puede volver a cargar para el mismo caso
+  // (salvo "Observaciones", que no tiene prelación ni conexión con nada y
+  // se puede repetir libremente).
+  if (tipo_evento !== "Observaciones") {
+    const { data: yaCompletado } = await supabase
+      .from("bitacora")
+      .select("id")
+      .eq("caso_id", params.id)
+      .eq("tipo_evento", tipo_evento)
+      .eq("completado", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (yaCompletado) {
+      return NextResponse.json(
+        {
+          error: `El evento "${tipo_evento}" ya fue completado para este caso. No se puede volver a cargar.`
+        },
+        { status: 409 }
+      );
+    }
+  }
+
   const { data, error } = await supabase
     .from("bitacora")
     .insert({

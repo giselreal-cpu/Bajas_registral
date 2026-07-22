@@ -4,7 +4,10 @@ export type Estado =
   | "en_verificacion"
   | "autorizacion_traslado"
   | "desarmadero_asignado"
+  | "traslado_realizado"
   | "baja_en_tramite"
+  | "presentado_en_registro"
+  | "documentacion_enviada"
   | "cerrado";
 
 export const ESTADOS: { value: Estado; label: string }[] = [
@@ -13,7 +16,10 @@ export const ESTADOS: { value: Estado; label: string }[] = [
   { value: "en_verificacion", label: "En verificación" },
   { value: "autorizacion_traslado", label: "Autorización de traslado" },
   { value: "desarmadero_asignado", label: "Desarmadero asignado" },
-  { value: "baja_en_tramite", label: "Baja en trámite" },
+  { value: "traslado_realizado", label: "Traslado realizado" },
+  { value: "baja_en_tramite", label: "Formulario de baja presentado" },
+  { value: "presentado_en_registro", label: "Presentado en el registro" },
+  { value: "documentacion_enviada", label: "Documentación enviada a la Cía" },
   { value: "cerrado", label: "Cerrado" }
 ];
 
