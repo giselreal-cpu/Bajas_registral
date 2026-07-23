@@ -86,6 +86,10 @@ siguiendo el `CLAUDE.md` del proyecto.
 - **Exportar datos** (`/exportar`): CSV de casos, bitácora y documentos (con
   relaciones ya resueltas, listo para Excel) más un backup completo en JSON
   de todas las tablas.
+- **Documentos**: se pueden arrastrar entre "Imagen del dominio" y
+  "Documento para la compañía" para corregir la categoría sin borrar y
+  volver a cargar, y también se pueden eliminar. Nueva ruta
+  `/api/documentos/[id]` (PUT/DELETE).
 - **Autorización de retiro y traslado** (un solo botón en el detalle del
   caso): genera un .docx descargable con una carta que combina la
   autorización de retiro (con las declaraciones legales de embargo/
