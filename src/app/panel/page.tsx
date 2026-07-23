@@ -164,6 +164,56 @@ export default async function PanelPage() {
     .sort((a, b) => (b.fecha_cierre! > a.fecha_cierre! ? 1 : -1))
     .slice(0, 8);
 
+  // Lista combinada para "Próximos vencimientos": eventos con fecha_fin
+  // pendiente (vencimientos "de verdad") + casos sin movimiento hace 7+
+  // días (aunque no tengan ninguna fecha cargada), para que se vea todo
+  // junto en un solo lugar. Los vencidos van primero, después los casos
+  // sin movimiento, y al final los próximos a vencer.
+  interface ItemAtencion {
+    key: string;
+    casoId: string;
+    numero: string;
+    detalle: string;
+    meta: string;
+    badgeTexto: string;
+    badgeClase: string;
+    prioridad: number;
+  }
+
+  const itemsAtencion: ItemAtencion[] = [];
+
+  for (const v of (vencimientos as unknown as VencimientoRow[] | null) ?? []) {
+    const vencida = !!v.fecha_fin && new Date(v.fecha_fin + "T00:00:00") < hoy;
+    itemsAtencion.push({
+      key: `venc-${v.id}`,
+      casoId: v.caso_id,
+      numero: v.caso?.numero_siniestro ?? "Caso",
+      detalle: v.tipo_evento,
+      meta: `${v.caso?.asegurado?.nombre ?? ""} · ${v.caso?.responsable?.nombre ?? "Sin responsable"}`,
+      badgeTexto: v.fecha_fin
+        ? new Date(v.fecha_fin + "T00:00:00").toLocaleDateString("es-AR")
+        : "",
+      badgeClase: vencida ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700",
+      prioridad: vencida ? 0 : 2
+    });
+  }
+
+  for (const c of casosSinMovimiento) {
+    itemsAtencion.push({
+      key: `mov-${c.id}`,
+      casoId: c.id,
+      numero: c.numero_siniestro,
+      detalle: "Sin movimiento en la bitácora",
+      meta: `${c.asegurado?.nombre ?? ""} · ${c.responsable?.nombre ?? "Sin responsable"}`,
+      badgeTexto: `${c.dias} días sin movimiento`,
+      badgeClase: "bg-amber-100 text-amber-800",
+      prioridad: 1
+    });
+  }
+
+  itemsAtencion.sort((a, b) => a.prioridad - b.prioridad);
+  const itemsAtencionLimitados = itemsAtencion.slice(0, 10);
+
   return (
     <div className="space-y-6">
       <div>
@@ -258,40 +308,26 @@ export default async function PanelPage() {
             </Link>
           </div>
           <div className="divide-y divide-slate-100">
-            {(vencimientos as unknown as VencimientoRow[] | null)?.map((v) => {
-              const vencida =
-                !!v.fecha_fin && new Date(v.fecha_fin + "T00:00:00") < hoy;
-              return (
-                <div key={v.id} className="py-2 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link
-                      href={`/casos/${v.caso_id}`}
-                      className="text-brand-600 font-medium hover:underline text-sm"
-                    >
-                      {v.caso?.numero_siniestro ?? "Caso"}
-                    </Link>
-                    <p className="text-sm text-slate-700 truncate">{v.tipo_evento}</p>
-                    <p className="text-xs text-slate-400">
-                      {v.caso?.asegurado?.nombre} · {v.caso?.responsable?.nombre ?? "Sin responsable"}
-                    </p>
-                  </div>
-                  {v.fecha_fin && (
-                    <span
-                      className={`badge shrink-0 ${
-                        vencida
-                          ? "bg-red-100 text-red-700"
-                          : "bg-amber-100 text-amber-700"
-                      }`}
-                    >
-                      {new Date(v.fecha_fin + "T00:00:00").toLocaleDateString("es-AR")}
-                    </span>
-                  )}
+            {itemsAtencionLimitados.map((item) => (
+              <div key={item.key} className="py-2 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <Link
+                    href={`/casos/${item.casoId}`}
+                    className="text-brand-600 font-medium hover:underline text-sm"
+                  >
+                    {item.numero}
+                  </Link>
+                  <p className="text-sm text-slate-700 truncate">{item.detalle}</p>
+                  <p className="text-xs text-slate-400">{item.meta}</p>
                 </div>
-              );
-            })}
-            {vencimientos?.length === 0 && (
+                {item.badgeTexto && (
+                  <span className={`badge shrink-0 ${item.badgeClase}`}>{item.badgeTexto}</span>
+                )}
+              </div>
+            ))}
+            {itemsAtencionLimitados.length === 0 && (
               <p className="text-sm text-slate-500 py-2">
-                No hay vencimientos próximos cargados.
+                No hay vencimientos ni casos sin movimiento por ahora.
               </p>
             )}
           </div>
