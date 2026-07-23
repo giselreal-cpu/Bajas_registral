@@ -16,9 +16,12 @@ siguiendo el `CLAUDE.md` del proyecto.
   - Vista de detalle (`/casos/[id]`) con cabecera editable (número de
     siniestro, dominio del vehículo, suma asegurada, estado, rama, tipo de
     trámite, tipo de baja, responsable, desarmadero, registro, deudas,
-    fechas, observaciones, y el tercero autorizado a entregar la unidad),
-    bitácora y documentos. Editar el dominio actualiza la tabla
-    `vehiculos` por separado (`/api/vehiculos/[id]`).
+    fechas, observaciones, los datos propios del asegurado —nombre, DNI,
+    teléfono, email, dirección, entre calles, localidad, partido,
+    provincia— y el tercero autorizado a entregar la unidad), bitácora y
+    documentos. Editar el dominio o los datos del asegurado actualiza
+    `vehiculos`/`asegurados` por separado (`/api/vehiculos/[id]`,
+    `/api/asegurados/[id]`).
 - **CRUD de catálogos** (`/catalogos`): aseguradoras, desarmaderos, registros
   automotores, tipos de baja y usuarios, cada uno con alta, edición inline y
   borrado.

@@ -56,7 +56,16 @@ export default function CasoCabecera({
     observaciones: caso.observaciones ?? "",
     tercero_nombre: caso.tercero_nombre ?? "",
     tercero_dni: caso.tercero_dni ?? "",
-    tercero_contacto: caso.tercero_contacto ?? ""
+    tercero_contacto: caso.tercero_contacto ?? "",
+    asegurado_nombre: caso.asegurado?.nombre ?? "",
+    asegurado_dni: caso.asegurado?.dni ?? "",
+    asegurado_telefono: caso.asegurado?.telefono ?? "",
+    asegurado_email: caso.asegurado?.email ?? "",
+    asegurado_direccion: caso.asegurado?.direccion ?? "",
+    asegurado_localidad: caso.asegurado?.localidad ?? "",
+    asegurado_provincia: caso.asegurado?.provincia ?? "",
+    asegurado_entre_calles: caso.asegurado?.entre_calles ?? "",
+    asegurado_partido: caso.asegurado?.partido ?? ""
   });
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -67,7 +76,7 @@ export default function CasoCabecera({
     setSaving(true);
     setError(null);
 
-    const [resCaso, resVehiculo] = await Promise.all([
+    const [resCaso, resVehiculo, resAsegurado] = await Promise.all([
       fetch(`/api/casos/${caso.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -89,14 +98,35 @@ export default function CasoCabecera({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ dominio: form.vehiculo_dominio.toUpperCase() })
+      }),
+      fetch(`/api/asegurados/${caso.asegurado_id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nombre: form.asegurado_nombre,
+          dni: form.asegurado_dni || null,
+          telefono: form.asegurado_telefono || null,
+          email: form.asegurado_email || null,
+          direccion: form.asegurado_direccion || null,
+          localidad: form.asegurado_localidad || null,
+          provincia: form.asegurado_provincia || null,
+          entre_calles: form.asegurado_entre_calles || null,
+          partido: form.asegurado_partido || null
+        })
       })
     ]);
 
-    const [jsonCaso, jsonVehiculo] = await Promise.all([resCaso.json(), resVehiculo.json()]);
+    const [jsonCaso, jsonVehiculo, jsonAsegurado] = await Promise.all([
+      resCaso.json(),
+      resVehiculo.json(),
+      resAsegurado.json()
+    ]);
     setSaving(false);
 
-    if (!resCaso.ok || !resVehiculo.ok) {
-      setError(jsonCaso.error ?? jsonVehiculo.error ?? "No se pudo guardar el caso.");
+    if (!resCaso.ok || !resVehiculo.ok || !resAsegurado.ok) {
+      setError(
+        jsonCaso.error ?? jsonVehiculo.error ?? jsonAsegurado.error ?? "No se pudo guardar el caso."
+      );
       return;
     }
 
@@ -446,6 +476,112 @@ export default function CasoCabecera({
             {caso.observaciones || "—"}
           </p>
         )}
+      </div>
+
+      <div className="mt-4 pt-4 border-t border-slate-100">
+        <div className="label">Asegurado / titular</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <Field label="Nombre y apellido">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_nombre}
+                onChange={(e) => update("asegurado_nombre", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.nombre || "—"
+            )}
+          </Field>
+          <Field label="DNI">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_dni}
+                onChange={(e) => update("asegurado_dni", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.dni || "—"
+            )}
+          </Field>
+          <Field label="Teléfono">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_telefono}
+                onChange={(e) => update("asegurado_telefono", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.telefono || "—"
+            )}
+          </Field>
+          <Field label="Email">
+            {editing ? (
+              <input
+                type="email"
+                className="input"
+                value={form.asegurado_email}
+                onChange={(e) => update("asegurado_email", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.email || "—"
+            )}
+          </Field>
+          <Field label="Dirección">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_direccion}
+                onChange={(e) => update("asegurado_direccion", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.direccion || "—"
+            )}
+          </Field>
+          <Field label="Entre calles">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_entre_calles}
+                onChange={(e) => update("asegurado_entre_calles", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.entre_calles || "—"
+            )}
+          </Field>
+          <Field label="Localidad">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_localidad}
+                onChange={(e) => update("asegurado_localidad", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.localidad || "—"
+            )}
+          </Field>
+          <Field label="Partido">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_partido}
+                onChange={(e) => update("asegurado_partido", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.partido || "—"
+            )}
+          </Field>
+          <Field label="Provincia">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_provincia}
+                onChange={(e) => update("asegurado_provincia", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.provincia || "—"
+            )}
+          </Field>
+        </div>
       </div>
 
       <div className="mt-4 pt-4 border-t border-slate-100">
