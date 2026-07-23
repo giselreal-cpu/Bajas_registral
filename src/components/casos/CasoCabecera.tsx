@@ -40,6 +40,9 @@ export default function CasoCabecera({
   const [form, setForm] = useState({
     numero_siniestro: caso.numero_siniestro,
     vehiculo_dominio: caso.vehiculo?.dominio ?? "",
+    vehiculo_marca: caso.vehiculo?.marca ?? "",
+    vehiculo_modelo: caso.vehiculo?.modelo ?? "",
+    vehiculo_anio: caso.vehiculo?.anio ?? "",
     numero_poliza: caso.numero_poliza ?? "",
     item_poliza: caso.item_poliza ?? "",
     estado: caso.estado,
@@ -97,7 +100,12 @@ export default function CasoCabecera({
       fetch(`/api/vehiculos/${caso.vehiculo_id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ dominio: form.vehiculo_dominio.toUpperCase() })
+        body: JSON.stringify({
+          dominio: form.vehiculo_dominio.toUpperCase(),
+          marca: form.vehiculo_marca || null,
+          modelo: form.vehiculo_modelo || null,
+          anio: form.vehiculo_anio ? Number(form.vehiculo_anio) : null
+        })
       }),
       fetch(`/api/asegurados/${caso.asegurado_id}`, {
         method: "PUT",
@@ -215,255 +223,305 @@ export default function CasoCabecera({
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-        <Field label="N° de siniestro">
-          {editing ? (
-            <input
-              className="input"
-              value={form.numero_siniestro}
-              onChange={(e) => update("numero_siniestro", e.target.value)}
-            />
-          ) : (
-            caso.numero_siniestro
-          )}
-        </Field>
+      <Section title="Datos del caso" first>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <Field label="N° de siniestro">
+            {editing ? (
+              <input
+                className="input"
+                value={form.numero_siniestro}
+                onChange={(e) => update("numero_siniestro", e.target.value)}
+              />
+            ) : (
+              caso.numero_siniestro
+            )}
+          </Field>
 
-        <Field label="Dominio">
-          {editing ? (
-            <input
-              className="input uppercase"
-              value={form.vehiculo_dominio}
-              onChange={(e) => update("vehiculo_dominio", e.target.value)}
-            />
-          ) : (
-            caso.vehiculo?.dominio || "—"
-          )}
-        </Field>
+          <Field label="N° de póliza">
+            {editing ? (
+              <input
+                className="input"
+                value={form.numero_poliza}
+                onChange={(e) => update("numero_poliza", e.target.value)}
+              />
+            ) : (
+              caso.numero_poliza || "—"
+            )}
+          </Field>
 
-        <Field label="Suma asegurada">
-          {editing ? (
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              value={form.suma_asegurada}
-              onChange={(e) => update("suma_asegurada", Number(e.target.value))}
-            />
-          ) : (
-            formatCurrency(caso.suma_asegurada)
-          )}
-        </Field>
+          <Field label="Ítem">
+            {editing ? (
+              <input
+                className="input"
+                value={form.item_poliza}
+                onChange={(e) => update("item_poliza", e.target.value)}
+              />
+            ) : (
+              caso.item_poliza || "—"
+            )}
+          </Field>
 
-        <Field label="N° de póliza">
-          {editing ? (
-            <input
-              className="input"
-              value={form.numero_poliza}
-              onChange={(e) => update("numero_poliza", e.target.value)}
-            />
-          ) : (
-            caso.numero_poliza || "—"
-          )}
-        </Field>
+          <Field label="Estado">
+            {editing ? (
+              <select
+                className="input"
+                value={form.estado}
+                onChange={(e) => update("estado", e.target.value as any)}
+              >
+                {ESTADOS.map((e) => (
+                  <option key={e.value} value={e.value}>
+                    {e.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              ESTADOS.find((e) => e.value === caso.estado)?.label
+            )}
+          </Field>
 
-        <Field label="Ítem">
-          {editing ? (
-            <input
-              className="input"
-              value={form.item_poliza}
-              onChange={(e) => update("item_poliza", e.target.value)}
-            />
-          ) : (
-            caso.item_poliza || "—"
-          )}
-        </Field>
+          <Field label="Tipo de baja">
+            {editing ? (
+              <select
+                className="input"
+                value={form.tipo_baja_id}
+                onChange={(e) => update("tipo_baja_id", e.target.value)}
+              >
+                <option value="">Sin definir</option>
+                {tiposBaja.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              caso.tipo_baja?.nombre ?? "—"
+            )}
+          </Field>
 
-        <Field label="Estado">
-          {editing ? (
-            <select
-              className="input"
-              value={form.estado}
-              onChange={(e) => update("estado", e.target.value as any)}
-            >
-              {ESTADOS.map((e) => (
-                <option key={e.value} value={e.value}>
-                  {e.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            ESTADOS.find((e) => e.value === caso.estado)?.label
-          )}
-        </Field>
+          <Field label="Responsable">
+            {editing ? (
+              <select
+                className="input"
+                value={form.responsable_id}
+                onChange={(e) => update("responsable_id", e.target.value)}
+              >
+                <option value="">Sin asignar</option>
+                {usuarios.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              caso.responsable?.nombre ?? "—"
+            )}
+          </Field>
+        </div>
+      </Section>
 
-        <Field label="Rama">
-          {editing ? (
-            <select
-              className="input"
-              value={form.rama}
-              onChange={(e) => update("rama", e.target.value)}
-            >
-              <option value="">Sin definir</option>
-              {RAMAS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            RAMAS.find((r) => r.value === caso.rama)?.label ?? "—"
-          )}
-        </Field>
+      <Section title="Trámite">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <Field label="Rama">
+            {editing ? (
+              <select
+                className="input"
+                value={form.rama}
+                onChange={(e) => update("rama", e.target.value)}
+              >
+                <option value="">Sin definir</option>
+                {RAMAS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              RAMAS.find((r) => r.value === caso.rama)?.label ?? "—"
+            )}
+          </Field>
 
-        <Field label="Tipo de trámite">
-          {editing ? (
-            <select
-              className="input"
-              value={form.tipo_tramite}
-              onChange={(e) => update("tipo_tramite", e.target.value)}
-            >
-              <option value="">Sin definir</option>
-              <option value="fisica">Física</option>
-              <option value="digital">Digital</option>
-            </select>
-          ) : caso.tipo_tramite === "fisica" ? (
-            "Física"
-          ) : caso.tipo_tramite === "digital" ? (
-            "Digital"
-          ) : (
-            "—"
-          )}
-        </Field>
+          <Field label="Tipo de trámite">
+            {editing ? (
+              <select
+                className="input"
+                value={form.tipo_tramite}
+                onChange={(e) => update("tipo_tramite", e.target.value)}
+              >
+                <option value="">Sin definir</option>
+                <option value="fisica">Física</option>
+                <option value="digital">Digital</option>
+              </select>
+            ) : caso.tipo_tramite === "fisica" ? (
+              "Física"
+            ) : caso.tipo_tramite === "digital" ? (
+              "Digital"
+            ) : (
+              "—"
+            )}
+          </Field>
 
-        <Field label="Tipo de baja">
-          {editing ? (
-            <select
-              className="input"
-              value={form.tipo_baja_id}
-              onChange={(e) => update("tipo_baja_id", e.target.value)}
-            >
-              <option value="">Sin definir</option>
-              {tiposBaja.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.nombre}
-                </option>
-              ))}
-            </select>
-          ) : (
-            caso.tipo_baja?.nombre ?? "—"
-          )}
-        </Field>
+          <Field label="Registro automotor">
+            {editing ? (
+              <select
+                className="input"
+                value={form.registro_id}
+                onChange={(e) => update("registro_id", e.target.value)}
+              >
+                <option value="">Sin asignar</option>
+                {registros.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.numero}
+                    {r.seccional ? ` (${r.seccional})` : ""}
+                  </option>
+                ))}
+              </select>
+            ) : caso.registro ? (
+              `${caso.registro.numero}${caso.registro.seccional ? ` (${caso.registro.seccional})` : ""}`
+            ) : (
+              "—"
+            )}
+          </Field>
 
-        <Field label="Responsable">
-          {editing ? (
-            <select
-              className="input"
-              value={form.responsable_id}
-              onChange={(e) => update("responsable_id", e.target.value)}
-            >
-              <option value="">Sin asignar</option>
-              {usuarios.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.nombre}
-                </option>
-              ))}
-            </select>
-          ) : (
-            caso.responsable?.nombre ?? "—"
-          )}
-        </Field>
+          <Field label="Fecha de ingreso">
+            {new Date(caso.fecha_ingreso).toLocaleDateString("es-AR")}
+          </Field>
 
-        <Field label="Desarmadero">
-          {editing ? (
-            <select
-              className="input"
-              value={form.desarmadero_id}
-              onChange={(e) => update("desarmadero_id", e.target.value)}
-            >
-              <option value="">Sin asignar</option>
-              {desarmaderos.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nombre}
-                </option>
-              ))}
-            </select>
-          ) : (
-            caso.desarmadero?.nombre ?? "—"
-          )}
-        </Field>
+          <Field label="Fecha de cierre">
+            {editing ? (
+              <input
+                type="date"
+                className="input"
+                value={form.fecha_cierre}
+                onChange={(e) => update("fecha_cierre", e.target.value)}
+              />
+            ) : caso.fecha_cierre ? (
+              new Date(caso.fecha_cierre).toLocaleDateString("es-AR")
+            ) : (
+              "—"
+            )}
+          </Field>
+        </div>
+      </Section>
 
-        <Field label="Registro automotor">
-          {editing ? (
-            <select
-              className="input"
-              value={form.registro_id}
-              onChange={(e) => update("registro_id", e.target.value)}
-            >
-              <option value="">Sin asignar</option>
-              {registros.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.numero}
-                  {r.seccional ? ` (${r.seccional})` : ""}
-                </option>
-              ))}
-            </select>
-          ) : caso.registro ? (
-            `${caso.registro.numero}${caso.registro.seccional ? ` (${caso.registro.seccional})` : ""}`
-          ) : (
-            "—"
-          )}
-        </Field>
+      <Section title="Vehículo">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <Field label="Dominio">
+            {editing ? (
+              <input
+                className="input uppercase"
+                value={form.vehiculo_dominio}
+                onChange={(e) => update("vehiculo_dominio", e.target.value)}
+              />
+            ) : (
+              caso.vehiculo?.dominio || "—"
+            )}
+          </Field>
 
-        <Field label="Deuda patentes">
-          {editing ? (
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              value={form.deuda_patentes}
-              onChange={(e) => update("deuda_patentes", Number(e.target.value))}
-            />
-          ) : (
-            formatCurrency(caso.deuda_patentes)
-          )}
-        </Field>
+          <Field label="Marca">
+            {editing ? (
+              <input
+                className="input"
+                value={form.vehiculo_marca}
+                onChange={(e) => update("vehiculo_marca", e.target.value)}
+              />
+            ) : (
+              caso.vehiculo?.marca || "—"
+            )}
+          </Field>
 
-        <Field label="Deuda multas">
-          {editing ? (
-            <input
-              type="number"
-              step="0.01"
-              className="input"
-              value={form.deuda_multas}
-              onChange={(e) => update("deuda_multas", Number(e.target.value))}
-            />
-          ) : (
-            formatCurrency(caso.deuda_multas)
-          )}
-        </Field>
+          <Field label="Modelo">
+            {editing ? (
+              <input
+                className="input"
+                value={form.vehiculo_modelo}
+                onChange={(e) => update("vehiculo_modelo", e.target.value)}
+              />
+            ) : (
+              caso.vehiculo?.modelo || "—"
+            )}
+          </Field>
 
-        <Field label="Fecha de ingreso">
-          {new Date(caso.fecha_ingreso).toLocaleDateString("es-AR")}
-        </Field>
+          <Field label="Año">
+            {editing ? (
+              <input
+                type="number"
+                className="input"
+                value={form.vehiculo_anio}
+                onChange={(e) => update("vehiculo_anio", e.target.value)}
+              />
+            ) : (
+              caso.vehiculo?.anio || "—"
+            )}
+          </Field>
 
-        <Field label="Fecha de cierre">
-          {editing ? (
-            <input
-              type="date"
-              className="input"
-              value={form.fecha_cierre}
-              onChange={(e) => update("fecha_cierre", e.target.value)}
-            />
-          ) : caso.fecha_cierre ? (
-            new Date(caso.fecha_cierre).toLocaleDateString("es-AR")
-          ) : (
-            "—"
-          )}
-        </Field>
-      </div>
+          <Field label="Desarmadero">
+            {editing ? (
+              <select
+                className="input"
+                value={form.desarmadero_id}
+                onChange={(e) => update("desarmadero_id", e.target.value)}
+              >
+                <option value="">Sin asignar</option>
+                {desarmaderos.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              caso.desarmadero?.nombre ?? "—"
+            )}
+          </Field>
+        </div>
+      </Section>
 
-      <div className="mt-4">
-        <div className="label">Observaciones</div>
+      <Section title="Datos económicos">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <Field label="Suma asegurada">
+            {editing ? (
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={form.suma_asegurada}
+                onChange={(e) => update("suma_asegurada", Number(e.target.value))}
+              />
+            ) : (
+              formatCurrency(caso.suma_asegurada)
+            )}
+          </Field>
+
+          <Field label="Deuda patentes">
+            {editing ? (
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={form.deuda_patentes}
+                onChange={(e) => update("deuda_patentes", Number(e.target.value))}
+              />
+            ) : (
+              formatCurrency(caso.deuda_patentes)
+            )}
+          </Field>
+
+          <Field label="Deuda multas">
+            {editing ? (
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={form.deuda_multas}
+                onChange={(e) => update("deuda_multas", Number(e.target.value))}
+              />
+            ) : (
+              formatCurrency(caso.deuda_multas)
+            )}
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Observaciones">
         {editing ? (
           <textarea
             className="input"
@@ -476,10 +534,9 @@ export default function CasoCabecera({
             {caso.observaciones || "—"}
           </p>
         )}
-      </div>
+      </Section>
 
-      <div className="mt-4 pt-4 border-t border-slate-100">
-        <div className="label">Asegurado / titular</div>
+      <Section title="Asegurado / titular">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="Nombre y apellido">
             {editing ? (
@@ -582,12 +639,9 @@ export default function CasoCabecera({
             )}
           </Field>
         </div>
-      </div>
+      </Section>
 
-      <div className="mt-4 pt-4 border-t border-slate-100">
-        <div className="label">
-          Tercero autorizado a entregar la unidad (si no es el asegurado)
-        </div>
+      <Section title="Tercero autorizado a entregar la unidad (si no es el asegurado)">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
           <Field label="Nombre y apellido">
             {editing ? (
@@ -623,7 +677,24 @@ export default function CasoCabecera({
             )}
           </Field>
         </div>
-      </div>
+      </Section>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  children,
+  first
+}: {
+  title: string;
+  children: React.ReactNode;
+  first?: boolean;
+}) {
+  return (
+    <div className={first ? "" : "mt-5 pt-5 border-t border-slate-100"}>
+      <h3 className="font-heading text-sm font-semibold text-slate-700 mb-3">{title}</h3>
+      {children}
     </div>
   );
 }

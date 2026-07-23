@@ -13,13 +13,14 @@ siguiendo el `CLAUDE.md` del proyecto.
   - Listado con filtro por estado y por número de siniestro (`/casos`).
   - Alta de caso, creando en el mismo paso el asegurado y el vehículo
     (`/casos/nuevo`).
-  - Vista de detalle (`/casos/[id]`) con cabecera editable (número de
-    siniestro, dominio del vehículo, suma asegurada, estado, rama, tipo de
-    trámite, tipo de baja, responsable, desarmadero, registro, deudas,
-    fechas, observaciones, los datos propios del asegurado —nombre, DNI,
-    teléfono, email, dirección, entre calles, localidad, partido,
-    provincia— y el tercero autorizado a entregar la unidad), bitácora y
-    documentos. Editar el dominio o los datos del asegurado actualiza
+  - Vista de detalle (`/casos/[id]`) con cabecera organizada en secciones
+    con título propio (Datos del caso, Trámite, Vehículo, Datos
+    económicos, Observaciones, Asegurado / titular, Tercero autorizado),
+    todas editables: número de siniestro, dominio/marca/modelo/año del
+    vehículo, suma asegurada, estado, rama, tipo de trámite, tipo de baja,
+    responsable, desarmadero, registro, deudas, fechas, observaciones, los
+    datos propios del asegurado, y el tercero autorizado a entregar la
+    unidad. Editar el vehículo o los datos del asegurado actualiza
     `vehiculos`/`asegurados` por separado (`/api/vehiculos/[id]`,
     `/api/asegurados/[id]`).
 - **CRUD de catálogos** (`/catalogos`): aseguradoras, desarmaderos, registros
