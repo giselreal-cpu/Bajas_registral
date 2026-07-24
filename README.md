@@ -94,6 +94,16 @@ siguiendo el `CLAUDE.md` del proyecto.
   "Documento para la compañía" para corregir la categoría sin borrar y
   volver a cargar, y también se pueden eliminar. Nueva ruta
   `/api/documentos/[id]` (PUT/DELETE).
+- **Catálogo de registros automotores precargado**: 835 registros
+  seccionales de competencia AUTOMOTOR de todo el país (DNRPA), con
+  número, denominación y provincia, cargados vía
+  `0011_registros_dnrpa.sql` (simplificado luego en `0012_simplificar_registros.sql`
+  a solo esos tres datos). El desplegable de "Registro automotor" en la
+  cabecera del caso los agrupa por provincia (`<optgroup>`) y muestra
+  número + denominación. Se pueden seguir agregando/editando/borrando
+  desde `/catalogos/registros-automotores` como cualquier otro catálogo.
+  Quedaron afuera, a propósito, los registros de motovehículos y
+  maquinaria agrícola.
 - **Autorización de retiro y traslado** (un solo botón en el detalle del
   caso): genera un .docx descargable con una carta que combina la
   autorización de retiro (con las declaraciones legales de embargo/
@@ -166,6 +176,12 @@ administrador/compañía, que sí están implementados).
      tercero autorizado a entregar la unidad y la suma asegurada del caso)
    - `supabase/migrations/0010_estados_por_evento.sql` (amplía los estados
      posibles del caso para que cada evento clave tenga su propio paso)
+   - `supabase/migrations/0011_registros_dnrpa.sql` (carga masiva de 835
+     registros seccionales de AUTOMOTOR de todo el país — este archivo es
+     grande, puede tardar unos segundos en correr)
+   - `supabase/migrations/0012_simplificar_registros.sql` (saca dirección
+     y teléfono del catálogo de registros, se queda solo con número,
+     denominación y provincia)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

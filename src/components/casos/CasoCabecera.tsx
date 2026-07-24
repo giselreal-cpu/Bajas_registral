@@ -166,6 +166,16 @@ export default function CasoCabecera({
     router.push("/casos");
   }
 
+  const registrosPorProvincia = (() => {
+    const grupos = new Map<string, RegistroAutomotor[]>();
+    for (const r of registros) {
+      const clave = r.provincia || "Sin provincia";
+      if (!grupos.has(clave)) grupos.set(clave, []);
+      grupos.get(clave)!.push(r);
+    }
+    return Array.from(grupos.entries()).sort(([a], [b]) => a.localeCompare(b));
+  })();
+
   return (
     <div className="card p-5">
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
@@ -368,11 +378,15 @@ export default function CasoCabecera({
                 onChange={(e) => update("registro_id", e.target.value)}
               >
                 <option value="">Sin asignar</option>
-                {registros.map((r) => (
-                  <option key={r.id} value={r.id}>
-                    {r.numero}
-                    {r.seccional ? ` (${r.seccional})` : ""}
-                  </option>
+                {registrosPorProvincia.map(([provincia, regs]) => (
+                  <optgroup key={provincia} label={provincia}>
+                    {regs.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.numero}
+                        {r.seccional ? ` (${r.seccional})` : ""}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
             ) : caso.registro ? (

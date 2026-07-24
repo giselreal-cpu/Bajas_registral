@@ -10,8 +10,8 @@ export default function RegistrosAutomotoresPage() {
       endpoint="/api/registros-automotores"
       columns={[
         { key: "numero", label: "Número", required: true },
-        { key: "seccional", label: "Seccional" },
-        { key: "direccion", label: "Dirección" }
+        { key: "seccional", label: "Denominación" },
+        { key: "provincia", label: "Provincia" }
       ]}
     />
   );

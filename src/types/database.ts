@@ -89,7 +89,7 @@ export interface RegistroAutomotor {
   id: string;
   numero: string;
   seccional: string | null;
-  direccion: string | null;
+  provincia: string | null;
 }
 
 export interface TipoBaja {
