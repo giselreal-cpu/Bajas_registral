@@ -15,14 +15,17 @@ siguiendo el `CLAUDE.md` del proyecto.
     (`/casos/nuevo`).
   - Vista de detalle (`/casos/[id]`) con cabecera organizada en secciones
     con título propio (Datos del caso, Trámite, Vehículo, Datos
-    económicos, Observaciones, Asegurado / titular, Tercero autorizado),
-    todas editables: número de siniestro, dominio/marca/modelo/año del
-    vehículo, suma asegurada, estado, rama, tipo de trámite, tipo de baja,
-    responsable, desarmadero, registro, deudas, fechas, observaciones, los
-    datos propios del asegurado, y el tercero autorizado a entregar la
-    unidad. Editar el vehículo o los datos del asegurado actualiza
-    `vehiculos`/`asegurados` por separado (`/api/vehiculos/[id]`,
-    `/api/asegurados/[id]`).
+    económicos, Asegurado / titular, Tercero autorizado), todas editables:
+    número de siniestro, número de póliza/ítem, nombre y contacto del
+    productor, nombre y email del trámitador de la compañía,
+    dominio/marca/modelo/año del vehículo, suma asegurada, estado, rama,
+    tipo de trámite, tipo de baja, responsable, desarmadero, registro,
+    deudas, fechas, los datos propios del asegurado, y el tercero
+    autorizado a entregar la unidad. Editar el vehículo o los datos del
+    asegurado actualiza `vehiculos`/`asegurados` por separado
+    (`/api/vehiculos/[id]`, `/api/asegurados/[id]`). El campo de
+    Observaciones se sacó de esta vista (el dato sigue existiendo en la
+    base por si se usa en otro lado, simplemente ya no se muestra acá).
 - **CRUD de catálogos** (`/catalogos`): aseguradoras, desarmaderos, registros
   automotores, tipos de baja y usuarios, cada uno con alta, edición inline y
   borrado.
@@ -182,6 +185,8 @@ administrador/compañía, que sí están implementados).
    - `supabase/migrations/0012_simplificar_registros.sql` (saca dirección
      y teléfono del catálogo de registros, se queda solo con número,
      denominación y provincia)
+   - `supabase/migrations/0013_productor_tramitador.sql` (agrega productor
+     y trámitador de la compañía al caso)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

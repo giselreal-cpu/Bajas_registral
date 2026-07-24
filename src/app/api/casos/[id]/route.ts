@@ -56,7 +56,11 @@ export async function PUT(
     "tercero_nombre",
     "tercero_dni",
     "tercero_contacto",
-    "suma_asegurada"
+    "suma_asegurada",
+    "productor_nombre",
+    "productor_contacto",
+    "tramitador_nombre",
+    "tramitador_email"
   ];
 
   const update: Record<string, unknown> = {};

@@ -58,6 +58,10 @@ export default function CasoCabecera({
     fecha_cierre: caso.fecha_cierre ?? "",
     observaciones: caso.observaciones ?? "",
     tercero_nombre: caso.tercero_nombre ?? "",
+    productor_nombre: caso.productor_nombre ?? "",
+    productor_contacto: caso.productor_contacto ?? "",
+    tramitador_nombre: caso.tramitador_nombre ?? "",
+    tramitador_email: caso.tramitador_email ?? "",
     tercero_dni: caso.tercero_dni ?? "",
     tercero_contacto: caso.tercero_contacto ?? "",
     asegurado_nombre: caso.asegurado?.nombre ?? "",
@@ -326,6 +330,55 @@ export default function CasoCabecera({
               caso.responsable?.nombre ?? "—"
             )}
           </Field>
+
+          <Field label="Nombre de productor">
+            {editing ? (
+              <input
+                className="input"
+                value={form.productor_nombre}
+                onChange={(e) => update("productor_nombre", e.target.value)}
+              />
+            ) : (
+              caso.productor_nombre || "—"
+            )}
+          </Field>
+
+          <Field label="Contacto de productor">
+            {editing ? (
+              <input
+                className="input"
+                value={form.productor_contacto}
+                onChange={(e) => update("productor_contacto", e.target.value)}
+              />
+            ) : (
+              caso.productor_contacto || "—"
+            )}
+          </Field>
+
+          <Field label="Trámitador de la compañía">
+            {editing ? (
+              <input
+                className="input"
+                value={form.tramitador_nombre}
+                onChange={(e) => update("tramitador_nombre", e.target.value)}
+              />
+            ) : (
+              caso.tramitador_nombre || "—"
+            )}
+          </Field>
+
+          <Field label="Email del trámitador">
+            {editing ? (
+              <input
+                type="email"
+                className="input"
+                value={form.tramitador_email}
+                onChange={(e) => update("tramitador_email", e.target.value)}
+              />
+            ) : (
+              caso.tramitador_email || "—"
+            )}
+          </Field>
         </div>
       </Section>
 
@@ -533,21 +586,6 @@ export default function CasoCabecera({
             )}
           </Field>
         </div>
-      </Section>
-
-      <Section title="Observaciones">
-        {editing ? (
-          <textarea
-            className="input"
-            rows={3}
-            value={form.observaciones}
-            onChange={(e) => update("observaciones", e.target.value)}
-          />
-        ) : (
-          <p className="text-sm text-slate-700 whitespace-pre-wrap">
-            {caso.observaciones || "—"}
-          </p>
-        )}
       </Section>
 
       <Section title="Asegurado / titular">

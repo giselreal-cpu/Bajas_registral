@@ -139,6 +139,10 @@ export interface Caso {
   tercero_dni: string | null;
   tercero_contacto: string | null;
   suma_asegurada: number | null;
+  productor_nombre: string | null;
+  productor_contacto: string | null;
+  tramitador_nombre: string | null;
+  tramitador_email: string | null;
   created_at: string;
   updated_at: string;
 }
