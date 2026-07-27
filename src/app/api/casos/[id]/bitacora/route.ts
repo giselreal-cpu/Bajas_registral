@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual, getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { avanzarEstadoSiCorresponde } from "@/lib/estadoAutomatico";
+import { registrarCambio } from "@/lib/historial";
 
 export async function GET(
   _request: NextRequest,
@@ -103,6 +104,12 @@ export async function POST(
   if (data.completado) {
     estadoDebug = await avanzarEstadoSiCorresponde(params.id, data.tipo_evento);
   }
+
+  await registrarCambio(
+    params.id,
+    `Agregó evento de bitácora: ${data.tipo_evento}`,
+    data.completado ? "Cargado como completado" : null
+  );
 
   return NextResponse.json({ data, estadoDebug }, { status: 201 });
 }

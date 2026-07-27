@@ -105,6 +105,7 @@ export default function CasoCabecera({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          casoId: caso.id,
           dominio: form.vehiculo_dominio.toUpperCase(),
           marca: form.vehiculo_marca || null,
           modelo: form.vehiculo_modelo || null,
@@ -115,6 +116,7 @@ export default function CasoCabecera({
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          casoId: caso.id,
           nombre: form.asegurado_nombre,
           dni: form.asegurado_dni || null,
           telefono: form.asegurado_telefono || null,

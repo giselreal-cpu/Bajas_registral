@@ -109,6 +109,14 @@ siguiendo el `CLAUDE.md` del proyecto.
   desde `/catalogos/registros-automotores` como cualquier otro catálogo.
   Quedaron afuera, a propósito, los registros de motovehículos y
   maquinaria agrícola.
+- **Historial de cambios** (nueva sección al final del detalle del caso,
+  oculta para el rol compañía): registra quién hizo cada cambio, qué tipo
+  de cambio fue, y cuándo — creación del caso, edición de datos del caso/
+  vehículo/asegurado, alta/edición/completado/borrado de eventos de
+  bitácora, y alta/edición/borrado de documentos. Se completa solo desde
+  el backend (`src/lib/historial.ts`), no se puede editar ni borrar a
+  mano — es un registro de auditoría. Tabla nueva `historial_cambios`
+  (`0015_historial_cambios.sql`).
 - **Número de caso correlativo**: cada caso tiene un `numero_caso`
   autonumerado (1, 2, 3...), independiente del número de siniestro, para
   poder enumerarlos sin tener que prefijarlo a mano. Se ve como primera
@@ -196,6 +204,8 @@ administrador/compañía, que sí están implementados).
      y trámitador de la compañía al caso)
    - `supabase/migrations/0014_numero_caso.sql` (agrega el número de caso
      correlativo, autonumerado)
+   - `supabase/migrations/0015_historial_cambios.sql` (tabla de auditoría:
+     quién hizo qué cambio y cuándo, por caso)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

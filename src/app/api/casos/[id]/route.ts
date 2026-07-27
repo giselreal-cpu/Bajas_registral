@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { registrarCambio } from "@/lib/historial";
 
 const CASO_SELECT = `
   *,
@@ -78,6 +79,9 @@ export async function PUT(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const camposEditados = Object.keys(update).join(", ");
+  await registrarCambio(params.id, "Editó datos del caso", camposEditados || null);
 
   return NextResponse.json({ data });
 }

@@ -180,3 +180,13 @@ export interface Documento {
   url: string;
   created_at: string;
 }
+
+export interface HistorialCambio {
+  id: string;
+  caso_id: string;
+  usuario_id: string | null;
+  tipo_cambio: string;
+  detalle: string | null;
+  created_at: string;
+  usuario: { nombre: string } | null;
+}
