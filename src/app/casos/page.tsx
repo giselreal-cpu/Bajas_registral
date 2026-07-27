@@ -104,6 +104,7 @@ export default async function CasosPage({
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
+              <th className="px-4 py-2 font-medium">N°</th>
               <th className="px-4 py-2 font-medium">N° siniestro</th>
               <th className="px-4 py-2 font-medium">Asegurado</th>
               <th className="px-4 py-2 font-medium">Dominio</th>
@@ -119,6 +120,7 @@ export default async function CasosPage({
                 key={caso.id}
                 className="border-t border-slate-100 hover:bg-slate-50"
               >
+                <td className="px-4 py-2 text-slate-500">{caso.numero_caso}</td>
                 <td className="px-4 py-2">
                   <Link
                     href={`/casos/${caso.id}`}
@@ -146,7 +148,7 @@ export default async function CasosPage({
             ))}
             {casos?.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                   No hay casos cargados todavía.
                 </td>
               </tr>

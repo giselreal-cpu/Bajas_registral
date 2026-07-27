@@ -109,6 +109,11 @@ siguiendo el `CLAUDE.md` del proyecto.
   desde `/catalogos/registros-automotores` como cualquier otro catálogo.
   Quedaron afuera, a propósito, los registros de motovehículos y
   maquinaria agrícola.
+- **Número de caso correlativo**: cada caso tiene un `numero_caso`
+  autonumerado (1, 2, 3...), independiente del número de siniestro, para
+  poder enumerarlos sin tener que prefijarlo a mano. Se ve como primera
+  columna en `/casos` y como "N° X" en el encabezado del detalle del caso.
+  Los casos que ya existían se renumeraron por orden de fecha de ingreso.
 - **Autorización de retiro y traslado** (un solo botón en el detalle del
   caso): genera un .docx descargable con una carta que combina la
   autorización de retiro (con las declaraciones legales de embargo/
@@ -189,6 +194,8 @@ administrador/compañía, que sí están implementados).
      denominación y provincia)
    - `supabase/migrations/0013_productor_tramitador.sql` (agrega productor
      y trámitador de la compañía al caso)
+   - `supabase/migrations/0014_numero_caso.sql` (agrega el número de caso
+     correlativo, autonumerado)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

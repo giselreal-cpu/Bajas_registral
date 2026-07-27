@@ -185,6 +185,7 @@ export default function CasoCabecera({
       <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">
+            <span className="text-slate-400 font-normal">N° {caso.numero_caso} · </span>
             Siniestro {caso.numero_siniestro}
           </h1>
           <p className="text-sm text-slate-500">

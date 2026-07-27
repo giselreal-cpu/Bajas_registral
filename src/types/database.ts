@@ -117,6 +117,7 @@ export interface Usuario {
 
 export interface Caso {
   id: string;
+  numero_caso: number;
   numero_siniestro: string;
   numero_poliza: string | null;
   item_poliza: string | null;
