@@ -67,11 +67,13 @@ siguiendo el `CLAUDE.md` del proyecto.
   se puede seguir cambiando a mano en cualquier momento desde la cabecera
   del caso, esto es un adicional, no un reemplazo.
 - **Bitácora**:
-  - Un evento ya completado no se puede volver a cargar para el mismo
-    caso (el desplegable ya no lo ofrece, y el servidor lo bloquea igual
-    si se intenta por otra vía) — salvo **"Observaciones"**, que no tiene
-    prelación ni conexión con nada y se puede repetir todas las veces que
-    haga falta.
+  - Un tipo de evento no se puede cargar dos veces para el mismo caso —
+    esté completado o pendiente (el desplegable ya no lo ofrece una vez
+    cargado, y el servidor lo bloquea igual si se intenta por otra vía) —
+    salvo **"Observaciones"**, que no tiene prelación ni conexión con nada
+    y se puede repetir todas las veces que haga falta.
+  - Cada evento tiene un botón **"Eliminar"** (antes solo se podía editar
+    o marcar completado/pendiente).
   - Tipo de evento por lista desplegable, con un catálogo **cerrado** de 11
     tipos (`src/lib/eventosBitacora.ts`): Ingreso de caso, Petición de
     Informes, Contacto con el asegurado, Autorización de traslado,

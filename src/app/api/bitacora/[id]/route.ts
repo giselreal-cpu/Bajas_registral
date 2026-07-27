@@ -54,29 +54,27 @@ export async function PUT(
     }
   }
 
-  // Un evento ya cumplido no se puede volver a cargar para el mismo caso
-  // (salvo "Observaciones"). Esto cubre el caso de editar un evento
-  // pendiente y cambiarle el tipo (o marcarlo completado) hacia uno que
-  // ya está cumplido en otra fila de este mismo caso.
+  // Un evento no puede repetirse dos veces para el mismo caso (salvo
+  // "Observaciones"). Esto cubre el caso de editar un evento pendiente y
+  // cambiarle el tipo hacia uno que ya existe (completado o no) en otra
+  // fila de este mismo caso.
   if (existente) {
     const tipoFinal = ("tipo_evento" in update ? update.tipo_evento : existente.tipo_evento) as string;
-    const completadoFinal = "completado" in update ? !!update.completado : existente.completado;
 
-    if (completadoFinal && tipoFinal !== "Observaciones") {
-      const { data: otroCompletado } = await supabase
+    if (tipoFinal !== "Observaciones") {
+      const { data: otroExistente } = await supabase
         .from("bitacora")
         .select("id")
         .eq("caso_id", existente.caso_id)
         .eq("tipo_evento", tipoFinal)
-        .eq("completado", true)
         .neq("id", params.id)
         .limit(1)
         .maybeSingle();
 
-      if (otroCompletado) {
+      if (otroExistente) {
         return NextResponse.json(
           {
-            error: `El evento "${tipoFinal}" ya fue completado para este caso. No se puede volver a cargar.`
+            error: `Ya existe un evento "${tipoFinal}" cargado para este caso. Editá el existente en vez de crear uno nuevo.`
           },
           { status: 409 }
         );

@@ -143,6 +143,20 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
     load();
   }
 
+  async function handleDelete(id: string, tipoEvento: string) {
+    if (!confirm(`¿Eliminar el evento "${tipoEvento}"? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    setError(null);
+    const res = await fetch(`/api/bitacora/${id}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok) {
+      setError(json.error);
+      return;
+    }
+    load();
+  }
+
   async function toggleCompletado(evento: BitacoraEvento) {
     setError(null);
     const vaACompletar = !evento.completado;
@@ -165,11 +179,9 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
     else setError(json.error);
   }
 
-  const tiposCompletados = new Set(
-    (eventos ?? []).filter((ev) => ev.completado).map((ev) => ev.tipo_evento)
-  );
+  const tiposYaCargados = new Set((eventos ?? []).map((ev) => ev.tipo_evento));
   const tiposDisponiblesNuevo = TIPOS_EVENTO.filter(
-    (t) => t.label === "Observaciones" || !tiposCompletados.has(t.label)
+    (t) => t.label === "Observaciones" || !tiposYaCargados.has(t.label)
   );
 
   return (
@@ -402,6 +414,14 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
                       onClick={() => empezarEdicion(ev)}
                     >
                       Editar
+                    </button>
+                  )}
+                  {!soloLectura && (
+                    <button
+                      className="text-xs text-slate-400 hover:text-red-600"
+                      onClick={() => handleDelete(ev.id, ev.tipo_evento)}
+                    >
+                      Eliminar
                     </button>
                   )}
                 </div>
