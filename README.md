@@ -122,6 +122,12 @@ siguiendo el `CLAUDE.md` del proyecto.
   poder enumerarlos sin tener que prefijarlo a mano. Se ve como primera
   columna en `/casos` y como "N° X" en el encabezado del detalle del caso.
   Los casos que ya existían se renumeraron por orden de fecha de ingreso.
+  Al borrar un caso, su número **no se reutiliza ni se renumeran los
+  demás** (a propósito, para no cambiar la numeración de casos que ya
+  quedaron referenciados puertas afuera). Los casos de demo/prueba quedan
+  con `numero_caso = 0` y se muestran con una etiqueta "DEMO" en vez de un
+  número, para no ocupar lugar en la numeración real
+  (`0016_numero_caso_demo.sql`).
 - **Autorización de retiro y traslado** (un solo botón en el detalle del
   caso): genera un .docx descargable con una carta que combina la
   autorización de retiro (con las declaraciones legales de embargo/
@@ -206,6 +212,8 @@ administrador/compañía, que sí están implementados).
      correlativo, autonumerado)
    - `supabase/migrations/0015_historial_cambios.sql` (tabla de auditoría:
      quién hizo qué cambio y cuándo, por caso)
+   - `supabase/migrations/0016_numero_caso_demo.sql` (marca los casos de
+     demo con numero_caso = 0, para no ocupar lugar en la numeración real)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

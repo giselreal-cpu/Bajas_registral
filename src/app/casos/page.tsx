@@ -120,7 +120,13 @@ export default async function CasosPage({
                 key={caso.id}
                 className="border-t border-slate-100 hover:bg-slate-50"
               >
-                <td className="px-4 py-2 text-slate-500">{caso.numero_caso}</td>
+                <td className="px-4 py-2 text-slate-500">
+                  {caso.numero_caso === 0 ? (
+                    <span className="badge bg-slate-100 text-slate-400">DEMO</span>
+                  ) : (
+                    caso.numero_caso
+                  )}
+                </td>
                 <td className="px-4 py-2">
                   <Link
                     href={`/casos/${caso.id}`}
