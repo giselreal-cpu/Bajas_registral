@@ -127,7 +127,10 @@ siguiendo el `CLAUDE.md` del proyecto.
   quedaron referenciados puertas afuera). Los casos de demo/prueba quedan
   con `numero_caso = 0` y se muestran con una etiqueta "DEMO" en vez de un
   número, para no ocupar lugar en la numeración real
-  (`0016_numero_caso_demo.sql`).
+  (`0016_numero_caso_demo.sql`). Si se cambia la aseguradora de un caso
+  hacia o desde "Aseguradora Demo S.A.", el `numero_caso` se ajusta solo
+  (pasa a 0, o toma el próximo número real disponible), usando la función
+  `siguiente_numero_caso()` (`0018_siguiente_numero_caso.sql`).
 - **Autorización de retiro y traslado** (un solo botón en el detalle del
   caso): genera un .docx descargable con una carta que combina la
   autorización de retiro (con las declaraciones legales de embargo/
@@ -217,6 +220,8 @@ administrador/compañía, que sí están implementados).
    - `supabase/migrations/0017_recalcular_numero_caso.sql` (recálculo
      puntual, una sola vez, para sacar huecos existentes — de acá en más
      los huecos por futuros borrados NO se vuelven a recalcular solos)
+   - `supabase/migrations/0018_siguiente_numero_caso.sql` (función para
+     asignar el próximo número real cuando un caso deja de ser demo)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

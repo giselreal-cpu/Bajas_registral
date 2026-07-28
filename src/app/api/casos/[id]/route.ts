@@ -81,6 +81,29 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Si se cambió la aseguradora, ajustamos el número correlativo: si pasa
+  // a ser la aseguradora demo, se marca como numero_caso = 0; si deja de
+  // serlo (y todavía estaba en 0), se le asigna el próximo número real.
+  if ("aseguradora_id" in update) {
+    const { data: aseg } = await supabase
+      .from("aseguradoras")
+      .select("nombre")
+      .eq("id", update.aseguradora_id as string)
+      .maybeSingle();
+    const esDemo = aseg?.nombre === "Aseguradora Demo S.A.";
+
+    if (esDemo && data.numero_caso !== 0) {
+      await supabase.from("casos").update({ numero_caso: 0 }).eq("id", params.id);
+      data.numero_caso = 0;
+    } else if (!esDemo && data.numero_caso === 0) {
+      const { data: nuevoNumero } = await supabase.rpc("siguiente_numero_caso");
+      if (typeof nuevoNumero === "number") {
+        await supabase.from("casos").update({ numero_caso: nuevoNumero }).eq("id", params.id);
+        data.numero_caso = nuevoNumero;
+      }
+    }
+  }
+
   const camposEditados = Object.keys(update).join(", ");
   await registrarCambio(params.id, "Editó datos del caso", camposEditados || null);
 
