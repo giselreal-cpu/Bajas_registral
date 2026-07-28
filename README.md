@@ -16,8 +16,8 @@ siguiendo el `CLAUDE.md` del proyecto.
   - Vista de detalle (`/casos/[id]`) con cabecera organizada en secciones
     con título propio (Datos del caso, Trámite, Vehículo, Datos
     económicos, Asegurado / titular, Tercero autorizado), todas editables:
-    número de siniestro, número de póliza/ítem, nombre y contacto del
-    productor, nombre y email del trámitador de la compañía,
+    número de siniestro, número de póliza/ítem, **aseguradora**, nombre y
+    contacto del productor, nombre y email del trámitador de la compañía,
     dominio/marca/modelo/año del vehículo, suma asegurada, estado, rama,
     tipo de trámite, tipo de baja, responsable, desarmadero, registro,
     deudas, fechas, los datos propios del asegurado, y el tercero

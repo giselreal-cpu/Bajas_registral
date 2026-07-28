@@ -43,6 +43,7 @@ export async function PUT(
     "numero_siniestro",
     "numero_poliza",
     "item_poliza",
+    "aseguradora_id",
     "estado",
     "rama",
     "tipo_tramite",

@@ -27,14 +27,21 @@ export default async function CasoDetallePage({
 }) {
   const supabase = createClient();
 
-  const [{ data: caso, error }, { data: desarmaderos }, { data: registros }, { data: tiposBaja }, { data: usuarios }] =
-    await Promise.all([
-      supabase.from("casos").select(CASO_SELECT).eq("id", params.id).single(),
-      supabase.from("desarmaderos").select("*").order("nombre"),
-      supabase.from("registros_automotores").select("*").order("numero"),
-      supabase.from("tipos_baja").select("*").order("nombre"),
-      supabase.from("usuarios").select("*").order("nombre")
-    ]);
+  const [
+    { data: caso, error },
+    { data: aseguradoras },
+    { data: desarmaderos },
+    { data: registros },
+    { data: tiposBaja },
+    { data: usuarios }
+  ] = await Promise.all([
+    supabase.from("casos").select(CASO_SELECT).eq("id", params.id).single(),
+    supabase.from("aseguradoras").select("*").order("nombre"),
+    supabase.from("desarmaderos").select("*").order("nombre"),
+    supabase.from("registros_automotores").select("*").order("numero"),
+    supabase.from("tipos_baja").select("*").order("nombre"),
+    supabase.from("usuarios").select("*").order("nombre")
+  ]);
 
   if (error || !caso) {
     notFound();
@@ -48,6 +55,7 @@ export default async function CasoDetallePage({
     <div className="space-y-6">
       <CasoCabecera
         caso={caso as CasoConRelaciones}
+        aseguradoras={aseguradoras ?? []}
         desarmaderos={desarmaderos ?? []}
         registros={registros ?? []}
         tiposBaja={tiposBaja ?? []}

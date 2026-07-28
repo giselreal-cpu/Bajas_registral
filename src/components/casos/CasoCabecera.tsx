@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
+  Aseguradora,
   CasoConRelaciones,
   Desarmadero,
   ESTADOS,
@@ -14,6 +15,7 @@ import {
 
 interface Props {
   caso: CasoConRelaciones;
+  aseguradoras: Aseguradora[];
   desarmaderos: Desarmadero[];
   registros: RegistroAutomotor[];
   tiposBaja: TipoBaja[];
@@ -24,6 +26,7 @@ interface Props {
 
 export default function CasoCabecera({
   caso,
+  aseguradoras,
   desarmaderos,
   registros,
   tiposBaja,
@@ -44,6 +47,7 @@ export default function CasoCabecera({
     vehiculo_modelo: caso.vehiculo?.modelo ?? "",
     vehiculo_anio: caso.vehiculo?.anio ?? "",
     numero_poliza: caso.numero_poliza ?? "",
+    aseguradora_id: caso.aseguradora_id,
     item_poliza: caso.item_poliza ?? "",
     estado: caso.estado,
     rama: caso.rama ?? "",
@@ -277,6 +281,24 @@ export default function CasoCabecera({
               />
             ) : (
               caso.item_poliza || "—"
+            )}
+          </Field>
+
+          <Field label="Aseguradora">
+            {editing ? (
+              <select
+                className="input"
+                value={form.aseguradora_id}
+                onChange={(e) => update("aseguradora_id", e.target.value)}
+              >
+                {aseguradoras.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              caso.aseguradora?.nombre ?? "—"
             )}
           </Field>
 
