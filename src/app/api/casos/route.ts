@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { registrarCambio } from "@/lib/historial";
 
 const CASO_SELECT = `
   *,
@@ -146,6 +147,8 @@ export async function POST(request: NextRequest) {
     completado: true,
     creado_por: responsable_id ?? null
   });
+
+  await registrarCambio(caso.id, "Creó el caso");
 
   return NextResponse.json({ data: caso }, { status: 201 });
 }

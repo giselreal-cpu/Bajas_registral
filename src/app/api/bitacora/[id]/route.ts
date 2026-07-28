@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { avanzarEstadoSiCorresponde } from "@/lib/estadoAutomatico";
+import { registrarCambio } from "@/lib/historial";
 
 // PUT /api/bitacora/[id] -> ej. marcar como completada, editar fecha_fin, etc.
 export async function PUT(
@@ -98,6 +99,14 @@ export async function PUT(
     estadoDebug = await avanzarEstadoSiCorresponde(data.caso_id, data.tipo_evento);
   }
 
+  const marcoCompletado = "completado" in update && update.completado && !existente?.completado;
+  await registrarCambio(
+    data.caso_id,
+    marcoCompletado
+      ? `Completó evento de bitácora: ${data.tipo_evento}`
+      : `Editó evento de bitácora: ${data.tipo_evento}`
+  );
+
   return NextResponse.json({ data, estadoDebug });
 }
 
@@ -106,10 +115,21 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   const supabase = createClient();
+
+  const { data: existente } = await supabase
+    .from("bitacora")
+    .select("caso_id, tipo_evento")
+    .eq("id", params.id)
+    .maybeSingle();
+
   const { error } = await supabase.from("bitacora").delete().eq("id", params.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (existente) {
+    await registrarCambio(existente.caso_id, `Eliminó evento de bitácora: ${existente.tipo_evento}`);
   }
 
   return NextResponse.json({ ok: true });

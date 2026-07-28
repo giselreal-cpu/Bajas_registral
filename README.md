@@ -109,6 +109,25 @@ siguiendo el `CLAUDE.md` del proyecto.
   desde `/catalogos/registros-automotores` como cualquier otro catálogo.
   Quedaron afuera, a propósito, los registros de motovehículos y
   maquinaria agrícola.
+- **Historial de cambios** (nueva sección al final del detalle del caso,
+  oculta para el rol compañía): registra quién hizo cada cambio, qué tipo
+  de cambio fue, y cuándo — creación del caso, edición de datos del caso/
+  vehículo/asegurado, alta/edición/completado/borrado de eventos de
+  bitácora, y alta/edición/borrado de documentos. Se completa solo desde
+  el backend (`src/lib/historial.ts`), no se puede editar ni borrar a
+  mano — es un registro de auditoría. Tabla nueva `historial_cambios`
+  (`0015_historial_cambios.sql`).
+- **Número de caso correlativo**: cada caso tiene un `numero_caso`
+  autonumerado (1, 2, 3...), independiente del número de siniestro, para
+  poder enumerarlos sin tener que prefijarlo a mano. Se ve como primera
+  columna en `/casos` y como "N° X" en el encabezado del detalle del caso.
+  Los casos que ya existían se renumeraron por orden de fecha de ingreso.
+  Al borrar un caso, su número **no se reutiliza ni se renumeran los
+  demás** (a propósito, para no cambiar la numeración de casos que ya
+  quedaron referenciados puertas afuera). Los casos de demo/prueba quedan
+  con `numero_caso = 0` y se muestran con una etiqueta "DEMO" en vez de un
+  número, para no ocupar lugar en la numeración real
+  (`0016_numero_caso_demo.sql`).
 - **Autorización de retiro y traslado** (un solo botón en el detalle del
   caso): genera un .docx descargable con una carta que combina la
   autorización de retiro (con las declaraciones legales de embargo/
@@ -189,6 +208,15 @@ administrador/compañía, que sí están implementados).
      denominación y provincia)
    - `supabase/migrations/0013_productor_tramitador.sql` (agrega productor
      y trámitador de la compañía al caso)
+   - `supabase/migrations/0014_numero_caso.sql` (agrega el número de caso
+     correlativo, autonumerado)
+   - `supabase/migrations/0015_historial_cambios.sql` (tabla de auditoría:
+     quién hizo qué cambio y cuándo, por caso)
+   - `supabase/migrations/0016_numero_caso_demo.sql` (marca los casos de
+     demo con numero_caso = 0, para no ocupar lugar en la numeración real)
+   - `supabase/migrations/0017_recalcular_numero_caso.sql` (recálculo
+     puntual, una sola vez, para sacar huecos existentes — de acá en más
+     los huecos por futuros borrados NO se vuelven a recalcular solos)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

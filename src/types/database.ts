@@ -117,6 +117,7 @@ export interface Usuario {
 
 export interface Caso {
   id: string;
+  numero_caso: number;
   numero_siniestro: string;
   numero_poliza: string | null;
   item_poliza: string | null;
@@ -178,4 +179,14 @@ export interface Documento {
   nombre: string;
   url: string;
   created_at: string;
+}
+
+export interface HistorialCambio {
+  id: string;
+  caso_id: string;
+  usuario_id: string | null;
+  tipo_cambio: string;
+  detalle: string | null;
+  created_at: string;
+  usuario: { nombre: string } | null;
 }

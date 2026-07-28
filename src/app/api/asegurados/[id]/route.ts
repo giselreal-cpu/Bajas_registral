@@ -1,9 +1,8 @@
-import { createCatalogItemHandlers } from "@/lib/api/catalogHandlers";
+import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { registrarCambio } from "@/lib/historial";
 
-// Igual que /api/vehiculos/[id]: reusa el factory de catálogos para poder
-// editar los datos del asegurado después de creado el caso (antes solo se
-// cargaban una vez, al alta, y no había forma de corregirlos después).
-export const { PUT } = createCatalogItemHandlers("asegurados", [
+const ALLOWED_FIELDS = [
   "nombre",
   "dni",
   "telefono",
@@ -13,4 +12,38 @@ export const { PUT } = createCatalogItemHandlers("asegurados", [
   "provincia",
   "entre_calles",
   "partido"
-]);
+];
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const supabase = createClient();
+  const body = await request.json();
+
+  const update: Record<string, unknown> = {};
+  for (const field of ALLOWED_FIELDS) {
+    if (field in body) update[field] = body[field] === "" ? null : body[field];
+  }
+
+  const { data, error } = await supabase
+    .from("asegurados")
+    .update(update)
+    .eq("id", params.id)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (typeof body.casoId === "string") {
+    await registrarCambio(
+      body.casoId,
+      "Editó datos del asegurado",
+      Object.keys(update).join(", ") || null
+    );
+  }
+
+  return NextResponse.json({ data });
+}

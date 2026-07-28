@@ -5,6 +5,7 @@ import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import CasoCabecera from "@/components/casos/CasoCabecera";
 import BitacoraSection from "@/components/casos/BitacoraSection";
 import DocumentosSection from "@/components/casos/DocumentosSection";
+import HistorialSection from "@/components/casos/HistorialSection";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,8 @@ export default async function CasoDetallePage({
         <BitacoraSection casoId={caso.id} soloLectura={soloLectura} />
         <DocumentosSection casoId={caso.id} soloLectura={soloLectura} />
       </div>
+
+      <HistorialSection casoId={caso.id} soloLectura={soloLectura} />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { registrarCambio } from "@/lib/historial";
 
 export async function GET(
   _request: NextRequest,
@@ -47,6 +48,8 @@ export async function POST(
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  await registrarCambio(params.id, `Agregó documento: ${nombre}`, categoria);
 
   return NextResponse.json({ data }, { status: 201 });
 }
