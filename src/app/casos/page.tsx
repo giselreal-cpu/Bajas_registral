@@ -9,7 +9,7 @@ const CASO_SELECT = `
   *,
   aseguradora:aseguradoras(*),
   asegurado:asegurados(*),
-  vehiculo:vehiculos(*),
+  vehiculo:vehiculos!inner(*),
   responsable:usuarios(*)
 `;
 
@@ -29,7 +29,7 @@ function estadoBadgeClass(estado: string) {
 export default async function CasosPage({
   searchParams
 }: {
-  searchParams: { estado?: string; q?: string };
+  searchParams: { estado?: string; q?: string; dominio?: string; aseguradora_id?: string };
 }) {
   const supabase = createClient();
   let query = supabase
@@ -43,8 +43,18 @@ export default async function CasosPage({
   if (searchParams.q) {
     query = query.ilike("numero_siniestro", `%${searchParams.q}%`);
   }
+  if (searchParams.dominio) {
+    query = query.ilike("vehiculo.dominio", `%${searchParams.dominio}%`);
+  }
+  if (searchParams.aseguradora_id) {
+    query = query.eq("aseguradora_id", searchParams.aseguradora_id);
+  }
 
-  const { data: casos, error } = await query;
+  const [{ data: casos, error }, { data: aseguradoras }] = await Promise.all([
+    query,
+    supabase.from("aseguradoras").select("id, nombre").order("nombre")
+  ]);
+
   const usuarioActual = await getUsuarioActual();
   const esCompania = usuarioActual?.rol === "compania";
 
@@ -73,6 +83,30 @@ export default async function CasosPage({
             className="input"
             placeholder="Buscar..."
           />
+        </div>
+        <div className="flex-1 min-w-[140px]">
+          <label className="label">Dominio</label>
+          <input
+            name="dominio"
+            defaultValue={searchParams.dominio ?? ""}
+            className="input uppercase"
+            placeholder="Buscar..."
+          />
+        </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Compañía</label>
+          <select
+            name="aseguradora_id"
+            defaultValue={searchParams.aseguradora_id ?? ""}
+            className="input"
+          >
+            <option value="">Todas</option>
+            {aseguradoras?.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nombre}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="flex-1 min-w-[140px]">
           <label className="label">Estado</label>

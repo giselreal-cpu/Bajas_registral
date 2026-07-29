@@ -10,7 +10,8 @@ siguiendo el `CLAUDE.md` del proyecto.
   `registros_automotores`, `tipos_baja`, `usuarios`, `casos`, `bitacora`,
   `documentos`.
 - **CRUD de casos**:
-  - Listado con filtro por estado y por número de siniestro (`/casos`).
+  - Listado con filtro por número de siniestro, **dominio** y
+    **compañía/aseguradora**, además del filtro por estado (`/casos`).
   - Alta de caso, creando en el mismo paso el asegurado y el vehículo
     (`/casos/nuevo`).
   - Vista de detalle (`/casos/[id]`) con cabecera organizada en secciones
