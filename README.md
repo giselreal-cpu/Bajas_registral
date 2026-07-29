@@ -33,7 +33,12 @@ siguiendo el `CLAUDE.md` del proyecto.
 - **Agenda de vencimientos** (`/agenda`): eventos de bitácora pendientes de
   todos los casos abiertos, agrupados en Vencidos / Próximos 7 días / Más
   adelante / Sin fecha, con filtro por responsable.
-- **Panel de control** (`/panel`, página de inicio): casos totales/abiertos/
+- **Panel de control** (`/panel`, página de inicio): filtro por
+  **compañía/aseguradora y mes de ingreso** (afecta las tarjetas de
+  totales y "Casos por estado"; no hay filtro por estado ahí porque esa
+  misma sección ya desglosa por estado — sería redundante. El resto del
+  panel —vencimientos, tiempos de trámite— sigue mostrando todo, ya que
+  son alertas operativas, no un reporte), casos totales/abiertos/
   cerrados, casos por estado, alerta de **casos sin movimiento hace 7+ días**
   (configurable en `DIAS_SIN_MOVIMIENTO` en `src/app/panel/page.tsx`, solo
   aparece si hay algún caso en esa situación), y una lista combinada de

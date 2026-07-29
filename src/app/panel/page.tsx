@@ -43,21 +43,39 @@ function estadoBadgeClass(estado: string) {
   }
 }
 
-export default async function PanelPage() {
+export default async function PanelPage({
+  searchParams
+}: {
+  searchParams: { aseguradora_id?: string; mes?: string };
+}) {
   const supabase = createClient();
+
+  let casosQuery = supabase
+    .from("casos")
+    .select(
+      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, asegurado:asegurados(nombre), responsable:usuarios(nombre)"
+    );
+
+  if (searchParams.aseguradora_id) {
+    casosQuery = casosQuery.eq("aseguradora_id", searchParams.aseguradora_id);
+  }
+  if (searchParams.mes) {
+    const [anio, mes] = searchParams.mes.split("-").map(Number);
+    const desde = `${searchParams.mes}-01`;
+    const hastaDate = new Date(anio, mes, 1); // primer día del mes siguiente
+    const hasta = hastaDate.toISOString().slice(0, 10);
+    casosQuery = casosQuery.gte("fecha_ingreso", desde).lt("fecha_ingreso", hasta);
+  }
 
   const [
     { data: casos, error: errorCasos },
     { data: vencimientos, error: errorVenc },
     { data: movimientos, error: errorMov },
     { data: casosCerradosConFechas, error: errorCerrados },
-    { data: eventosPresentacion, error: errorPresentacion }
+    { data: eventosPresentacion, error: errorPresentacion },
+    { data: aseguradoras }
   ] = await Promise.all([
-    supabase
-      .from("casos")
-      .select(
-        "id, estado, numero_siniestro, created_at, asegurado:asegurados(nombre), responsable:usuarios(nombre)"
-      ),
+    casosQuery,
     supabase
       .from("bitacora")
       .select(
@@ -80,8 +98,11 @@ export default async function PanelPage() {
       .from("bitacora")
       .select("caso_id, fecha_inicio, fecha_fin")
       .eq("tipo_evento", "Presentación de Baja")
-      .eq("completado", true)
+      .eq("completado", true),
+    supabase.from("aseguradoras").select("id, nombre").order("nombre")
   ]);
+
+  const hayFiltrosPanel = !!(searchParams.aseguradora_id || searchParams.mes);
 
   const usuarioActual = await getUsuarioActual();
   const puedeVerTiempos = usuarioActual?.rol !== "compania";
@@ -223,6 +244,41 @@ export default async function PanelPage() {
         </p>
       </div>
 
+      <form className="card p-4 flex flex-wrap gap-3 items-end" method="get">
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Compañía</label>
+          <select
+            name="aseguradora_id"
+            defaultValue={searchParams.aseguradora_id ?? ""}
+            className="input"
+          >
+            <option value="">Todas</option>
+            {aseguradoras?.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Mes de ingreso</label>
+          <input
+            type="month"
+            name="mes"
+            defaultValue={searchParams.mes ?? ""}
+            className="input"
+          />
+        </div>
+        <button className="btn-secondary" type="submit">
+          Filtrar
+        </button>
+        {hayFiltrosPanel && (
+          <Link href="/panel" className="btn-secondary">
+            Quitar filtros
+          </Link>
+        )}
+      </form>
+
       {(errorCasos || errorVenc || errorMov || errorCerrados || errorPresentacion) && (
         <div className="card p-3 text-sm text-red-600 border-red-200 bg-red-50">
           {errorCasos?.message ||
@@ -279,7 +335,11 @@ export default async function PanelPage() {
               return (
                 <Link
                   key={e.value}
-                  href={`/casos?estado=${e.value}`}
+                  href={`/casos?estado=${e.value}${
+                    searchParams.aseguradora_id
+                      ? `&aseguradora_id=${searchParams.aseguradora_id}`
+                      : ""
+                  }`}
                   className="block group"
                 >
                   <div className="flex items-center justify-between text-sm mb-1">
