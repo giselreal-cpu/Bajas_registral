@@ -137,6 +137,12 @@ siguiendo el `CLAUDE.md` del proyecto.
   hacia o desde "Aseguradora Demo S.A.", el `numero_caso` se ajusta solo
   (pasa a 0, o toma el próximo número real disponible), usando la función
   `siguiente_numero_caso()` (`0018_siguiente_numero_caso.sql`).
+  **Importante**: si en algún momento hace falta ajustar `numero_caso` a
+  mano por SQL, siempre correr después
+  `select setval(pg_get_serial_sequence('casos','numero_caso'), (select coalesce(max(numero_caso),0) from casos));`
+  para resincronizar la secuencia — si no, el próximo caso nuevo puede
+  terminar repitiendo un número ya usado (fue justamente lo que pasó y
+  arregla `0019_fix_duplicado_numero_caso.sql`).
 - **Autorización de retiro y traslado** (un solo botón en el detalle del
   caso): genera un .docx descargable con una carta que combina la
   autorización de retiro (con las declaraciones legales de embargo/
@@ -228,6 +234,9 @@ administrador/compañía, que sí están implementados).
      los huecos por futuros borrados NO se vuelven a recalcular solos)
    - `supabase/migrations/0018_siguiente_numero_caso.sql` (función para
      asignar el próximo número real cuando un caso deja de ser demo)
+   - `supabase/migrations/0019_fix_duplicado_numero_caso.sql` (corrige un
+     número duplicado que se generó por un ajuste manual anterior que
+     dejó la secuencia desincronizada, y la resincroniza)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 
