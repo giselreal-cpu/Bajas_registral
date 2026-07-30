@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { avanzarEstadoSiCorresponde } from "@/lib/estadoAutomatico";
 import { registrarCambio } from "@/lib/historial";
+import { motivoBloqueo } from "@/lib/eventosBitacora";
 
 // PUT /api/bitacora/[id] -> ej. marcar como completada, editar fecha_fin, etc.
 export async function PUT(
@@ -79,6 +80,26 @@ export async function PUT(
           },
           { status: 409 }
         );
+      }
+    }
+  }
+
+  // Si el evento va a quedar completado (sea porque ya lo estaba y no se
+  // toca ese campo, o porque este pedido lo marca así), no dejamos pasar
+  // si el prerequisito de ese tipo de evento todavía no está cumplido.
+  if (existente) {
+    const tipoFinal = ("tipo_evento" in update ? update.tipo_evento : existente.tipo_evento) as string;
+    const completadoFinal = "completado" in update ? !!update.completado : existente.completado;
+
+    if (completadoFinal) {
+      const { data: eventosExistentes } = await supabase
+        .from("bitacora")
+        .select("id, tipo_evento, completado")
+        .eq("caso_id", existente.caso_id);
+
+      const bloqueo = motivoBloqueo(tipoFinal, eventosExistentes ?? [], params.id);
+      if (bloqueo) {
+        return NextResponse.json({ error: bloqueo }, { status: 409 });
       }
     }
   }

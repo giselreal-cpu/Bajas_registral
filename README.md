@@ -72,6 +72,17 @@ siguiendo el `CLAUDE.md` del proyecto.
   etapa anterior" más tarde. Ver `src/lib/estadoAutomatico.ts`. El estado
   se puede seguir cambiando a mano en cualquier momento desde la cabecera
   del caso, esto es un adicional, no un reemplazo.
+  **Importante**: este avance solo se dispara en el momento en que se
+  completa un evento *desde que existe esta lógica*; no revisa
+  retroactivamente eventos que ya estaban completados de antes. Si hace
+  falta ponerse al día (por ejemplo, después de una migración de datos
+  vieja), correr `0020_recalcular_estados.sql`, que recalcula el estado de
+  todos los casos según sus eventos ya completados, sin retroceder nunca
+  uno que ya estuviera más avanzado.
+  Además, el prerequisito de cada evento (que ya se validaba en el
+  navegador) ahora también se valida **en el servidor**
+  (`src/lib/eventosBitacora.ts` → `motivoBloqueo`, usado en las rutas de
+  bitácora), para que no se pueda saltear llamando a la API directo.
 - **Bitácora**:
   - Un tipo de evento no se puede cargar dos veces para el mismo caso —
     esté completado o pendiente (el desplegable ya no lo ofrece una vez
@@ -237,6 +248,9 @@ administrador/compañía, que sí están implementados).
    - `supabase/migrations/0019_fix_duplicado_numero_caso.sql` (corrige un
      número duplicado que se generó por un ajuste manual anterior que
      dejó la secuencia desincronizada, y la resincroniza)
+   - `supabase/migrations/0020_recalcular_estados.sql` (recalcula
+     retroactivamente el estado de todos los casos según sus eventos de
+     bitácora ya completados, sin retroceder nunca uno más avanzado)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API.
 

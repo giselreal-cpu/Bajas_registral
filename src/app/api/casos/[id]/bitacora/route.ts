@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual, getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { avanzarEstadoSiCorresponde } from "@/lib/estadoAutomatico";
 import { registrarCambio } from "@/lib/historial";
+import { motivoBloqueo } from "@/lib/eventosBitacora";
 
 export async function GET(
   _request: NextRequest,
@@ -78,6 +79,22 @@ export async function POST(
         },
         { status: 409 }
       );
+    }
+  }
+
+  // Si se está cargando ya como completado, no dejamos pasar si el
+  // prerequisito de ese tipo de evento todavía no está cumplido. Antes
+  // esto solo se validaba en el navegador; ahora también acá, para que
+  // no se pueda saltear llamando a la API directo.
+  if (completado) {
+    const { data: eventosExistentes } = await supabase
+      .from("bitacora")
+      .select("id, tipo_evento, completado")
+      .eq("caso_id", params.id);
+
+    const bloqueo = motivoBloqueo(tipo_evento, eventosExistentes ?? []);
+    if (bloqueo) {
+      return NextResponse.json({ error: bloqueo }, { status: 409 });
     }
   }
 
