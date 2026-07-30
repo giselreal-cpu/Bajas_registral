@@ -46,18 +46,21 @@ function estadoBadgeClass(estado: string) {
 export default async function PanelPage({
   searchParams
 }: {
-  searchParams: { aseguradora_id?: string; mes?: string };
+  searchParams: { aseguradora_id?: string; mes?: string; tipo_baja_id?: string };
 }) {
   const supabase = createClient();
 
   let casosQuery = supabase
     .from("casos")
     .select(
-      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, asegurado:asegurados(nombre), responsable:usuarios(nombre)"
+      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, asegurado:asegurados(nombre), responsable:usuarios(nombre)"
     );
 
   if (searchParams.aseguradora_id) {
     casosQuery = casosQuery.eq("aseguradora_id", searchParams.aseguradora_id);
+  }
+  if (searchParams.tipo_baja_id) {
+    casosQuery = casosQuery.eq("tipo_baja_id", searchParams.tipo_baja_id);
   }
   if (searchParams.mes) {
     const [anio, mes] = searchParams.mes.split("-").map(Number);
@@ -67,13 +70,34 @@ export default async function PanelPage({
     casosQuery = casosQuery.gte("fecha_ingreso", desde).lt("fecha_ingreso", hasta);
   }
 
+  let casosCerradosQuery = supabase
+    .from("casos")
+    .select("id, numero_siniestro, fecha_ingreso, fecha_cierre")
+    .eq("estado", "cerrado")
+    .not("fecha_cierre", "is", null);
+
+  if (searchParams.aseguradora_id) {
+    casosCerradosQuery = casosCerradosQuery.eq("aseguradora_id", searchParams.aseguradora_id);
+  }
+  if (searchParams.tipo_baja_id) {
+    casosCerradosQuery = casosCerradosQuery.eq("tipo_baja_id", searchParams.tipo_baja_id);
+  }
+  if (searchParams.mes) {
+    const [anio, mes] = searchParams.mes.split("-").map(Number);
+    const desde = `${searchParams.mes}-01`;
+    const hastaDate = new Date(anio, mes, 1);
+    const hasta = hastaDate.toISOString().slice(0, 10);
+    casosCerradosQuery = casosCerradosQuery.gte("fecha_ingreso", desde).lt("fecha_ingreso", hasta);
+  }
+
   const [
     { data: casos, error: errorCasos },
     { data: vencimientos, error: errorVenc },
     { data: movimientos, error: errorMov },
     { data: casosCerradosConFechas, error: errorCerrados },
     { data: eventosPresentacion, error: errorPresentacion },
-    { data: aseguradoras }
+    { data: aseguradoras },
+    { data: tiposBaja }
   ] = await Promise.all([
     casosQuery,
     supabase
@@ -89,20 +113,21 @@ export default async function PanelPage({
       .order("fecha_fin", { ascending: true })
       .limit(8),
     supabase.from("bitacora").select("caso_id, created_at"),
-    supabase
-      .from("casos")
-      .select("id, numero_siniestro, fecha_ingreso, fecha_cierre")
-      .eq("estado", "cerrado")
-      .not("fecha_cierre", "is", null),
+    casosCerradosQuery,
     supabase
       .from("bitacora")
       .select("caso_id, fecha_inicio, fecha_fin")
       .eq("tipo_evento", "Presentación de Baja")
       .eq("completado", true),
-    supabase.from("aseguradoras").select("id, nombre").order("nombre")
+    supabase.from("aseguradoras").select("id, nombre").order("nombre"),
+    supabase.from("tipos_baja").select("id, nombre").order("nombre")
   ]);
 
-  const hayFiltrosPanel = !!(searchParams.aseguradora_id || searchParams.mes);
+  const hayFiltrosPanel = !!(
+    searchParams.aseguradora_id ||
+    searchParams.mes ||
+    searchParams.tipo_baja_id
+  );
 
   const usuarioActual = await getUsuarioActual();
   const puedeVerTiempos = usuarioActual?.rol !== "compania";
@@ -268,6 +293,21 @@ export default async function PanelPage({
             defaultValue={searchParams.mes ?? ""}
             className="input"
           />
+        </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Tipo de baja</label>
+          <select
+            name="tipo_baja_id"
+            defaultValue={searchParams.tipo_baja_id ?? ""}
+            className="input"
+          >
+            <option value="">Todos</option>
+            {tiposBaja?.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
         </div>
         <button className="btn-secondary" type="submit">
           Filtrar
