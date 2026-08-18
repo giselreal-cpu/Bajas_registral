@@ -380,9 +380,9 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
                     )
                   )}
                   <p className="text-xs text-slate-400 mt-1">
-                    {new Date(ev.fecha_inicio).toLocaleDateString("es-AR")}
+                    {new Date(ev.fecha_inicio + "T00:00:00").toLocaleDateString("es-AR")}
                     {ev.fecha_fin &&
-                      ` → ${new Date(ev.fecha_fin).toLocaleDateString("es-AR")}`}
+                      ` → ${new Date(ev.fecha_fin + "T00:00:00").toLocaleDateString("es-AR")}`}
                   </p>
                 </div>
                 <div className="flex flex-col items-end gap-2 shrink-0">

@@ -477,7 +477,7 @@ export default function CasoCabecera({
           </Field>
 
           <Field label="Fecha de ingreso">
-            {new Date(caso.fecha_ingreso).toLocaleDateString("es-AR")}
+            {new Date(caso.fecha_ingreso + "T00:00:00").toLocaleDateString("es-AR")}
           </Field>
 
           <Field label="Fecha de cierre">
@@ -489,7 +489,7 @@ export default function CasoCabecera({
                 onChange={(e) => update("fecha_cierre", e.target.value)}
               />
             ) : caso.fecha_cierre ? (
-              new Date(caso.fecha_cierre).toLocaleDateString("es-AR")
+              new Date(caso.fecha_cierre + "T00:00:00").toLocaleDateString("es-AR")
             ) : (
               "—"
             )}

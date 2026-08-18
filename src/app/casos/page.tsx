@@ -182,7 +182,7 @@ export default async function CasosPage({
                   </span>
                 </td>
                 <td className="px-4 py-2">
-                  {new Date(caso.fecha_ingreso).toLocaleDateString("es-AR")}
+                  {new Date(caso.fecha_ingreso + "T00:00:00").toLocaleDateString("es-AR")}
                 </td>
               </tr>
             ))}

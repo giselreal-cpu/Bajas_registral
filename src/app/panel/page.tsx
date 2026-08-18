@@ -484,10 +484,10 @@ export default async function PanelPage({
                         </Link>
                       </td>
                       <td className="py-1.5 pr-4">
-                        {new Date(c.fecha_ingreso).toLocaleDateString("es-AR")}
+                        {new Date(c.fecha_ingreso + "T00:00:00").toLocaleDateString("es-AR")}
                       </td>
                       <td className="py-1.5 pr-4">
-                        {new Date(c.fecha_cierre!).toLocaleDateString("es-AR")}
+                        {new Date(c.fecha_cierre! + "T00:00:00").toLocaleDateString("es-AR")}
                       </td>
                       <td className="py-1.5 pr-4">{c.diasTramite}</td>
                       <td className="py-1.5 pr-4">
