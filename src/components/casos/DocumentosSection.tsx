@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Documento } from "@/types/database";
+import { CATEGORIAS_GESTOR, Documento } from "@/types/database";
 
-const CATEGORIAS: { value: Documento["categoria"]; label: string }[] = [
+const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania"; label: string }[] = [
   { value: "imagen_dominio", label: "Imagen del dominio" },
   { value: "documento_compania", label: "Documento para la compañía" }
 ];
+
+const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR];
 
 export default function DocumentosSection({
   casoId,
@@ -22,10 +24,14 @@ export default function DocumentosSection({
   const [arrastrandoId, setArrastrandoId] = useState<string | null>(null);
   const [categoriaSobre, setCategoriaSobre] = useState<Documento["categoria"] | null>(null);
 
-  const [form, setForm] = useState({
-    categoria: "imagen_dominio" as Documento["categoria"],
+  const [form, setForm] = useState<{
+    categoria: Documento["categoria"];
+    nombre: string;
+    file: File | null;
+  }>({
+    categoria: "imagen_dominio",
     nombre: "",
-    url: ""
+    file: null
   });
 
   async function load() {
@@ -46,19 +52,27 @@ export default function DocumentosSection({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!form.file) {
+      setError("Elegí un archivo.");
+      return;
+    }
     setSaving(true);
     try {
+      const body = new FormData();
+      body.append("file", form.file);
+      body.append("categoria", form.categoria);
+      if (form.nombre) body.append("nombre", form.nombre);
+
       const res = await fetch(`/api/casos/${casoId}/documentos`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form)
+        body
       });
       const json = await res.json();
       if (!res.ok) {
         setError(json.error);
         return;
       }
-      setForm({ categoria: "imagen_dominio", nombre: "", url: "" });
+      setForm({ categoria: "imagen_dominio", nombre: "", file: null });
       setShowForm(false);
       load();
     } catch {
@@ -117,6 +131,10 @@ export default function DocumentosSection({
       documentos?.filter((d) => d.categoria === "documento_compania") ?? []
   };
 
+  const documentosGestor = documentos?.filter((d) =>
+    CATEGORIAS_GESTOR.some((c) => c.value === d.categoria)
+  ) ?? [];
+
   return (
     <section className="card p-4">
       <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
@@ -132,7 +150,7 @@ export default function DocumentosSection({
 
       {!soloLectura && documentos && documentos.length > 0 && (
         <p className="text-xs text-slate-400 mb-3">
-          Arrastrá un documento entre las dos listas para corregir su categoría.
+          Arrastrá un documento entre las dos primeras listas para corregir su categoría.
         </p>
       )}
 
@@ -147,7 +165,7 @@ export default function DocumentosSection({
                 setForm((f) => ({ ...f, categoria: e.target.value as Documento["categoria"] }))
               }
             >
-              {CATEGORIAS.map((c) => (
+              {TODAS_LAS_CATEGORIAS.map((c) => (
                 <option key={c.value} value={c.value}>
                   {c.label}
                 </option>
@@ -155,31 +173,31 @@ export default function DocumentosSection({
             </select>
           </div>
           <div>
-            <label className="label">Nombre *</label>
+            <label className="label">Archivo *</label>
             <input
               required
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
               className="input"
+              onChange={(e) => setForm((f) => ({ ...f, file: e.target.files?.[0] ?? null }))}
+            />
+          </div>
+          <div>
+            <label className="label">Nombre (opcional)</label>
+            <input
+              className="input"
+              placeholder="Si lo dejás vacío, se usa el nombre del archivo"
               value={form.nombre}
               onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
             />
           </div>
-          <div>
-            <label className="label">URL *</label>
-            <input
-              required
-              className="input"
-              placeholder="Enlace al archivo en Supabase Storage o Drive"
-              value={form.url}
-              onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
-            />
-          </div>
           <button className="btn-primary" disabled={saving} type="submit">
-            {saving ? "Guardando..." : "Guardar documento"}
+            {saving ? "Subiendo..." : "Guardar documento"}
           </button>
         </form>
       )}
 
-      {CATEGORIAS.map((c) => (
+      {CATEGORIAS_STAFF.map((c) => (
         <div
           key={c.value}
           onDragOver={(e) => {
@@ -212,7 +230,7 @@ export default function DocumentosSection({
                 } ${arrastrandoId === d.id ? "opacity-40" : ""}`}
               >
                 <a
-                  href={d.url}
+                  href={d.url_firmada ?? "#"}
                   target="_blank"
                   rel="noreferrer"
                   className="text-brand-600 hover:underline truncate"
@@ -235,6 +253,48 @@ export default function DocumentosSection({
           </ul>
         </div>
       ))}
+
+      {documentosGestor.length > 0 && (
+        <div className="mt-2 pt-4 border-t border-slate-100">
+          <h3 className="text-xs font-semibold uppercase text-slate-500 mb-2">
+            Cargado por el gestor
+          </h3>
+          {CATEGORIAS_GESTOR.map((c) => {
+            const items = documentosGestor.filter((d) => d.categoria === c.value);
+            if (items.length === 0) return null;
+            return (
+              <div key={c.value} className="mb-3">
+                <p className="text-xs text-slate-400 mb-1">{c.label}</p>
+                <ul className="space-y-1">
+                  {items.map((d) => (
+                    <li
+                      key={d.id}
+                      className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-slate-50"
+                    >
+                      <a
+                        href={d.url_firmada ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand-600 hover:underline truncate"
+                      >
+                        {d.nombre}
+                      </a>
+                      {!soloLectura && (
+                        <button
+                          onClick={() => handleDelete(d.id)}
+                          className="text-xs text-slate-400 hover:text-red-600 shrink-0"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </section>
   );
 }

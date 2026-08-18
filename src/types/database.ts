@@ -98,6 +98,12 @@ export interface TipoBaja {
   descripcion: string | null;
 }
 
+export interface Gestor {
+  id: string;
+  nombre: string;
+  contacto: string | null;
+}
+
 export type RolUsuario = "operador" | "administrador" | "compania";
 
 export const ROLES: { value: RolUsuario; label: string }[] = [
@@ -128,6 +134,8 @@ export interface Caso {
   registro_id: string | null;
   tipo_baja_id: string | null;
   responsable_id: string | null;
+  gestor_id: string | null;
+  token_gestor: string;
   estado: Estado;
   rama: Rama | null;
   tipo_tramite: TipoTramite | null;
@@ -157,6 +165,7 @@ export interface CasoConRelaciones extends Caso {
   registro: RegistroAutomotor | null;
   tipo_baja: TipoBaja | null;
   responsable: Usuario | null;
+  gestor: Gestor | null;
 }
 
 export interface BitacoraEvento {
@@ -172,12 +181,28 @@ export interface BitacoraEvento {
   created_at: string;
 }
 
+export type CategoriaDocumento =
+  | "imagen_dominio"
+  | "documento_compania"
+  | "turno_registro"
+  | "observaciones_gestor"
+  | "recibos_gestor"
+  | "otros_gestor";
+
+export const CATEGORIAS_GESTOR: { value: CategoriaDocumento; label: string }[] = [
+  { value: "turno_registro", label: "Turno en Registro" },
+  { value: "observaciones_gestor", label: "Observaciones" },
+  { value: "recibos_gestor", label: "Recibos" },
+  { value: "otros_gestor", label: "Otros" }
+];
+
 export interface Documento {
   id: string;
   caso_id: string;
-  categoria: "imagen_dominio" | "documento_compania";
+  categoria: CategoriaDocumento;
   nombre: string;
   url: string;
+  url_firmada?: string;
   created_at: string;
 }
 

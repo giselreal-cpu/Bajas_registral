@@ -17,6 +17,11 @@ const CATALOGOS = [
     description: "Oficinas donde se tramita la baja física."
   },
   {
+    href: "/catalogos/gestores",
+    title: "Gestores",
+    description: "Personas externas que gestionan trámites en el territorio."
+  },
+  {
     href: "/catalogos/tipos-baja",
     title: "Tipos de baja",
     description: "Catálogo abierto: 04D, 04C, 04 Digital, etc."

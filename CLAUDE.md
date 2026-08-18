@@ -27,6 +27,14 @@ que tramita las bajas.
 - **Responsable**: por ahora, una única persona lleva el caso de punta a punta
   (no hay roles separados de gestor/tramitador todavía — se puede sumar más
   adelante sin romper el modelo, agregando más FKs a `usuarios` en `casos`).
+- **Gestor de campo**: persona externa (sin cuenta en el sistema) que se
+  asigna a un caso puntual (`casos.gestor_id`) para hacer trámites en el
+  territorio (turno en el registro, retirar recibos, etc.). Recibe un enlace
+  público permanente (`/g/<token_gestor>`) con un resumen acotado del caso y
+  puede cargar archivos (fotos/PDF) en 4 categorías fijas — Turno en
+  Registro, Observaciones, Recibos, Otros — sin necesitar login. Es distinto
+  del "responsable" interno: no reemplaza roles del equipo, es acceso
+  externo de solo-carga.
 
 ## Proceso de negocio (resumen del flujo real)
 

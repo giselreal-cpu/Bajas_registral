@@ -34,8 +34,15 @@ export async function updateSession(request: NextRequest) {
   const esLogin = pathname.startsWith("/login");
   const esAuthCallback = pathname.startsWith("/auth");
   const esApi = pathname.startsWith("/api");
+  // Enlace público del gestor de campo: no requiere sesión. La carga de
+  // archivos se hace con una Server Action (POST a esta misma ruta, no a
+  // /api/...), así que esta única excepción alcanza.
+  const esGestorPublico = pathname.startsWith("/g/");
 
   if (!user) {
+    if (esGestorPublico) {
+      return response;
+    }
     if (esApi) {
       return NextResponse.json({ error: "No autenticado." }, { status: 401 });
     }

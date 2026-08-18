@@ -114,10 +114,32 @@ siguiendo el `CLAUDE.md` del proyecto.
 - **Exportar datos** (`/exportar`): CSV de casos, bitácora y documentos (con
   relaciones ya resueltas, listo para Excel) más un backup completo en JSON
   de todas las tablas.
-- **Documentos**: se pueden arrastrar entre "Imagen del dominio" y
+- **Documentos**: subida real de archivos (fotos JPG/PNG/WEBP/HEIC o PDF,
+  hasta 10MB) a un bucket privado de Supabase Storage (`documentos-casos`,
+  creado en `0021_modulo_gestor.sql`) — ya no se pega una URL a mano. Para
+  verlos/descargarlos se generan URLs firmadas al vuelo (1 hora de validez,
+  `src/lib/documentosStorage.ts`), y al borrar un documento también se borra
+  el archivo del bucket. Se pueden arrastrar entre "Imagen del dominio" y
   "Documento para la compañía" para corregir la categoría sin borrar y
-  volver a cargar, y también se pueden eliminar. Nueva ruta
-  `/api/documentos/[id]` (PUT/DELETE).
+  volver a cargar, y también se pueden eliminar. Ruta `/api/documentos/[id]`
+  (PUT/DELETE).
+- **Gestor de campo**: catálogo nuevo (`/catalogos/gestores`, nombre +
+  contacto) para personas externas que hacen trámites en el territorio
+  (turno en el registro, retirar recibos, etc.). Se asignan a un caso desde
+  su cabecera (campo "Gestor asignado"), lo que genera un **enlace público
+  permanente** (`/g/<token>`) sin necesidad de cuenta ni login: el gestor ve
+  un resumen acotado del caso (aseguradora, vehículo, datos de contacto del
+  asegurado, registro de radicación, y los documentos ya adjuntados) y puede
+  subir archivos en 4 categorías fijas — Turno en Registro, Observaciones,
+  Recibos, Otros — que quedan visibles para el equipo en la sección
+  "Cargado por el gestor" de Documentos. Desde la cabecera del caso hay un
+  botón **"Copiar mensaje"** que arma un texto con los datos del asegurado,
+  el registro y el enlace, para pegarlo donde se le quiera avisar al gestor
+  (no se envía nada automáticamente), y **"Regenerar enlace"** para invalidar
+  el enlace vigente si se comparte por error. Al reasignar el caso a otro
+  gestor, el enlace anterior se regenera solo. El middleware
+  (`src/lib/supabase/middleware.ts`) exime a `/g/*` de requerir sesión —
+  es la única ruta pública de todo el sistema.
 - **Catálogo de registros automotores precargado**: 835 registros
   seccionales de competencia AUTOMOTOR de todo el país (DNRPA), con
   número, denominación y provincia, cargados vía
@@ -203,7 +225,9 @@ siguiendo el `CLAUDE.md` del proyecto.
 No incluido todavía (a propósito, según el `CLAUDE.md`): módulo financiero,
 notificaciones automáticas y roles separados internos (gestor/tramitador
 dentro del equipo propio — distinto de los roles de acceso operador/
-administrador/compañía, que sí están implementados).
+administrador/compañía, que sí están implementados, y también distinto del
+"Gestor de campo" de arriba, que es una persona externa sin cuenta en el
+sistema, no un rol interno del equipo).
 
 ## Puesta en marcha
 
@@ -253,8 +277,12 @@ administrador/compañía, que sí están implementados).
    - `supabase/migrations/0020_recalcular_estados.sql` (recalcula
      retroactivamente el estado de todos los casos según sus eventos de
      bitácora ya completados, sin retroceder nunca uno más avanzado)
+   - `supabase/migrations/0021_modulo_gestor.sql` (catálogo de gestores,
+     `gestor_id`/`token_gestor` en casos, nuevas categorías de documentos
+     para lo que carga el gestor, y el bucket de Storage `documentos-casos`)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
-   Project Settings → API.
+   Project Settings → API. Copiá también la **service_role key** (misma
+   pantalla, es secreta) — la necesita el enlace público del gestor.
 
 ### 2. Configurar variables de entorno
 
@@ -262,7 +290,11 @@ administrador/compañía, que sí están implementados).
 cp .env.local.example .env.local
 ```
 
-Completá `.env.local` con la URL y la anon key de tu proyecto de Supabase.
+Completá `.env.local` con la URL, la anon key y la **service_role key**
+(`SUPABASE_SERVICE_ROLE_KEY`) de tu proyecto de Supabase. Esta última es
+secreta — nunca lleva el prefijo `NEXT_PUBLIC_` y no debe exponerse al
+navegador; en Vercel hay que agregarla también como variable de entorno del
+proyecto.
 
 ### 3. Instalar dependencias y correr en desarrollo
 
@@ -389,8 +421,10 @@ Supabase. El código ya está listo (botón "Continuar con Google" en
   usa el `fecha_fin` de cada evento de bitácora. Si más adelante hace falta
   distinguir "vencimiento" de "fecha de fin real", conviene sumar una
   columna `fecha_vencimiento` en vez de reusar `fecha_fin`.
-- **Documentos**: el campo `url` se carga a mano. Para subir archivos reales
-  conviene un bucket de Supabase Storage y guardar acá la URL resultante.
+- **Enlace del gestor**: es permanente mientras el caso siga con ese
+  `gestor_id` asignado; si se comparte por error, "Regenerar enlace" en la
+  cabecera del caso lo invalida sin necesitar sacar al gestor del caso. Al
+  reasignar a otro gestor se regenera solo.
 - Los tipos TypeScript en `src/types/database.ts` están escritos a mano; si
   se modifica el esquema SQL hay que actualizarlos (o generarlos con
   `supabase gen types typescript`).
@@ -400,4 +434,3 @@ Supabase. El código ya está listo (botón "Continuar con Google" en
 - Módulo financiero (valores InfoAuto, cobros/pagos).
 - Notificaciones automáticas.
 - Roles internos separados (gestor/tramitador).
-- Upload real de archivos a Supabase Storage para la sección de documentos.

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
+import { eliminarArchivoStorage } from "@/lib/documentosStorage";
 
 const ALLOWED_FIELDS = ["categoria", "nombre", "url"];
 
@@ -44,7 +45,7 @@ export async function DELETE(
 
   const { data: existente } = await supabase
     .from("documentos")
-    .select("caso_id, nombre")
+    .select("caso_id, nombre, url")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -55,6 +56,7 @@ export async function DELETE(
   }
 
   if (existente) {
+    await eliminarArchivoStorage(existente.url);
     await registrarCambio(existente.caso_id, `Eliminó documento: ${existente.nombre}`);
   }
 

@@ -1,12 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Aseguradora,
   CasoConRelaciones,
   Desarmadero,
   ESTADOS,
+  Gestor,
   RAMAS,
   RegistroAutomotor,
   TipoBaja,
@@ -20,6 +21,7 @@ interface Props {
   registros: RegistroAutomotor[];
   tiposBaja: TipoBaja[];
   usuarios: Usuario[];
+  gestores: Gestor[];
   soloLectura?: boolean;
   esAdministrador?: boolean;
 }
@@ -31,6 +33,7 @@ export default function CasoCabecera({
   registros,
   tiposBaja,
   usuarios,
+  gestores,
   soloLectura,
   esAdministrador
 }: Props) {
@@ -39,6 +42,13 @@ export default function CasoCabecera({
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [origin, setOrigin] = useState("");
+  const [copiado, setCopiado] = useState(false);
+  const [regenerando, setRegenerando] = useState(false);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const [form, setForm] = useState({
     numero_siniestro: caso.numero_siniestro,
@@ -56,6 +66,7 @@ export default function CasoCabecera({
     registro_id: caso.registro_id ?? "",
     tipo_baja_id: caso.tipo_baja_id ?? "",
     responsable_id: caso.responsable_id ?? "",
+    gestor_id: caso.gestor_id ?? "",
     deuda_patentes: caso.deuda_patentes ?? 0,
     deuda_multas: caso.deuda_multas ?? 0,
     suma_asegurada: caso.suma_asegurada ?? 0,
@@ -99,6 +110,7 @@ export default function CasoCabecera({
           registro_id: form.registro_id || null,
           tipo_baja_id: form.tipo_baja_id || null,
           responsable_id: form.responsable_id || null,
+          gestor_id: form.gestor_id || null,
           fecha_cierre: form.fecha_cierre || null,
           tercero_nombre: form.tercero_nombre || null,
           tercero_dni: form.tercero_dni || null,
@@ -174,6 +186,44 @@ export default function CasoCabecera({
     }
 
     router.push("/casos");
+  }
+
+  const enlaceGestor = origin ? `${origin}/g/${caso.token_gestor}` : "";
+
+  async function copiarMensajeGestor() {
+    const registroTexto = caso.registro
+      ? `${caso.registro.seccional ? `${caso.registro.seccional} ` : ""}N° ${caso.registro.numero}`
+      : "sin asignar todavía";
+    const mensaje = [
+      `Se te asignó un nuevo caso: siniestro ${caso.numero_siniestro}.`,
+      `Asegurado: ${caso.asegurado?.nombre ?? "—"} - Contacto: ${caso.asegurado?.telefono ?? "—"}`,
+      `Registro de radicación: ${registroTexto}`,
+      `Entrá a este enlace para ver los datos y cargar la documentación: ${enlaceGestor}`
+    ].join("\n");
+
+    await navigator.clipboard.writeText(mensaje);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  async function regenerarEnlaceGestor() {
+    if (
+      !confirm(
+        "¿Regenerar el enlace? El enlace anterior va a dejar de funcionar para el gestor."
+      )
+    ) {
+      return;
+    }
+
+    setRegenerando(true);
+    const res = await fetch(`/api/casos/${caso.id}/regenerar-enlace-gestor`, {
+      method: "POST"
+    });
+    setRegenerando(false);
+
+    if (res.ok) {
+      router.refresh();
+    }
   }
 
   const registrosPorProvincia = (() => {
@@ -567,6 +617,54 @@ export default function CasoCabecera({
             )}
           </Field>
         </div>
+      </Section>
+
+      <Section title="Gestor de campo">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+          <Field label="Gestor asignado">
+            {editing ? (
+              <select
+                className="input"
+                value={form.gestor_id}
+                onChange={(e) => update("gestor_id", e.target.value)}
+              >
+                <option value="">Sin asignar</option>
+                {gestores.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              caso.gestor?.nombre ?? "—"
+            )}
+          </Field>
+        </div>
+
+        {!soloLectura && !editing && caso.gestor_id && (
+          <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-2">
+            <div className="text-slate-500">
+              Enlace para que {caso.gestor?.nombre} vea los datos del caso y cargue
+              archivos, sin necesitar cuenta:
+            </div>
+            <div className="font-mono text-xs text-slate-700 break-all">
+              {enlaceGestor || "Generando..."}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button type="button" className="btn-secondary" onClick={copiarMensajeGestor}>
+                {copiado ? "¡Copiado!" : "Copiar mensaje"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={regenerando}
+                onClick={regenerarEnlaceGestor}
+              >
+                {regenerando ? "Regenerando..." : "Regenerar enlace"}
+              </button>
+            </div>
+          </div>
+        )}
       </Section>
 
       <Section title="Datos económicos">

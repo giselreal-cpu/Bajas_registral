@@ -17,7 +17,8 @@ const CASO_SELECT = `
   desarmadero:desarmaderos(*),
   registro:registros_automotores(*),
   tipo_baja:tipos_baja(*),
-  responsable:usuarios(*)
+  responsable:usuarios(*),
+  gestor:gestores(*)
 `;
 
 export default async function CasoDetallePage({
@@ -33,14 +34,16 @@ export default async function CasoDetallePage({
     { data: desarmaderos },
     { data: registros },
     { data: tiposBaja },
-    { data: usuarios }
+    { data: usuarios },
+    { data: gestores }
   ] = await Promise.all([
     supabase.from("casos").select(CASO_SELECT).eq("id", params.id).single(),
     supabase.from("aseguradoras").select("*").order("nombre"),
     supabase.from("desarmaderos").select("*").order("nombre"),
     supabase.from("registros_automotores").select("*").order("numero"),
     supabase.from("tipos_baja").select("*").order("nombre"),
-    supabase.from("usuarios").select("*").order("nombre")
+    supabase.from("usuarios").select("*").order("nombre"),
+    supabase.from("gestores").select("*").order("nombre")
   ]);
 
   if (error || !caso) {
@@ -60,6 +63,7 @@ export default async function CasoDetallePage({
         registros={registros ?? []}
         tiposBaja={tiposBaja ?? []}
         usuarios={usuarios ?? []}
+        gestores={gestores ?? []}
         soloLectura={soloLectura}
         esAdministrador={esAdministrador}
       />

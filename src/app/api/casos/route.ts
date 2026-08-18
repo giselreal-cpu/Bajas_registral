@@ -10,7 +10,8 @@ const CASO_SELECT = `
   desarmadero:desarmaderos(*),
   registro:registros_automotores(*),
   tipo_baja:tipos_baja(*),
-  responsable:usuarios(*)
+  responsable:usuarios(*),
+  gestor:gestores(*)
 `;
 
 // GET /api/casos?estado=xxx&q=texto -> listado de casos con sus relaciones

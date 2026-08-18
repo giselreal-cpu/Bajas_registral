@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
@@ -10,7 +11,8 @@ const CASO_SELECT = `
   desarmadero:desarmaderos(*),
   registro:registros_automotores(*),
   tipo_baja:tipos_baja(*),
-  responsable:usuarios(*)
+  responsable:usuarios(*),
+  gestor:gestores(*)
 `;
 
 export async function GET(
@@ -51,6 +53,7 @@ export async function PUT(
     "registro_id",
     "tipo_baja_id",
     "responsable_id",
+    "gestor_id",
     "fecha_cierre",
     "deuda_patentes",
     "deuda_multas",
@@ -68,6 +71,20 @@ export async function PUT(
   const update: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (field in body) update[field] = body[field];
+  }
+
+  // Si se reasigna el gestor (a otro, o se le saca la asignación), el enlace
+  // público viejo debe dejar de servir: regeneramos el token en la misma
+  // operación.
+  if ("gestor_id" in update) {
+    const { data: actual } = await supabase
+      .from("casos")
+      .select("gestor_id")
+      .eq("id", params.id)
+      .maybeSingle();
+    if (actual && actual.gestor_id !== update.gestor_id) {
+      update.token_gestor = randomUUID();
+    }
   }
 
   const { data, error } = await supabase
