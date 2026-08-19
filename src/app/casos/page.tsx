@@ -10,7 +10,8 @@ const CASO_SELECT = `
   aseguradora:aseguradoras(*),
   asegurado:asegurados(*),
   vehiculo:vehiculos!inner(*),
-  responsable:usuarios(*)
+  responsable:usuarios(*),
+  tipo_baja:tipos_baja(*)
 `;
 
 function estadoBadgeClass(estado: string) {
@@ -29,7 +30,13 @@ function estadoBadgeClass(estado: string) {
 export default async function CasosPage({
   searchParams
 }: {
-  searchParams: { estado?: string; q?: string; dominio?: string; aseguradora_id?: string };
+  searchParams: {
+    estado?: string;
+    q?: string;
+    dominio?: string;
+    aseguradora_id?: string;
+    tipo_baja_id?: string;
+  };
 }) {
   const supabase = createClient();
   let query = supabase
@@ -49,10 +56,14 @@ export default async function CasosPage({
   if (searchParams.aseguradora_id) {
     query = query.eq("aseguradora_id", searchParams.aseguradora_id);
   }
+  if (searchParams.tipo_baja_id) {
+    query = query.eq("tipo_baja_id", searchParams.tipo_baja_id);
+  }
 
-  const [{ data: casos, error }, { data: aseguradoras }] = await Promise.all([
+  const [{ data: casos, error }, { data: aseguradoras }, { data: tiposBaja }] = await Promise.all([
     query,
-    supabase.from("aseguradoras").select("id, nombre").order("nombre")
+    supabase.from("aseguradoras").select("id, nombre").order("nombre"),
+    supabase.from("tipos_baja").select("id, nombre").order("nombre")
   ]);
 
   const usuarioActual = await getUsuarioActual();
@@ -108,6 +119,21 @@ export default async function CasosPage({
             ))}
           </select>
         </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Tipo de baja</label>
+          <select
+            name="tipo_baja_id"
+            defaultValue={searchParams.tipo_baja_id ?? ""}
+            className="input"
+          >
+            <option value="">Todos</option>
+            {tiposBaja?.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex-1 min-w-[140px]">
           <label className="label">Estado</label>
           <select
@@ -143,6 +169,7 @@ export default async function CasosPage({
               <th className="px-4 py-2 font-medium">Asegurado</th>
               <th className="px-4 py-2 font-medium">Dominio</th>
               <th className="px-4 py-2 font-medium">Aseguradora</th>
+              <th className="px-4 py-2 font-medium">Tipo de baja</th>
               <th className="px-4 py-2 font-medium">Responsable</th>
               <th className="px-4 py-2 font-medium">Estado</th>
               <th className="px-4 py-2 font-medium">Ingreso</th>
@@ -180,6 +207,7 @@ export default async function CasosPage({
                   )}
                 </td>
                 <td className="px-4 py-2">{caso.aseguradora?.nombre ?? "—"}</td>
+                <td className="px-4 py-2">{caso.tipo_baja?.nombre ?? "—"}</td>
                 <td className="px-4 py-2">{caso.responsable?.nombre ?? "—"}</td>
                 <td className="px-4 py-2">
                   <span className={`badge ${estadoBadgeClass(caso.estado)}`}>
@@ -194,7 +222,7 @@ export default async function CasosPage({
             ))}
             {casos?.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
                   No hay casos cargados todavía.
                 </td>
               </tr>
