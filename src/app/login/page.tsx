@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -81,11 +82,21 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-4">
       <div className="card w-full max-w-sm p-6">
         <div className="flex items-center gap-2.5 mb-6">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-900 text-white text-sm font-bold">
-            BR
-          </span>
-          <span className="font-heading font-semibold text-brand-900 tracking-tight">
-            Bajas Registrales
+          <Image
+            src="/logo-oltra.jpg"
+            alt="Oltra Gestión Integral"
+            width={44}
+            height={44}
+            className="h-11 w-11 rounded-md shrink-0"
+            priority
+          />
+          <span className="flex flex-col leading-tight">
+            <span className="font-heading font-semibold text-brand-900 tracking-tight">
+              Bajas Registrales
+            </span>
+            <span className="text-[11px] text-brand-400 tracking-wide">
+              Gestión Integral Automotor
+            </span>
           </span>
         </div>
         <h1 className="text-lg font-semibold text-brand-900 mb-1">Iniciar sesión</h1>

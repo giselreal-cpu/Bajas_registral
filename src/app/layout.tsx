@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
+import Image from "next/image";
 import Link from "next/link";
 import HeaderNav from "@/components/HeaderNav";
 import LogoutButton from "@/components/LogoutButton";
@@ -59,11 +60,21 @@ export default async function RootLayout({
           <header className="bg-brand-900 relative">
             <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
               <Link href="/panel" className="flex items-center gap-2.5 group shrink-0">
-                <span className="flex h-8 w-8 items-center justify-center rounded-md bg-accent-600 text-white text-sm font-bold tracking-tight group-hover:bg-accent-500 transition-colors">
-                  BR
-                </span>
-                <span className="font-heading font-semibold text-white tracking-tight hidden sm:inline">
-                  Bajas Registrales
+                <Image
+                  src="/logo-oltra.jpg"
+                  alt="Oltra Gestión Integral"
+                  width={40}
+                  height={40}
+                  className="h-10 w-10 rounded-md shrink-0"
+                  priority
+                />
+                <span className="hidden sm:flex flex-col leading-tight">
+                  <span className="font-heading font-semibold text-white tracking-tight">
+                    Bajas Registrales
+                  </span>
+                  <span className="text-[11px] text-silver-400 tracking-wide">
+                    Gestión Integral Automotor
+                  </span>
                 </span>
               </Link>
               {user && !pendienteDeAprobacion && (
