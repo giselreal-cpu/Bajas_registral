@@ -69,7 +69,7 @@ function mensajeTraslado(
     vehiculo || "s/d"
   }, dominio ${dominio}, correspondiente al siniestro N° ${caso.numero_siniestro}. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
   return enlace
-    ? `${base}\nAcá tenés la autorización y las fotos del dominio: ${enlace}`
+    ? `${base}\nAcá tenés la autorización y el informe de dominio: ${enlace}`
     : base;
 }
 

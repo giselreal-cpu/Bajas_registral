@@ -110,15 +110,8 @@ export default async function EnlaceGrueroPage({
       </section>
 
       <section className="card p-4">
-        <h2 className="font-medium text-slate-800 mb-3">Autorización de retiro y traslado</h2>
-        <a href={`/gr/${params.token}/autorizacion-retiro`} className="btn-primary">
-          Descargar autorización (.docx)
-        </a>
-      </section>
-
-      {documentos.length > 0 && (
-        <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Documentos del caso</h2>
+        <h2 className="font-medium text-slate-800 mb-3">Documentos del caso</h2>
+        {documentos.length > 0 ? (
           <ul className="space-y-1 text-sm">
             {documentos.map((d) => (
               <li key={d.id}>
@@ -133,8 +126,12 @@ export default async function EnlaceGrueroPage({
               </li>
             ))}
           </ul>
-        </section>
-      )}
+        ) : (
+          <p className="text-sm text-slate-500">
+            Todavía no se cargó la autorización ni el informe de dominio para este caso.
+          </p>
+        )}
+      </section>
     </div>
   );
 }
