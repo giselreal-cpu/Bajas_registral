@@ -298,6 +298,8 @@ export default function CasoCabecera({
         </div>
       )}
 
+      <div className="grid grid-cols-1 lg:grid-cols-5 lg:gap-x-8">
+      <div className="lg:col-span-3">
       <Section title="Datos del caso" first>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="N° de siniestro">
@@ -530,7 +532,9 @@ export default function CasoCabecera({
           </Field>
         </div>
       </Section>
+      </div>
 
+      <div className="lg:col-span-2">
       <Section title="Vehículo">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="Dominio">
@@ -801,6 +805,8 @@ export default function CasoCabecera({
           </Field>
         </div>
       </Section>
+      </div>
+      </div>
 
       <Section title="Tercero autorizado a entregar la unidad (si no es el asegurado)">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
