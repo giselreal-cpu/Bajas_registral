@@ -24,11 +24,11 @@ export const TIPOS_EVENTO: TipoEventoDef[] = [
     label: "Asignación de desarmadero",
     requiere: "Autorización de traslado"
   },
-  { value: "traslado", label: "Traslado", requiere: null },
+  { value: "traslado", label: "Traslado", requiere: "Petición de Informes" },
   {
     value: "formulario_baja",
     label: "Formulario de Baja",
-    requiere: "Asignación de desarmadero"
+    requiere: "Traslado"
   },
   {
     value: "presentacion_baja",

@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
+import { avanzarEstadoAlMenosHasta } from "@/lib/estadoAutomatico";
 
 const CASO_SELECT = `
   *,
@@ -46,7 +47,6 @@ export async function PUT(
     "numero_poliza",
     "item_poliza",
     "aseguradora_id",
-    "estado",
     "rama",
     "tipo_tramite",
     "desarmadero_id",
@@ -76,6 +76,7 @@ export async function PUT(
   // Si se reasigna el gestor (a otro, o se le saca la asignación), el enlace
   // público viejo debe dejar de servir: regeneramos el token en la misma
   // operación.
+  let seAsignoGestorNuevo = false;
   if ("gestor_id" in update) {
     const { data: actual } = await supabase
       .from("casos")
@@ -84,6 +85,7 @@ export async function PUT(
       .maybeSingle();
     if (actual && actual.gestor_id !== update.gestor_id) {
       update.token_gestor = randomUUID();
+      seAsignoGestorNuevo = !!update.gestor_id;
     }
   }
 
@@ -96,6 +98,17 @@ export async function PUT(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Asignar un gestor de campo implica que el caso ya está en la etapa de
+  // presentar la baja en el registro: el estado avanza a "Presentado en el
+  // registro" si todavía no había llegado tan lejos.
+  if (seAsignoGestorNuevo) {
+    const actualizado = await avanzarEstadoAlMenosHasta(params.id, "presentado_en_registro");
+    if (actualizado) {
+      data.estado = actualizado.estado;
+      data.fecha_cierre = actualizado.fecha_cierre;
+    }
   }
 
   // Si se cambió la aseguradora, ajustamos el número correlativo: si pasa

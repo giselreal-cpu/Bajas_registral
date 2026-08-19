@@ -122,3 +122,39 @@ export async function recalcularEstado(casoId: string) {
 
   return { intentado: true, ok: true, nuevoEstado: actualizado[0].estado };
 }
+
+// Empuja el estado del caso hasta `estadoMinimo` si eso representa un
+// avance real (nunca lo retrocede). A diferencia de recalcularEstado, esta
+// no mira la bitácora: se usa para acciones puntuales del caso que por sí
+// solas implican que se llegó a cierta etapa (por ejemplo, asignar un
+// gestor de campo implica que ya se está en la etapa de presentación de
+// la baja en el registro).
+export async function avanzarEstadoAlMenosHasta(casoId: string, estadoMinimo: Estado) {
+  const supabase = createClient();
+
+  const { data: caso, error: errorCaso } = await supabase
+    .from("casos")
+    .select("estado, fecha_cierre")
+    .eq("id", casoId)
+    .maybeSingle();
+
+  if (errorCaso || !caso) return null;
+
+  const rankActual = ORDEN_ESTADOS.indexOf(caso.estado as Estado);
+  const rankMinimo = ORDEN_ESTADOS.indexOf(estadoMinimo);
+  if (rankMinimo <= rankActual) return null;
+
+  const update: Record<string, unknown> = { estado: estadoMinimo };
+  if (estadoMinimo === "cerrado" && !caso.fecha_cierre) {
+    update.fecha_cierre = new Date().toISOString().slice(0, 10);
+  }
+
+  const { data: actualizado } = await supabase
+    .from("casos")
+    .update(update)
+    .eq("id", casoId)
+    .select("estado, fecha_cierre")
+    .maybeSingle();
+
+  return actualizado;
+}

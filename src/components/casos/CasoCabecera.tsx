@@ -59,7 +59,6 @@ export default function CasoCabecera({
     numero_poliza: caso.numero_poliza ?? "",
     aseguradora_id: caso.aseguradora_id,
     item_poliza: caso.item_poliza ?? "",
-    estado: caso.estado,
     rama: caso.rama ?? "",
     tipo_tramite: caso.tipo_tramite ?? "",
     desarmadero_id: caso.desarmadero_id ?? "",
@@ -245,6 +244,9 @@ export default function CasoCabecera({
               {caso.numero_caso === 0 ? "DEMO" : `N° ${caso.numero_caso}`} ·{" "}
             </span>
             Siniestro {caso.numero_siniestro}
+            <span className={`badge ml-2 align-middle ${estadoBadgeClass(caso.estado)}`}>
+              {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
+            </span>
           </h1>
           <p className="text-sm text-slate-500">
             {caso.asegurado?.nombre} · Dominio {caso.vehiculo?.dominio} ·{" "}
@@ -349,24 +351,6 @@ export default function CasoCabecera({
               </select>
             ) : (
               caso.aseguradora?.nombre ?? "—"
-            )}
-          </Field>
-
-          <Field label="Estado">
-            {editing ? (
-              <select
-                className="input"
-                value={form.estado}
-                onChange={(e) => update("estado", e.target.value as any)}
-              >
-                {ESTADOS.map((e) => (
-                  <option key={e.value} value={e.value}>
-                    {e.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              ESTADOS.find((e) => e.value === caso.estado)?.label
             )}
           </Field>
 
@@ -888,4 +872,17 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function formatCurrency(value: number | null) {
   if (value === null || value === undefined) return "—";
   return value.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+}
+
+function estadoBadgeClass(estado: string) {
+  switch (estado) {
+    case "cerrado":
+      return "bg-emerald-100 text-emerald-700";
+    case "baja_en_tramite":
+      return "bg-brand-100 text-brand-700";
+    case "iniciado":
+      return "bg-slate-100 text-slate-700";
+    default:
+      return "bg-amber-100 text-amber-700";
+  }
 }
