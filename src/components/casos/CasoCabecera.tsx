@@ -536,7 +536,7 @@ export default function CasoCabecera({
 
       <div className="lg:col-span-2">
       <Section title="Vehículo">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <Field label="Dominio">
             {editing ? (
               <input
@@ -608,7 +608,7 @@ export default function CasoCabecera({
       </Section>
 
       <Section title="Gestor de campo">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
           <Field label="Gestor asignado">
             {editing ? (
               <select
@@ -656,7 +656,7 @@ export default function CasoCabecera({
       </Section>
 
       <Section title="Datos económicos">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <Field label="Suma asegurada">
             {editing ? (
               <input
@@ -702,7 +702,7 @@ export default function CasoCabecera({
       </Section>
 
       <Section title="Asegurado / titular">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <Field label="Nombre y apellido">
             {editing ? (
               <input
@@ -868,9 +868,9 @@ function Section({
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="label">{label}</div>
-      <div className="text-slate-800">{children}</div>
+      <div className="text-slate-800 break-words">{children}</div>
     </div>
   );
 }
