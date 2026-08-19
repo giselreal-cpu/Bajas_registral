@@ -299,7 +299,7 @@ export default function CasoCabecera({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-5 lg:gap-x-8">
-      <div className="lg:col-span-3">
+      <div className="lg:col-span-3 lg:order-1">
       <Section title="Datos del caso" first>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="N° de siniestro">
@@ -444,7 +444,9 @@ export default function CasoCabecera({
           </Field>
         </div>
       </Section>
+      </div>
 
+      <div className="lg:col-span-3 lg:order-3">
       <Section title="Trámite">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="Rama">
@@ -532,7 +534,9 @@ export default function CasoCabecera({
           </Field>
         </div>
       </Section>
+      </div>
 
+      <div className="lg:col-span-3 lg:order-5">
       <Section title="Asegurado / titular">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="Nombre y apellido">
@@ -639,8 +643,8 @@ export default function CasoCabecera({
       </Section>
       </div>
 
-      <div className="lg:col-span-2">
-      <Section title="Vehículo">
+      <div className="lg:col-span-2 lg:order-2">
+      <Section title="Vehículo" firstInColumn>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <Field label="Dominio">
             {editing ? (
@@ -711,7 +715,9 @@ export default function CasoCabecera({
           </Field>
         </div>
       </Section>
+      </div>
 
+      <div className="lg:col-span-2 lg:order-4">
       <Section title="Gestor de campo">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm mb-4">
           <Field label="Gestor asignado">
@@ -759,7 +765,9 @@ export default function CasoCabecera({
           </div>
         )}
       </Section>
+      </div>
 
+      <div className="lg:col-span-2 lg:order-6">
       <Section title="Datos económicos">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <Field label="Suma asegurada">
@@ -852,14 +860,24 @@ export default function CasoCabecera({
 function Section({
   title,
   children,
-  first
+  first,
+  firstInColumn
 }: {
   title: string;
   children: React.ReactNode;
   first?: boolean;
+  // Primero de su columna en el layout de dos columnas (lg:): lleva
+  // separador cuando se apila en mobile, pero no en desktop, donde tiene
+  // que arrancar a la misma altura que el título de la otra columna.
+  firstInColumn?: boolean;
 }) {
+  const className = first
+    ? ""
+    : firstInColumn
+    ? "mt-5 pt-5 border-t border-slate-100 lg:mt-0 lg:pt-0 lg:border-t-0"
+    : "mt-5 pt-5 border-t border-slate-100";
   return (
-    <div className={first ? "" : "mt-5 pt-5 border-t border-slate-100"}>
+    <div className={className}>
       <h3 className="font-heading text-sm font-semibold text-slate-700 mb-3">{title}</h3>
       {children}
     </div>
