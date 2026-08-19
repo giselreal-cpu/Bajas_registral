@@ -78,18 +78,18 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-900 via-brand-800 to-brand-700 px-4">
       <div className="card w-full max-w-sm p-6">
         <div className="flex items-center gap-2.5 mb-6">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-700 text-white text-sm font-bold">
+          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-brand-900 text-white text-sm font-bold">
             BR
           </span>
-          <span className="font-heading font-semibold text-slate-800 tracking-tight">
+          <span className="font-heading font-semibold text-brand-900 tracking-tight">
             Bajas Registrales
           </span>
         </div>
-        <h1 className="text-lg font-semibold text-slate-900 mb-1">Iniciar sesión</h1>
-        <p className="text-sm text-slate-500 mb-5">Ingresá con tu cuenta del equipo.</p>
+        <h1 className="text-lg font-semibold text-brand-900 mb-1">Iniciar sesión</h1>
+        <p className="text-sm text-brand-400 mb-5">Ingresá con tu cuenta del equipo.</p>
 
         {error && (
           <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md p-3">
@@ -108,9 +108,9 @@ function LoginForm() {
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <div className="h-px flex-1 bg-slate-200" />
-          <span className="text-xs text-slate-400">o con email</span>
-          <div className="h-px flex-1 bg-slate-200" />
+          <div className="h-px flex-1 bg-silver-200" />
+          <span className="text-xs text-brand-300">o con email</span>
+          <div className="h-px flex-1 bg-silver-200" />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

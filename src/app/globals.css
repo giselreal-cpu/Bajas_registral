@@ -3,14 +3,14 @@
 @tailwind utilities;
 
 body {
-  @apply bg-slate-100 text-slate-900 antialiased;
+  @apply bg-silver-100 text-brand-900 antialiased;
 }
 
 @layer base {
   h1,
   h2,
   h3 {
-    @apply font-heading tracking-tight;
+    @apply font-heading tracking-tight text-brand-900;
   }
 }
 
@@ -19,7 +19,7 @@ body {
 }
 
 .card {
-  @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  @apply rounded-2xl border border-silver-200 bg-white shadow-[0_1px_2px_rgba(18,20,23,0.04),0_1px_1px_rgba(18,20,23,0.03)];
 }
 
 .btn {
@@ -31,13 +31,13 @@ body {
 }
 
 .btn-secondary {
-  @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 hover:border-slate-400;
+  @apply btn bg-white text-brand-700 border border-silver-300 hover:bg-silver-50 hover:border-brand-300;
 }
 
 .input {
-  @apply block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100;
+  @apply block w-full rounded-lg border border-silver-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-brand-300 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100;
 }
 
 .label {
-  @apply block text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5;
+  @apply block text-xs font-semibold uppercase tracking-wide text-brand-400 mb-1.5;
 }

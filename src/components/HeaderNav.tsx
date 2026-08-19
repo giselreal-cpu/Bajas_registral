@@ -26,15 +26,15 @@ export default function HeaderNav({ navLinks, nombreUsuario }: Props) {
             <Link
               key={link.href}
               href={link.href}
-              className="px-3 py-1.5 rounded-md text-slate-500 hover:text-brand-700 hover:bg-brand-50 transition-colors"
+              className="px-3 py-1.5 rounded-md text-silver-300 hover:text-white hover:bg-white/10 transition-colors"
             >
               {link.label}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-2 text-xs text-slate-500 border-l border-slate-200 pl-3">
+        <div className="flex items-center gap-2 text-xs text-silver-400 border-l border-white/10 pl-3">
           <span className="max-w-[140px] truncate">{nombreUsuario}</span>
-          <LogoutButton />
+          <LogoutButton className="text-xs text-silver-400 hover:text-accent-400" />
         </div>
       </div>
 
@@ -44,7 +44,7 @@ export default function HeaderNav({ navLinks, nombreUsuario }: Props) {
           onClick={() => setOpen((o) => !o)}
           aria-label="Abrir menú"
           aria-expanded={open}
-          className="flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-600"
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-white/20 text-silver-200"
         >
           {open ? (
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
