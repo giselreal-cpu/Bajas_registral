@@ -19,7 +19,9 @@ export async function PUT(
     "es_interna",
     "completado",
     "fecha_inicio",
-    "fecha_fin"
+    "fecha_fin",
+    "gruero_nombre",
+    "gruero_contacto"
   ];
 
   const update: Record<string, unknown> = {};

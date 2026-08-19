@@ -50,8 +50,16 @@ export async function POST(
   const body = await request.json();
   const usuarioActualId = await getUsuarioActualId();
 
-  const { tipo_evento, observacion, es_interna, completado, fecha_inicio, fecha_fin } =
-    body;
+  const {
+    tipo_evento,
+    observacion,
+    es_interna,
+    completado,
+    fecha_inicio,
+    fecha_fin,
+    gruero_nombre,
+    gruero_contacto
+  } = body;
 
   if (!tipo_evento) {
     return NextResponse.json(
@@ -108,6 +116,8 @@ export async function POST(
       completado: !!completado,
       fecha_inicio: fecha_inicio || new Date().toISOString().slice(0, 10),
       fecha_fin: fecha_fin ?? null,
+      gruero_nombre: gruero_nombre || null,
+      gruero_contacto: gruero_contacto || null,
       creado_por: usuarioActualId
     })
     .select("*")

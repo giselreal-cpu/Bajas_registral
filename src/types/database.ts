@@ -181,6 +181,8 @@ export interface BitacoraEvento {
   completado: boolean;
   fecha_inicio: string;
   fecha_fin: string | null;
+  gruero_nombre: string | null;
+  gruero_contacto: string | null;
   creado_por: string | null;
   created_at: string;
 }

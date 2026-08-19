@@ -57,6 +57,79 @@ function MensajeContactoBox({ caso }: { caso: CasoConRelaciones }) {
   );
 }
 
+function mensajeTraslado(caso: CasoConRelaciones, grueroNombre: string): string {
+  const dominio = caso.vehiculo?.dominio ?? "";
+  const vehiculo = [caso.vehiculo?.marca, caso.vehiculo?.modelo].filter(Boolean).join(" ");
+  const responsable = caso.responsable?.nombre ?? "";
+  return `Hola ${grueroNombre || ""}, te asignamos el traslado de la unidad ${
+    vehiculo || "s/d"
+  }, dominio ${dominio}, correspondiente al siniestro N° ${caso.numero_siniestro}. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
+}
+
+function GrueroBox({
+  caso,
+  nombre,
+  contacto,
+  onNombreChange,
+  onContactoChange
+}: {
+  caso: CasoConRelaciones;
+  nombre: string;
+  contacto: string;
+  onNombreChange: (v: string) => void;
+  onContactoChange: (v: string) => void;
+}) {
+  const [copiado, setCopiado] = useState(false);
+  const mensaje = mensajeTraslado(caso, nombre);
+  const link = linkWhatsapp(contacto, mensaje);
+
+  async function copiar() {
+    await navigator.clipboard.writeText(mensaje);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="label">Nombre del gruero</label>
+          <input
+            className="input"
+            value={nombre}
+            onChange={(e) => onNombreChange(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">Contacto del gruero</label>
+          <input
+            className="input"
+            value={contacto}
+            placeholder="Teléfono"
+            onChange={(e) => onContactoChange(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <p className="text-slate-500">
+          Mensaje sugerido para avisarle al gruero que le asignaron el traslado:
+        </p>
+        <p className="text-slate-700 whitespace-pre-wrap">{mensaje}</p>
+        <div className="flex gap-2 flex-wrap">
+          <button type="button" className="btn-secondary text-xs" onClick={copiar}>
+            {copiado ? "¡Copiado!" : "Copiar mensaje"}
+          </button>
+          {link && (
+            <a href={link} target="_blank" rel="noreferrer" className="btn-secondary text-xs">
+              Abrir WhatsApp
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   casoId: string;
   caso: CasoConRelaciones;
@@ -70,6 +143,8 @@ interface FormEvento {
   completado: boolean;
   fecha_inicio: string;
   fecha_fin: string;
+  gruero_nombre: string;
+  gruero_contacto: string;
 }
 
 function formVacio(): FormEvento {
@@ -79,7 +154,9 @@ function formVacio(): FormEvento {
     es_interna: false,
     completado: false,
     fecha_inicio: new Date().toISOString().slice(0, 10),
-    fecha_fin: ""
+    fecha_fin: "",
+    gruero_nombre: "",
+    gruero_contacto: ""
   };
 }
 
@@ -132,7 +209,11 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
         es_interna: form.es_interna,
         completado: form.completado,
         fecha_inicio: form.fecha_inicio,
-        fecha_fin: form.fecha_fin || null
+        fecha_fin: form.fecha_fin || null,
+        ...(form.tipo_evento === "Traslado" && {
+          gruero_nombre: form.gruero_nombre || null,
+          gruero_contacto: form.gruero_contacto || null
+        })
       })
     });
     const json = await res.json();
@@ -157,7 +238,9 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
       es_interna: ev.es_interna,
       completado: ev.completado,
       fecha_inicio: ev.fecha_inicio,
-      fecha_fin: ev.fecha_fin ?? ""
+      fecha_fin: ev.fecha_fin ?? "",
+      gruero_nombre: ev.gruero_nombre ?? "",
+      gruero_contacto: ev.gruero_contacto ?? ""
     });
   }
 
@@ -182,7 +265,11 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
         es_interna: editForm.es_interna,
         completado: editForm.completado,
         fecha_inicio: editForm.fecha_inicio,
-        fecha_fin: editForm.fecha_fin || null
+        fecha_fin: editForm.fecha_fin || null,
+        ...(editForm.tipo_evento === "Traslado" && {
+          gruero_nombre: editForm.gruero_nombre || null,
+          gruero_contacto: editForm.gruero_contacto || null
+        })
       })
     });
     const json = await res.json();
@@ -276,6 +363,15 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
           {form.tipo_evento === "Contacto con el asegurado" && (
             <MensajeContactoBox caso={caso} />
           )}
+          {form.tipo_evento === "Traslado" && (
+            <GrueroBox
+              caso={caso}
+              nombre={form.gruero_nombre}
+              contacto={form.gruero_contacto}
+              onNombreChange={(v) => setForm((f) => ({ ...f, gruero_nombre: v }))}
+              onContactoChange={(v) => setForm((f) => ({ ...f, gruero_contacto: v }))}
+            />
+          )}
           <div>
             <label className="label">Observación</label>
             <textarea
@@ -356,6 +452,15 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
                 </div>
                 {editForm.tipo_evento === "Contacto con el asegurado" && (
                   <MensajeContactoBox caso={caso} />
+                )}
+                {editForm.tipo_evento === "Traslado" && (
+                  <GrueroBox
+                    caso={caso}
+                    nombre={editForm.gruero_nombre}
+                    contacto={editForm.gruero_contacto}
+                    onNombreChange={(v) => setEditForm((f) => ({ ...f, gruero_nombre: v }))}
+                    onContactoChange={(v) => setEditForm((f) => ({ ...f, gruero_contacto: v }))}
+                  />
                 )}
                 <div>
                   <label className="label">Observación</label>
@@ -438,6 +543,12 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
                     ev.observacion && (
                       <p className="text-slate-600 whitespace-pre-wrap">{ev.observacion}</p>
                     )
+                  )}
+                  {ev.tipo_evento === "Traslado" && ev.gruero_nombre && (
+                    <p className="text-slate-500">
+                      🚚 Gruero: {ev.gruero_nombre}
+                      {ev.gruero_contacto && ` · ${ev.gruero_contacto}`}
+                    </p>
                   )}
                   <p className="text-xs text-slate-400 mt-1">
                     {new Date(ev.fecha_inicio + "T00:00:00").toLocaleDateString("es-AR")}
