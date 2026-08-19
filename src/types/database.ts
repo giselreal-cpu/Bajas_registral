@@ -6,8 +6,10 @@ export type Estado =
   | "desarmadero_asignado"
   | "traslado_realizado"
   | "baja_en_tramite"
+  | "gestor_asignado"
   | "presentado_en_registro"
   | "documentacion_enviada"
+  | "baja_patentes_pendiente"
   | "cerrado";
 
 export const ESTADOS: { value: Estado; label: string }[] = [
@@ -18,8 +20,10 @@ export const ESTADOS: { value: Estado; label: string }[] = [
   { value: "desarmadero_asignado", label: "Desarmadero asignado" },
   { value: "traslado_realizado", label: "Traslado realizado" },
   { value: "baja_en_tramite", label: "Formulario de baja presentado" },
+  { value: "gestor_asignado", label: "Gestor Asignado" },
   { value: "presentado_en_registro", label: "Presentado en el registro" },
   { value: "documentacion_enviada", label: "Documentación enviada a la Cía" },
+  { value: "baja_patentes_pendiente", label: "Baja de Patentes Pendiente" },
   { value: "cerrado", label: "Cerrado" }
 ];
 

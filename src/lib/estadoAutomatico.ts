@@ -12,8 +12,10 @@ const ORDEN_ESTADOS: Estado[] = [
   "desarmadero_asignado",
   "traslado_realizado",
   "baja_en_tramite",
+  "gestor_asignado",
   "presentado_en_registro",
   "documentacion_enviada",
+  "baja_patentes_pendiente",
   "cerrado"
 ];
 
@@ -21,15 +23,18 @@ const ORDEN_ESTADOS: Estado[] = [
 // no completados) — representan un paso que ya arrancó y del que se está
 // esperando una respuesta ("Petición de Informes" = ya los pedimos,
 // estamos esperando; "Contacto con el asegurado" = ya lo estamos
-// contactando/verificando).
+// contactando/verificando; "Baja de Patentes" = se cargó el trámite y
+// está pendiente de resolverse).
 const EVENTO_EN_PROGRESO_A_ESTADO: Record<string, Estado> = {
   "Petición de Informes": "informes_solicitados",
-  "Contacto con el asegurado": "en_verificacion"
+  "Contacto con el asegurado": "en_verificacion",
+  "Baja de Patentes": "baja_patentes_pendiente"
 };
 
 // Eventos que solo empujan el estado una vez COMPLETADOS — representan un
 // hito ya conseguido (autorización obtenida, desarmadero asignado, unidad
-// trasladada, etc.), no algo que esté en curso.
+// trasladada, etc.), no algo que esté en curso. Completar "Baja de
+// Patentes" cierra directamente el caso.
 const EVENTO_COMPLETADO_A_ESTADO: Record<string, Estado> = {
   "Autorización de traslado": "autorizacion_traslado",
   "Asignación de desarmadero": "desarmadero_asignado",
@@ -37,7 +42,8 @@ const EVENTO_COMPLETADO_A_ESTADO: Record<string, Estado> = {
   "Formulario de Baja": "baja_en_tramite",
   "Presentación de Baja": "presentado_en_registro",
   "Envío de documentación Cía": "documentacion_enviada",
-  "Cierre de Caso": "cerrado"
+  "Cierre de Caso": "cerrado",
+  "Baja de Patentes": "cerrado"
 };
 
 // Se llama después de cualquier alta/edición de un evento de bitácora.

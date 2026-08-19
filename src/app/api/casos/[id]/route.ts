@@ -100,11 +100,12 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Asignar un gestor de campo implica que el caso ya está en la etapa de
-  // presentar la baja en el registro: el estado avanza a "Presentado en el
-  // registro" si todavía no había llegado tan lejos.
+  // Asignar un gestor de campo implica que el caso ya está en esa etapa:
+  // el estado avanza a "Gestor Asignado" si todavía no había llegado tan
+  // lejos (queda antes de "Presentado en el registro", que es cuando el
+  // gestor efectivamente la presenta).
   if (seAsignoGestorNuevo) {
-    const actualizado = await avanzarEstadoAlMenosHasta(params.id, "presentado_en_registro");
+    const actualizado = await avanzarEstadoAlMenosHasta(params.id, "gestor_asignado");
     if (actualizado) {
       data.estado = actualizado.estado;
       data.fecha_cierre = actualizado.fecha_cierre;
