@@ -3,6 +3,13 @@ import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 
 export const dynamic = "force-dynamic";
 
+function normalizar(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+    .toLowerCase();
+}
+
 interface EventoTraslado {
   id: string;
   caso_id: string;
@@ -48,15 +55,22 @@ export default async function EnlaceGrueroPage({
     );
   }
 
-  const { data: imagenesDominio } = await supabase
+  const { data: todosLosDocumentos } = await supabase
     .from("documentos")
     .select("id, nombre, url")
     .eq("caso_id", evento.caso_id)
-    .eq("categoria", "imagen_dominio")
     .order("created_at", { ascending: false });
 
+  // El gruero solo necesita ver la autorización y el informe de dominio ya
+  // cargados en el caso (no todos los documentos) — se buscan por nombre,
+  // sin importar en qué categoría estén archivados.
+  const relevantes = (todosLosDocumentos ?? []).filter((d) => {
+    const n = normalizar(d.nombre);
+    return n.includes("autorizacion") || n.includes("informe de dominio");
+  });
+
   const documentos = await Promise.all(
-    (imagenesDominio ?? []).map(async (d) => ({
+    relevantes.map(async (d) => ({
       ...d,
       url_firmada: await obtenerUrlFirmada(d.url)
     }))
@@ -104,7 +118,7 @@ export default async function EnlaceGrueroPage({
 
       {documentos.length > 0 && (
         <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Fotos del dominio</h2>
+          <h2 className="font-medium text-slate-800 mb-3">Documentos del caso</h2>
           <ul className="space-y-1 text-sm">
             {documentos.map((d) => (
               <li key={d.id}>
