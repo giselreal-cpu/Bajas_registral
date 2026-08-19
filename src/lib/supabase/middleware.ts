@@ -38,9 +38,12 @@ export async function updateSession(request: NextRequest) {
   // archivos se hace con una Server Action (POST a esta misma ruta, no a
   // /api/...), así que esta única excepción alcanza.
   const esGestorPublico = pathname.startsWith("/g/");
+  // Enlace público del gruero asignado a un traslado: solo lectura/descarga
+  // (resumen del caso, fotos del dominio, autorización en .docx).
+  const esGrueroPublico = pathname.startsWith("/gr/");
 
   if (!user) {
-    if (esGestorPublico) {
+    if (esGestorPublico || esGrueroPublico) {
       return response;
     }
     if (esApi) {

@@ -183,6 +183,7 @@ export interface BitacoraEvento {
   fecha_fin: string | null;
   gruero_nombre: string | null;
   gruero_contacto: string | null;
+  token_gruero: string;
   creado_por: string | null;
   created_at: string;
 }

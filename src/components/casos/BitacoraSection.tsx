@@ -57,13 +57,20 @@ function MensajeContactoBox({ caso }: { caso: CasoConRelaciones }) {
   );
 }
 
-function mensajeTraslado(caso: CasoConRelaciones, grueroNombre: string): string {
+function mensajeTraslado(
+  caso: CasoConRelaciones,
+  grueroNombre: string,
+  enlace?: string | null
+): string {
   const dominio = caso.vehiculo?.dominio ?? "";
   const vehiculo = [caso.vehiculo?.marca, caso.vehiculo?.modelo].filter(Boolean).join(" ");
   const responsable = caso.responsable?.nombre ?? "";
-  return `Hola ${grueroNombre || ""}, te asignamos el traslado de la unidad ${
+  const base = `Hola ${grueroNombre || ""}, te asignamos el traslado de la unidad ${
     vehiculo || "s/d"
   }, dominio ${dominio}, correspondiente al siniestro N° ${caso.numero_siniestro}. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
+  return enlace
+    ? `${base}\nAcá tenés la autorización y las fotos del dominio: ${enlace}`
+    : base;
 }
 
 function GrueroBox({
@@ -71,16 +78,18 @@ function GrueroBox({
   nombre,
   contacto,
   onNombreChange,
-  onContactoChange
+  onContactoChange,
+  enlace
 }: {
   caso: CasoConRelaciones;
   nombre: string;
   contacto: string;
   onNombreChange: (v: string) => void;
   onContactoChange: (v: string) => void;
+  enlace?: string | null;
 }) {
   const [copiado, setCopiado] = useState(false);
-  const mensaje = mensajeTraslado(caso, nombre);
+  const mensaje = mensajeTraslado(caso, nombre, enlace);
   const link = linkWhatsapp(contacto, mensaje);
 
   async function copiar() {
@@ -112,7 +121,9 @@ function GrueroBox({
       </div>
       <div className="space-y-2">
         <p className="text-slate-500">
-          Mensaje sugerido para avisarle al gruero que le asignaron el traslado:
+          Mensaje sugerido para avisarle al gruero que le asignaron el traslado
+          {!enlace && " (el enlace con la autorización y las fotos se agrega automáticamente después de guardar)"}
+          :
         </p>
         <p className="text-slate-700 whitespace-pre-wrap">{mensaje}</p>
         <div className="flex gap-2 flex-wrap">
@@ -164,6 +175,11 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
   const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<FormEvento>(formVacio());
 
@@ -460,6 +476,7 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
                     contacto={editForm.gruero_contacto}
                     onNombreChange={(v) => setEditForm((f) => ({ ...f, gruero_nombre: v }))}
                     onContactoChange={(v) => setEditForm((f) => ({ ...f, gruero_contacto: v }))}
+                    enlace={origin ? `${origin}/gr/${ev.token_gruero}` : null}
                   />
                 )}
                 <div>

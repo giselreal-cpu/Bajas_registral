@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
@@ -31,7 +32,7 @@ export async function PUT(
 
   const { data: existente } = await supabase
     .from("bitacora")
-    .select("caso_id, es_interna, tipo_evento, completado")
+    .select("caso_id, es_interna, tipo_evento, completado, gruero_nombre")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -104,6 +105,12 @@ export async function PUT(
         return NextResponse.json({ error: bloqueo }, { status: 409 });
       }
     }
+  }
+
+  // Si cambia el gruero asignado, el enlace público viejo debe dejar de
+  // servir: regeneramos el token en la misma operación.
+  if ("gruero_nombre" in update && existente && update.gruero_nombre !== existente.gruero_nombre) {
+    update.token_gruero = randomUUID();
   }
 
   const { data, error } = await supabase
