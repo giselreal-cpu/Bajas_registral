@@ -45,6 +45,7 @@ export const TIPOS_EVENTO: TipoEventoDef[] = [
     label: "Cierre de Caso",
     requiere: "Asignación de desarmadero"
   },
+  { value: "baja_patentes", label: "Baja de Patentes", requiere: null },
   { value: "observaciones", label: "Observaciones", requiere: null }
 ];
 

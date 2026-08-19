@@ -81,7 +81,11 @@ export default async function CasoDetallePage({
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BitacoraSection casoId={caso.id} soloLectura={soloLectura} />
+        <BitacoraSection
+          casoId={caso.id}
+          caso={caso as CasoConRelaciones}
+          soloLectura={soloLectura}
+        />
         <DocumentosSection casoId={caso.id} soloLectura={soloLectura} />
       </div>
 

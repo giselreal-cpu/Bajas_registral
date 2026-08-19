@@ -96,6 +96,7 @@ export default async function PanelPage({
     { data: movimientos, error: errorMov },
     { data: casosCerradosConFechas, error: errorCerrados },
     { data: eventosPresentacion, error: errorPresentacion },
+    { data: contactosExistentes },
     { data: aseguradoras },
     { data: tiposBaja }
   ] = await Promise.all([
@@ -119,6 +120,7 @@ export default async function PanelPage({
       .select("caso_id, fecha_inicio, fecha_fin")
       .eq("tipo_evento", "Presentación de Baja")
       .eq("completado", true),
+    supabase.from("bitacora").select("caso_id").eq("tipo_evento", "Contacto con el asegurado"),
     supabase.from("aseguradoras").select("id, nombre").order("nombre"),
     supabase.from("tipos_baja").select("id, nombre").order("nombre")
   ]);
@@ -167,6 +169,14 @@ export default async function PanelPage({
     })
     .filter((c) => c.dias >= DIAS_SIN_MOVIMIENTO)
     .sort((a, b) => b.dias - a.dias);
+
+  // Casos abiertos que todavía no tienen ningún evento "Contacto con el
+  // asegurado" cargado (ni pendiente ni completado) — para recordar que
+  // hay que contactarlo.
+  const casosConContactoIniciado = new Set((contactosExistentes ?? []).map((c) => c.caso_id));
+  const casosSinContactar = ((casos as CasoResumen[] | null) ?? []).filter(
+    (c) => c.estado !== "cerrado" && !casosConContactoIniciado.has(c.id)
+  );
 
   // Días entre dos fechas (ISO date, sin horas).
   function diasEntre(desde: string, hasta: string) {
@@ -359,6 +369,34 @@ export default async function PanelPage({
                 <span className="badge bg-amber-100 text-amber-800 shrink-0">
                   {c.dias} días sin movimiento
                 </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {casosSinContactar.length > 0 && (
+        <section className="card border-sky-200 bg-sky-50 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="font-medium text-sky-800">
+              📞 Casos sin contactar al asegurado ({casosSinContactar.length})
+            </h2>
+          </div>
+          <div className="divide-y divide-sky-100">
+            {casosSinContactar.map((c) => (
+              <div key={c.id} className="py-2 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Link
+                    href={`/casos/${c.id}`}
+                    className="text-brand-700 font-medium hover:underline text-sm"
+                  >
+                    {c.numero_siniestro}
+                  </Link>
+                  <p className="text-xs text-slate-500">
+                    {c.asegurado?.nombre} · {c.responsable?.nombre ?? "Sin responsable"}
+                  </p>
+                </div>
+                <span className="badge bg-sky-100 text-sky-800 shrink-0">Sin contactar</span>
               </div>
             ))}
           </div>

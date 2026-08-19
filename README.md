@@ -11,7 +11,8 @@ siguiendo el `CLAUDE.md` del proyecto.
   `documentos`.
 - **CRUD de casos**:
   - Listado con filtro por número de siniestro, **dominio** y
-    **compañía/aseguradora**, además del filtro por estado (`/casos`).
+    **compañía/aseguradora**, además del filtro por estado (`/casos`), con
+    marca y modelo del vehículo debajo del dominio en cada fila.
   - Alta de caso, creando en el mismo paso el asegurado y el vehículo
     (`/casos/nuevo`).
   - Vista de detalle (`/casos/[id]`) con cabecera organizada en secciones
@@ -43,7 +44,10 @@ siguiendo el `CLAUDE.md` del proyecto.
   alertas operativas, no un reporte), casos totales/abiertos/
   cerrados, casos por estado, alerta de **casos sin movimiento hace 7+ días**
   (configurable en `DIAS_SIN_MOVIMIENTO` en `src/app/panel/page.tsx`, solo
-  aparece si hay algún caso en esa situación), y una lista combinada de
+  aparece si hay algún caso en esa situación), alerta de **casos sin
+  contactar al asegurado** (casos abiertos que todavía no tienen ningún
+  evento "Contacto con el asegurado" cargado, ni pendiente ni completado),
+  y una lista combinada de
   **"Próximos vencimientos"** que junta los eventos de bitácora con fecha
   de vencimiento cargada *y* los casos sin movimiento hace 7+ días (aunque
   no tengan ninguna fecha cargada) — los vencidos aparecen primero, y un
@@ -53,11 +57,22 @@ siguiendo el `CLAUDE.md` del proyecto.
   Baja" completada y el cierre, con tabla de los últimos casos cerrados.
 - **Avance automático de estado**: el catálogo de estados del caso tiene un
   paso propio por cada evento clave de la bitácora (`0010_estados_por_evento.sql`),
-  así el seguimiento es más preciso. Al marcar como completado alguno de
-  estos eventos, el `estado` del caso avanza solo (se ve reflejado en el
-  Panel y en el listado de Casos):
-  - "Petición de Informes" → Informes solicitados
-  - "Contacto con el asegurado" → En verificación
+  así el seguimiento es más preciso. Cada vez que se agrega o edita un
+  evento de bitácora, el `estado` del caso se **recalcula completo** desde
+  todos sus eventos (`src/lib/estadoAutomatico.ts` → `recalcularEstado`,
+  usado en las rutas de bitácora) — no solo mirando el evento que se acaba
+  de tocar, así no importa el orden en que se carguen ni si alguno se
+  completó "fuera de la app" (import de datos viejos, ajuste manual, etc.).
+  Dos tipos de eventos empujan el estado con **solo existir** (completados
+  o no), porque representan un paso que ya arrancó y del que se está
+  esperando algo:
+  - "Petición de Informes" → Informes solicitados (ya los pedimos, se está
+    esperando la respuesta)
+  - "Contacto con el asegurado" → En verificación (ya se lo está
+    contactando/verificando)
+
+  El resto de los eventos clave solo empujan el estado al **completarse**
+  (representan un hito ya conseguido, no algo en curso):
   - "Autorización de traslado" → Autorización de traslado
   - "Asignación de desarmadero" → Desarmadero asignado
   - "Traslado" → Traslado realizado
@@ -67,22 +82,22 @@ siguiendo el `CLAUDE.md` del proyecto.
   - "Cierre de Caso" → Cerrado (completa `fecha_cierre` con la fecha de hoy
     si todavía no tenía una)
 
-  "Ingreso de caso" y "Observaciones" no mueven el estado (el primero ya
-  arranca en "Iniciado"; el segundo es solo una anotación libre). Solo
-  avanza hacia adelante — nunca retrocede el estado automáticamente,
-  aunque se destilde un evento ya completado o se complete uno "de una
-  etapa anterior" más tarde. Ver `src/lib/estadoAutomatico.ts`. El estado
-  se puede seguir cambiando a mano en cualquier momento desde la cabecera
-  del caso, esto es un adicional, no un reemplazo.
-  **Importante**: este avance solo se dispara en el momento en que se
-  completa un evento *desde que existe esta lógica*; no revisa
-  retroactivamente eventos que ya estaban completados de antes. Si hace
-  falta ponerse al día (por ejemplo, después de una migración de datos
-  vieja), correr `0020_recalcular_estados.sql`, que recalcula el estado de
-  todos los casos según sus eventos ya completados, sin retroceder nunca
-  uno que ya estuviera más avanzado.
+  "Ingreso de caso", "Baja de Patentes" y "Observaciones" no mueven el
+  estado. Solo avanza hacia adelante — nunca retrocede el estado
+  automáticamente, ni siquiera si se destilda un evento o se lo borra. El
+  estado se puede seguir cambiando a mano en cualquier momento desde la
+  cabecera del caso, esto es un adicional, no un reemplazo (aunque un
+  cambio a mano hacia atrás puede quedar "atrasado" hasta el próximo
+  evento de bitácora que se toque, que va a recalcularlo hacia adelante de
+  nuevo).
+  **Importante**: si hace falta ponerse al día por eventos que ya estaban
+  cargados de antes (por ejemplo, después de una migración de datos vieja,
+  o si el estado quedó desincronizado por un cambio manual), correr
+  `0022_recalcular_estados_v2.sql`, que recalcula el estado de todos los
+  casos con este mismo criterio, sin retroceder nunca uno que ya estuviera
+  más avanzado.
   Además, el prerequisito de cada evento (que ya se validaba en el
-  navegador) ahora también se valida **en el servidor**
+  navegador) también se valida **en el servidor**
   (`src/lib/eventosBitacora.ts` → `motivoBloqueo`, usado en las rutas de
   bitácora), para que no se pueda saltear llamando a la API directo.
 - **Bitácora**:
@@ -93,12 +108,14 @@ siguiendo el `CLAUDE.md` del proyecto.
     y se puede repetir todas las veces que haga falta.
   - Cada evento tiene un botón **"Eliminar"** (antes solo se podía editar
     o marcar completado/pendiente).
-  - Tipo de evento por lista desplegable, con un catálogo **cerrado** de 11
+  - Tipo de evento por lista desplegable, con un catálogo **cerrado** de 12
     tipos (`src/lib/eventosBitacora.ts`): Ingreso de caso, Petición de
     Informes, Contacto con el asegurado, Autorización de traslado,
     Asignación de desarmadero, Traslado, Formulario de Baja, Presentación
-    de Baja, Envío de documentación Cía, Cierre de Caso, Observaciones (sin
-    prerequisito, para anotaciones sueltas que no encajan en los otros).
+    de Baja, Envío de documentación Cía, Cierre de Caso, Baja de Patentes
+    (sin prerequisito ni estado asociado, para registrar ese trámite sin
+    que bloquee ni mueva nada más) y Observaciones (sin prerequisito, para
+    anotaciones sueltas que no encajan en los otros).
   - Cada tipo tiene su propio prerequisito puntual: "Autorización de
     traslado" requiere "Contacto con el asegurado" completado; "Asignación
     de desarmadero" requiere "Autorización de traslado" completado;
@@ -111,18 +128,34 @@ siguiendo el `CLAUDE.md` del proyecto.
   - Las observaciones marcadas como **interna** solo se muestran a quien
     esté logueado como el responsable del caso — ver sección de
     Autenticación abajo, es real (server-side), no un adorno visual.
+  - Al elegir (o editar) el tipo de evento **"Contacto con el asegurado"**
+    aparece un mensaje sugerido, con los datos del caso ya completados, para
+    mandarle al asegurado por WhatsApp **antes** de llamarlo (así la llamada
+    no le resulte sorpresiva/sospechosa). Hay un botón **"Copiar mensaje"**
+    (queda en el portapapeles, para pegarlo donde haga falta) y uno **"Abrir
+    WhatsApp"** que arma un link `wa.me` con el teléfono del asegurado y el
+    mensaje precargado — no envía nada automáticamente, solo abre WhatsApp
+    con el chat y el texto listos para que la persona responsable revise y
+    mande. El formato del teléfono para `wa.me` es un mejor esfuerzo (no
+    siempre acierta el prefijo de celulares argentinos), por eso "Copiar
+    mensaje" queda como respaldo. Ver `src/components/casos/BitacoraSection.tsx`.
 - **Exportar datos** (`/exportar`): CSV de casos, bitácora y documentos (con
   relaciones ya resueltas, listo para Excel) más un backup completo en JSON
   de todas las tablas.
-- **Documentos**: subida real de archivos (fotos JPG/PNG/WEBP/HEIC o PDF,
-  hasta 10MB) a un bucket privado de Supabase Storage (`documentos-casos`,
-  creado en `0021_modulo_gestor.sql`) — ya no se pega una URL a mano. Para
-  verlos/descargarlos se generan URLs firmadas al vuelo (1 hora de validez,
-  `src/lib/documentosStorage.ts`), y al borrar un documento también se borra
-  el archivo del bucket. Se pueden arrastrar entre "Imagen del dominio" y
-  "Documento para la compañía" para corregir la categoría sin borrar y
-  volver a cargar, y también se pueden eliminar. Ruta `/api/documentos/[id]`
-  (PUT/DELETE).
+- **Documentos**: al agregar uno, se elige **"Pegar un link"** (por ejemplo
+  una carpeta de Drive — sigue siendo el uso habitual del equipo interno) o
+  **"Subir un archivo"** (fotos JPG/PNG/WEBP/HEIC o PDF, hasta 10MB) a un
+  bucket privado de Supabase Storage (`documentos-casos`, creado en
+  `0021_modulo_gestor.sql`). Para verlos/descargarlos se generan URLs
+  firmadas al vuelo cuando el documento es un archivo real (1 hora de
+  validez, `src/lib/documentosStorage.ts` → `obtenerUrlFirmada`); si es un
+  link externo se usa tal cual, sin intentar firmarlo. Al borrar un
+  documento que era archivo real también se borra del bucket. Se pueden
+  arrastrar entre "Imagen del dominio" y "Documento para la compañía" para
+  corregir la categoría sin borrar y volver a cargar, y también se pueden
+  eliminar. Ruta `/api/casos/[id]/documentos` (POST, acepta
+  `multipart/form-data` con `categoria` + o bien `file` o bien `url`) y
+  `/api/documentos/[id]` (PUT/DELETE).
 - **Gestor de campo**: catálogo nuevo (`/catalogos/gestores`, nombre +
   contacto) para personas externas que hacen trámites en el territorio
   (turno en el registro, retirar recibos, etc.). Se asignan a un caso desde
@@ -280,6 +313,9 @@ sistema, no un rol interno del equipo).
    - `supabase/migrations/0021_modulo_gestor.sql` (catálogo de gestores,
      `gestor_id`/`token_gestor` en casos, nuevas categorías de documentos
      para lo que carga el gestor, y el bucket de Storage `documentos-casos`)
+   - `supabase/migrations/0022_recalcular_estados_v2.sql` (recalcula el
+     estado de todos los casos con el criterio ampliado de avance
+     automático — ver más abajo)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.

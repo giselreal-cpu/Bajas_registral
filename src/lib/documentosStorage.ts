@@ -4,6 +4,20 @@ const BUCKET = "documentos-casos";
 const TAMANIO_MAXIMO = 10 * 1024 * 1024; // 10MB
 const TIPOS_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "image/heic", "application/pdf"];
 
+// `formData.get("file")` a veces devuelve un objeto File que no pasa
+// `instanceof File` (por ejemplo si el runtime tiene más de una clase
+// File cargada al mismo tiempo) aunque sea un archivo real y válido. Se
+// verifica "por forma" en vez de por clase para no depender de eso.
+export function esArchivo(value: unknown): value is File {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as File).arrayBuffer === "function" &&
+    typeof (value as File).size === "number" &&
+    typeof (value as File).name === "string"
+  );
+}
+
 function validarArchivo(file: File) {
   if (file.size > TAMANIO_MAXIMO) {
     throw new Error("El archivo no puede superar los 10MB.");

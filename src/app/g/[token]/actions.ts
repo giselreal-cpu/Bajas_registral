@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
-import { subirArchivoDocumento } from "@/lib/documentosStorage";
+import { esArchivo, subirArchivoDocumento } from "@/lib/documentosStorage";
 import { CATEGORIAS_GESTOR, CategoriaDocumento } from "@/types/database";
 
 // Server Action que usa el gestor externo desde /g/[token], sin sesión. Se
@@ -28,7 +28,7 @@ export async function subirDocumentoGestor(
   const categoria = formData.get("categoria") as CategoriaDocumento | null;
   const categoriasValidas = CATEGORIAS_GESTOR.map((c) => c.value);
 
-  if (!(file instanceof File) || file.size === 0 || !categoria || !categoriasValidas.includes(categoria)) {
+  if (!esArchivo(file) || file.size === 0 || !categoria || !categoriasValidas.includes(categoria)) {
     return { error: "Elegí una categoría y un archivo." };
   }
 

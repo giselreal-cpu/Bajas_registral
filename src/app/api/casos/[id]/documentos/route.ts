@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
-import { eliminarArchivoStorage, obtenerUrlFirmada, subirArchivoDocumento } from "@/lib/documentosStorage";
+import { eliminarArchivoStorage, esArchivo, obtenerUrlFirmada, subirArchivoDocumento } from "@/lib/documentosStorage";
 
 export async function GET(
   _request: NextRequest,
@@ -25,9 +25,12 @@ export async function GET(
   return NextResponse.json({ data: documentos });
 }
 
-// POST /api/casos/[id]/documentos -> recibe multipart/form-data (archivo +
-// categoria + nombre opcional), lo sube al bucket privado y guarda la
-// metadata + la ruta interna del archivo.
+// POST /api/casos/[id]/documentos -> recibe multipart/form-data (categoria +
+// nombre opcional, y O BIEN un archivo real O BIEN un link ya alojado en
+// otro lado, por ejemplo una carpeta de Drive). El equipo interno suele
+// seguir usando el link (así es como se organiza hoy); el archivo real es
+// para quien prefiera subirlo directo. El enlace del gestor, en cambio,
+// siempre sube archivo real (ver src/app/g/[token]/actions.ts).
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -35,27 +38,36 @@ export async function POST(
   const supabase = createClient();
   const formData = await request.formData();
   const file = formData.get("file");
+  const url = formData.get("url");
   const categoria = formData.get("categoria");
   const nombre = formData.get("nombre");
 
-  if (!(file instanceof File) || file.size === 0 || !categoria) {
-    return NextResponse.json(
-      { error: "El archivo y la categoría son obligatorios." },
-      { status: 400 }
-    );
+  if (!categoria) {
+    return NextResponse.json({ error: "La categoría es obligatoria." }, { status: 400 });
   }
 
   let path: string;
-  try {
-    path = await subirArchivoDocumento(params.id, categoria as string, file);
-  } catch (e) {
+  let nombreFinal: string;
+
+  if (esArchivo(file) && file.size > 0) {
+    try {
+      path = await subirArchivoDocumento(params.id, categoria as string, file);
+    } catch (e) {
+      return NextResponse.json(
+        { error: e instanceof Error ? e.message : "No se pudo subir el archivo." },
+        { status: 400 }
+      );
+    }
+    nombreFinal = (nombre as string) || file.name;
+  } else if (typeof url === "string" && url.trim()) {
+    path = url.trim();
+    nombreFinal = (nombre as string) || path;
+  } else {
     return NextResponse.json(
-      { error: e instanceof Error ? e.message : "No se pudo subir el archivo." },
+      { error: "Adjuntá un archivo o pegá un link." },
       { status: 400 }
     );
   }
-
-  const nombreFinal = (nombre as string) || file.name;
 
   const { data, error } = await supabase
     .from("documentos")
@@ -64,7 +76,7 @@ export async function POST(
     .single();
 
   if (error) {
-    await eliminarArchivoStorage(path);
+    if (esArchivo(file)) await eliminarArchivoStorage(path);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 

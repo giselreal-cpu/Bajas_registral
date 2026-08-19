@@ -1,11 +1,65 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BitacoraEvento } from "@/types/database";
+import { BitacoraEvento, CasoConRelaciones } from "@/types/database";
 import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
+
+const GESTORIA_NOMBRE = "Oltra Gestión Integral";
+
+function mensajeContacto(caso: CasoConRelaciones): string {
+  const nombreTitular = caso.asegurado?.nombre ?? "";
+  const responsable = caso.responsable?.nombre ?? "";
+  const aseguradora = caso.aseguradora?.nombre ?? "";
+  const dominio = caso.vehiculo?.dominio ?? "";
+  return `Hola ${nombreTitular}, buenas tardes. Te saluda ${responsable} de parte de la gestoría ${GESTORIA_NOMBRE} y su compañía de seguros ${aseguradora} por el siniestro N° ${caso.numero_siniestro} sobre el dominio ${dominio}. Quisiera contactar con vos dentro del horario en que se encuentre disponible y así poder brindarle la información de cómo se va a estar gestionando la baja de su unidad y el asesoramiento dentro del proceso en sí.`;
+}
+
+// wa.me necesita el número en formato internacional sin signos. Es un
+// mejor esfuerzo (no siempre acierta el prefijo "9" de celulares
+// argentinos) — por eso también se ofrece "Copiar mensaje" como respaldo.
+function linkWhatsapp(telefono: string | null | undefined, mensaje: string): string | null {
+  if (!telefono) return null;
+  let digitos = telefono.replace(/\D/g, "");
+  if (!digitos) return null;
+  if (!digitos.startsWith("54")) digitos = `54${digitos}`;
+  return `https://wa.me/${digitos}?text=${encodeURIComponent(mensaje)}`;
+}
+
+function MensajeContactoBox({ caso }: { caso: CasoConRelaciones }) {
+  const [copiado, setCopiado] = useState(false);
+  const mensaje = mensajeContacto(caso);
+  const link = linkWhatsapp(caso.asegurado?.telefono, mensaje);
+
+  async function copiar() {
+    await navigator.clipboard.writeText(mensaje);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-2">
+      <p className="text-slate-500">
+        Mensaje sugerido para avisarle al asegurado antes de llamarlo (así no
+        parece una estafa):
+      </p>
+      <p className="text-slate-700 whitespace-pre-wrap">{mensaje}</p>
+      <div className="flex gap-2 flex-wrap">
+        <button type="button" className="btn-secondary text-xs" onClick={copiar}>
+          {copiado ? "¡Copiado!" : "Copiar mensaje"}
+        </button>
+        {link && (
+          <a href={link} target="_blank" rel="noreferrer" className="btn-secondary text-xs">
+            Abrir WhatsApp
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   casoId: string;
+  caso: CasoConRelaciones;
   soloLectura?: boolean;
 }
 
@@ -29,7 +83,7 @@ function formVacio(): FormEvento {
   };
 }
 
-export default function BitacoraSection({ casoId, soloLectura }: Props) {
+export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
   const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -219,6 +273,9 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
               ))}
             </select>
           </div>
+          {form.tipo_evento === "Contacto con el asegurado" && (
+            <MensajeContactoBox caso={caso} />
+          )}
           <div>
             <label className="label">Observación</label>
             <textarea
@@ -297,6 +354,9 @@ export default function BitacoraSection({ casoId, soloLectura }: Props) {
                     )}
                   </select>
                 </div>
+                {editForm.tipo_evento === "Contacto con el asegurado" && (
+                  <MensajeContactoBox caso={caso} />
+                )}
                 <div>
                   <label className="label">Observación</label>
                   <textarea

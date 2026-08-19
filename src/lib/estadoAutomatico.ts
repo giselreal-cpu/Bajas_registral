@@ -17,14 +17,20 @@ const ORDEN_ESTADOS: Estado[] = [
   "cerrado"
 ];
 
-// Qué evento de bitácora (por label, tal cual aparece en TIPOS_EVENTO)
-// hace avanzar a qué estado del caso, una vez completado. Cada evento
-// clave tiene su propio estado (uno a uno), salvo "Ingreso de caso" (ya
-// arranca en "iniciado") y "Observaciones" (no representa un paso del
-// proceso).
-const EVENTO_A_ESTADO: Record<string, Estado> = {
+// Eventos que empujan el estado con solo existir en la bitácora (estén o
+// no completados) — representan un paso que ya arrancó y del que se está
+// esperando una respuesta ("Petición de Informes" = ya los pedimos,
+// estamos esperando; "Contacto con el asegurado" = ya lo estamos
+// contactando/verificando).
+const EVENTO_EN_PROGRESO_A_ESTADO: Record<string, Estado> = {
   "Petición de Informes": "informes_solicitados",
-  "Contacto con el asegurado": "en_verificacion",
+  "Contacto con el asegurado": "en_verificacion"
+};
+
+// Eventos que solo empujan el estado una vez COMPLETADOS — representan un
+// hito ya conseguido (autorización obtenida, desarmadero asignado, unidad
+// trasladada, etc.), no algo que esté en curso.
+const EVENTO_COMPLETADO_A_ESTADO: Record<string, Estado> = {
   "Autorización de traslado": "autorizacion_traslado",
   "Asignación de desarmadero": "desarmadero_asignado",
   Traslado: "traslado_realizado",
@@ -34,41 +40,65 @@ const EVENTO_A_ESTADO: Record<string, Estado> = {
   "Cierre de Caso": "cerrado"
 };
 
-// Se llama después de guardar un evento de bitácora completado. Si ese
-// tipo de evento tiene un estado asociado y ese estado está más adelante
-// que el actual del caso, actualiza casos.estado (y fecha_cierre si
-// corresponde a "cerrado" y todavía no tenía una cargada).
-export async function avanzarEstadoSiCorresponde(casoId: string, tipoEvento: string) {
-  const nuevoEstado = EVENTO_A_ESTADO[tipoEvento];
-  if (!nuevoEstado) {
-    return { intentado: false, motivo: "El tipo de evento no tiene un estado asociado." };
-  }
-
+// Se llama después de cualquier alta/edición de un evento de bitácora.
+// Recalcula el estado del caso desde CERO, mirando todos sus eventos
+// (no solo el que se acaba de tocar), y lo deja en el más avanzado que
+// corresponda según lo ya iniciado/completado. Nunca retrocede un estado
+// que ya estuviera más adelante (incluyendo uno puesto a mano).
+export async function recalcularEstado(casoId: string) {
   const supabase = createClient();
-  const { data: caso, error: errorLectura } = await supabase
-    .from("casos")
-    .select("estado, fecha_cierre")
-    .eq("id", casoId)
-    .maybeSingle();
 
-  if (errorLectura || !caso) {
+  const [{ data: caso, error: errorCaso }, { data: eventos, error: errorEventos }] =
+    await Promise.all([
+      supabase.from("casos").select("estado, fecha_cierre").eq("id", casoId).maybeSingle(),
+      supabase.from("bitacora").select("tipo_evento, completado").eq("caso_id", casoId)
+    ]);
+
+  if (errorCaso || !caso) {
     return {
       intentado: false,
-      motivo: `No se pudo leer el caso: ${errorLectura?.message ?? "no encontrado"}`
+      motivo: `No se pudo leer el caso: ${errorCaso?.message ?? "no encontrado"}`
     };
+  }
+  if (errorEventos) {
+    return { intentado: false, motivo: `No se pudieron leer los eventos: ${errorEventos.message}` };
   }
 
   const rankActual = ORDEN_ESTADOS.indexOf(caso.estado as Estado);
-  const rankNuevo = ORDEN_ESTADOS.indexOf(nuevoEstado);
-  if (rankNuevo <= rankActual) {
+  let mejorRank = rankActual;
+  let mejorEstado = caso.estado as Estado;
+
+  for (const ev of eventos ?? []) {
+    const estadoEnProgreso = EVENTO_EN_PROGRESO_A_ESTADO[ev.tipo_evento];
+    if (estadoEnProgreso) {
+      const rank = ORDEN_ESTADOS.indexOf(estadoEnProgreso);
+      if (rank > mejorRank) {
+        mejorRank = rank;
+        mejorEstado = estadoEnProgreso;
+      }
+    }
+
+    if (ev.completado) {
+      const estadoCompletado = EVENTO_COMPLETADO_A_ESTADO[ev.tipo_evento];
+      if (estadoCompletado) {
+        const rank = ORDEN_ESTADOS.indexOf(estadoCompletado);
+        if (rank > mejorRank) {
+          mejorRank = rank;
+          mejorEstado = estadoCompletado;
+        }
+      }
+    }
+  }
+
+  if (mejorRank <= rankActual) {
     return {
       intentado: false,
-      motivo: `El estado actual ("${caso.estado}") ya está igual o más avanzado que "${nuevoEstado}".`
+      motivo: `El estado actual ("${caso.estado}") ya está igual o más avanzado que lo que sugiere la bitácora.`
     };
   }
 
-  const update: Record<string, unknown> = { estado: nuevoEstado };
-  if (nuevoEstado === "cerrado" && !caso.fecha_cierre) {
+  const update: Record<string, unknown> = { estado: mejorEstado };
+  if (mejorEstado === "cerrado" && !caso.fecha_cierre) {
     update.fecha_cierre = new Date().toISOString().slice(0, 10);
   }
 

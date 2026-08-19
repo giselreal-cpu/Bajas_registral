@@ -170,8 +170,13 @@ export default async function CasosPage({
                   </Link>
                 </td>
                 <td className="px-4 py-2">{caso.asegurado?.nombre ?? "—"}</td>
-                <td className="px-4 py-2 uppercase">
-                  {caso.vehiculo?.dominio ?? "—"}
+                <td className="px-4 py-2">
+                  <span className="uppercase">{caso.vehiculo?.dominio ?? "—"}</span>
+                  {(caso.vehiculo?.marca || caso.vehiculo?.modelo) && (
+                    <span className="block text-xs text-slate-400">
+                      {[caso.vehiculo?.marca, caso.vehiculo?.modelo].filter(Boolean).join(" ")}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2">{caso.aseguradora?.nombre ?? "—"}</td>
                 <td className="px-4 py-2">{caso.responsable?.nombre ?? "—"}</td>

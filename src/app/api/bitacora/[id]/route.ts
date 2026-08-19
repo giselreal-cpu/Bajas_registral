@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
-import { avanzarEstadoSiCorresponde } from "@/lib/estadoAutomatico";
+import { recalcularEstado } from "@/lib/estadoAutomatico";
 import { registrarCambio } from "@/lib/historial";
 import { motivoBloqueo } from "@/lib/eventosBitacora";
 
@@ -115,10 +115,7 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  let estadoDebug = null;
-  if (data.completado) {
-    estadoDebug = await avanzarEstadoSiCorresponde(data.caso_id, data.tipo_evento);
-  }
+  const estadoDebug = await recalcularEstado(data.caso_id);
 
   const marcoCompletado = "completado" in update && update.completado && !existente?.completado;
   await registrarCambio(

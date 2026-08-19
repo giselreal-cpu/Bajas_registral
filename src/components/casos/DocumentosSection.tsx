@@ -24,14 +24,17 @@ export default function DocumentosSection({
   const [arrastrandoId, setArrastrandoId] = useState<string | null>(null);
   const [categoriaSobre, setCategoriaSobre] = useState<Documento["categoria"] | null>(null);
 
+  const [modo, setModo] = useState<"link" | "archivo">("link");
   const [form, setForm] = useState<{
     categoria: Documento["categoria"];
     nombre: string;
     file: File | null;
+    url: string;
   }>({
     categoria: "imagen_dominio",
     nombre: "",
-    file: null
+    file: null,
+    url: ""
   });
 
   async function load() {
@@ -52,16 +55,24 @@ export default function DocumentosSection({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.file) {
+    if (modo === "archivo" && !form.file) {
       setError("Elegí un archivo.");
+      return;
+    }
+    if (modo === "link" && !form.url.trim()) {
+      setError("Pegá un link.");
       return;
     }
     setSaving(true);
     try {
       const body = new FormData();
-      body.append("file", form.file);
       body.append("categoria", form.categoria);
       if (form.nombre) body.append("nombre", form.nombre);
+      if (modo === "archivo" && form.file) {
+        body.append("file", form.file);
+      } else {
+        body.append("url", form.url.trim());
+      }
 
       const res = await fetch(`/api/casos/${casoId}/documentos`, {
         method: "POST",
@@ -72,7 +83,7 @@ export default function DocumentosSection({
         setError(json.error);
         return;
       }
-      setForm({ categoria: "imagen_dominio", nombre: "", file: null });
+      setForm({ categoria: "imagen_dominio", nombre: "", file: null, url: "" });
       setShowForm(false);
       load();
     } catch {
@@ -173,15 +184,47 @@ export default function DocumentosSection({
             </select>
           </div>
           <div>
-            <label className="label">Archivo *</label>
-            <input
-              required
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
-              className="input"
-              onChange={(e) => setForm((f) => ({ ...f, file: e.target.files?.[0] ?? null }))}
-            />
+            <label className="label">¿Cómo lo cargás?</label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className={modo === "link" ? "btn-primary text-xs" : "btn-secondary text-xs"}
+                onClick={() => setModo("link")}
+              >
+                Pegar un link
+              </button>
+              <button
+                type="button"
+                className={modo === "archivo" ? "btn-primary text-xs" : "btn-secondary text-xs"}
+                onClick={() => setModo("archivo")}
+              >
+                Subir un archivo
+              </button>
+            </div>
           </div>
+          {modo === "link" ? (
+            <div>
+              <label className="label">Link *</label>
+              <input
+                required
+                className="input"
+                placeholder="Enlace a la carpeta de Drive u otro archivo ya alojado"
+                value={form.url}
+                onChange={(e) => setForm((f) => ({ ...f, url: e.target.value }))}
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="label">Archivo *</label>
+              <input
+                required
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
+                className="input"
+                onChange={(e) => setForm((f) => ({ ...f, file: e.target.files?.[0] ?? null }))}
+              />
+            </div>
+          )}
           <div>
             <label className="label">Nombre (opcional)</label>
             <input
