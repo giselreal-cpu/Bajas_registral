@@ -24,6 +24,8 @@ interface CasoResumen {
   estado: string;
   numero_siniestro: string;
   created_at: string;
+  gestor_id: string | null;
+  gestor: { nombre: string } | null;
   asegurado: { nombre: string } | null;
   responsable: { nombre: string } | null;
 }
@@ -46,14 +48,19 @@ function estadoBadgeClass(estado: string) {
 export default async function PanelPage({
   searchParams
 }: {
-  searchParams: { aseguradora_id?: string; mes?: string; tipo_baja_id?: string };
+  searchParams: {
+    aseguradora_id?: string;
+    mes?: string;
+    tipo_baja_id?: string;
+    gestor_id?: string;
+  };
 }) {
   const supabase = createClient();
 
   let casosQuery = supabase
     .from("casos")
     .select(
-      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, asegurado:asegurados(nombre), responsable:usuarios(nombre)"
+      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, gestor_id, gestor:gestores(nombre), asegurado:asegurados(nombre), responsable:usuarios(nombre)"
     );
 
   if (searchParams.aseguradora_id) {
@@ -177,6 +184,29 @@ export default async function PanelPage({
   const casosSinContactar = ((casos as CasoResumen[] | null) ?? []).filter(
     (c) => c.estado !== "cerrado" && !casosConContactoIniciado.has(c.id)
   );
+
+  // Ranking de casos por gestor de campo: total asignados vs. pendientes
+  // (todavía no llegaron a "Documentación enviada a la Cía", y no están
+  // cerrados). Se calcula sobre los mismos casos ya filtrados arriba.
+  const casosPorGestorMap = new Map<
+    string,
+    { nombre: string; total: number; pendientes: CasoResumen[] }
+  >();
+  for (const c of (casos as CasoResumen[] | null) ?? []) {
+    if (!c.gestor_id || !c.gestor) continue;
+    if (!casosPorGestorMap.has(c.gestor_id)) {
+      casosPorGestorMap.set(c.gestor_id, { nombre: c.gestor.nombre, total: 0, pendientes: [] });
+    }
+    const entrada = casosPorGestorMap.get(c.gestor_id)!;
+    entrada.total++;
+    if (c.estado !== "documentacion_enviada" && c.estado !== "cerrado") {
+      entrada.pendientes.push(c);
+    }
+  }
+  const rankingGestores = Array.from(casosPorGestorMap.entries())
+    .map(([id, v]) => ({ id, ...v }))
+    .sort((a, b) => b.pendientes.length - a.pendientes.length);
+  const gestorSeleccionado = rankingGestores.find((g) => g.id === searchParams.gestor_id);
 
   // Días entre dos fechas (ISO date, sin horas).
   function diasEntre(desde: string, hasta: string) {
@@ -400,6 +430,96 @@ export default async function PanelPage({
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {puedeVerTiempos && rankingGestores.length > 0 && (
+        <section className="card p-4">
+          <h2 className="font-medium text-slate-800 mb-3">Casos por gestor</h2>
+          <div className="overflow-x-auto mb-4">
+            <table className="w-full text-sm">
+              <thead className="text-left text-slate-500">
+                <tr>
+                  <th className="py-1 pr-4 font-medium">Gestor</th>
+                  <th className="py-1 pr-4 font-medium">Casos asignados</th>
+                  <th className="py-1 pr-4 font-medium">Pendientes*</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rankingGestores.map((g) => (
+                  <tr key={g.id} className="border-t border-slate-100">
+                    <td className="py-1.5 pr-4">{g.nombre}</td>
+                    <td className="py-1.5 pr-4">{g.total}</td>
+                    <td className="py-1.5 pr-4">{g.pendientes.length}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-xs text-slate-400 mb-4">
+            *No están en &quot;Documentación enviada a la Cía&quot; ni cerrados.
+          </p>
+
+          <form className="flex flex-wrap items-end gap-3 mb-4" method="get">
+            {searchParams.aseguradora_id && (
+              <input type="hidden" name="aseguradora_id" value={searchParams.aseguradora_id} />
+            )}
+            {searchParams.mes && <input type="hidden" name="mes" value={searchParams.mes} />}
+            {searchParams.tipo_baja_id && (
+              <input type="hidden" name="tipo_baja_id" value={searchParams.tipo_baja_id} />
+            )}
+            <div className="flex-1 min-w-[220px]">
+              <label className="label">Ver trámites pendientes de</label>
+              <select
+                name="gestor_id"
+                defaultValue={searchParams.gestor_id ?? ""}
+                className="input"
+              >
+                <option value="">Elegí un gestor...</option>
+                {rankingGestores.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.nombre} ({g.pendientes.length} pendientes)
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button className="btn-secondary" type="submit">
+              Ver
+            </button>
+          </form>
+
+          {gestorSeleccionado && (
+            <div>
+              <h3 className="text-sm font-medium text-slate-700 mb-2">
+                Pendientes de {gestorSeleccionado.nombre} ({gestorSeleccionado.pendientes.length})
+              </h3>
+              {gestorSeleccionado.pendientes.length === 0 ? (
+                <p className="text-sm text-slate-500">
+                  No tiene casos pendientes — todos llegaron a &quot;Documentación enviada a la
+                  Cía&quot; o están cerrados.
+                </p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {gestorSeleccionado.pendientes.map((c) => (
+                    <div key={c.id} className="py-2 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <Link
+                          href={`/casos/${c.id}`}
+                          className="text-brand-700 font-medium hover:underline text-sm"
+                        >
+                          {c.numero_siniestro}
+                        </Link>
+                        <p className="text-xs text-slate-500">{c.asegurado?.nombre}</p>
+                      </div>
+                      <span className={`badge shrink-0 ${estadoBadgeClass(c.estado)}`}>
+                        {ESTADOS.find((e) => e.value === c.estado)?.label ?? c.estado}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </section>
       )}
 
