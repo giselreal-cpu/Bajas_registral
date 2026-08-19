@@ -173,7 +173,8 @@ export default async function CasosPage({
                 <td className="px-4 py-2">
                   <span className="uppercase">{caso.vehiculo?.dominio ?? "—"}</span>
                   {(caso.vehiculo?.marca || caso.vehiculo?.modelo) && (
-                    <span className="block text-xs text-slate-400">
+                    <span className="text-slate-400">
+                      {" · "}
                       {[caso.vehiculo?.marca, caso.vehiculo?.modelo].filter(Boolean).join(" ")}
                     </span>
                   )}
