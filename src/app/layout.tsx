@@ -65,7 +65,7 @@ export default async function RootLayout({
                   alt="Oltra Gestión Integral"
                   width={40}
                   height={40}
-                  className="h-10 w-10 rounded-md shrink-0"
+                  className="h-10 w-10 rounded-md shrink-0 mix-blend-screen"
                   priority
                 />
                 <span className="hidden sm:flex flex-col leading-tight">

@@ -532,6 +532,111 @@ export default function CasoCabecera({
           </Field>
         </div>
       </Section>
+
+      <Section title="Asegurado / titular">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+          <Field label="Nombre y apellido">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_nombre}
+                onChange={(e) => update("asegurado_nombre", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.nombre || "—"
+            )}
+          </Field>
+          <Field label="DNI">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_dni}
+                onChange={(e) => update("asegurado_dni", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.dni || "—"
+            )}
+          </Field>
+          <Field label="Teléfono">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_telefono}
+                onChange={(e) => update("asegurado_telefono", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.telefono || "—"
+            )}
+          </Field>
+          <Field label="Email">
+            {editing ? (
+              <input
+                type="email"
+                className="input"
+                value={form.asegurado_email}
+                onChange={(e) => update("asegurado_email", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.email || "—"
+            )}
+          </Field>
+          <Field label="Dirección">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_direccion}
+                onChange={(e) => update("asegurado_direccion", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.direccion || "—"
+            )}
+          </Field>
+          <Field label="Entre calles">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_entre_calles}
+                onChange={(e) => update("asegurado_entre_calles", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.entre_calles || "—"
+            )}
+          </Field>
+          <Field label="Localidad">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_localidad}
+                onChange={(e) => update("asegurado_localidad", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.localidad || "—"
+            )}
+          </Field>
+          <Field label="Partido">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_partido}
+                onChange={(e) => update("asegurado_partido", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.partido || "—"
+            )}
+          </Field>
+          <Field label="Provincia">
+            {editing ? (
+              <input
+                className="input"
+                value={form.asegurado_provincia}
+                onChange={(e) => update("asegurado_provincia", e.target.value)}
+              />
+            ) : (
+              caso.asegurado?.provincia || "—"
+            )}
+          </Field>
+        </div>
+      </Section>
       </div>
 
       <div className="lg:col-span-2">
@@ -696,111 +801,6 @@ export default function CasoCabecera({
               />
             ) : (
               formatCurrency(caso.deuda_multas)
-            )}
-          </Field>
-        </div>
-      </Section>
-
-      <Section title="Asegurado / titular">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <Field label="Nombre y apellido">
-            {editing ? (
-              <input
-                className="input"
-                value={form.asegurado_nombre}
-                onChange={(e) => update("asegurado_nombre", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.nombre || "—"
-            )}
-          </Field>
-          <Field label="DNI">
-            {editing ? (
-              <input
-                className="input"
-                value={form.asegurado_dni}
-                onChange={(e) => update("asegurado_dni", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.dni || "—"
-            )}
-          </Field>
-          <Field label="Teléfono">
-            {editing ? (
-              <input
-                className="input"
-                value={form.asegurado_telefono}
-                onChange={(e) => update("asegurado_telefono", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.telefono || "—"
-            )}
-          </Field>
-          <Field label="Email">
-            {editing ? (
-              <input
-                type="email"
-                className="input"
-                value={form.asegurado_email}
-                onChange={(e) => update("asegurado_email", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.email || "—"
-            )}
-          </Field>
-          <Field label="Dirección">
-            {editing ? (
-              <input
-                className="input"
-                value={form.asegurado_direccion}
-                onChange={(e) => update("asegurado_direccion", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.direccion || "—"
-            )}
-          </Field>
-          <Field label="Entre calles">
-            {editing ? (
-              <input
-                className="input"
-                value={form.asegurado_entre_calles}
-                onChange={(e) => update("asegurado_entre_calles", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.entre_calles || "—"
-            )}
-          </Field>
-          <Field label="Localidad">
-            {editing ? (
-              <input
-                className="input"
-                value={form.asegurado_localidad}
-                onChange={(e) => update("asegurado_localidad", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.localidad || "—"
-            )}
-          </Field>
-          <Field label="Partido">
-            {editing ? (
-              <input
-                className="input"
-                value={form.asegurado_partido}
-                onChange={(e) => update("asegurado_partido", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.partido || "—"
-            )}
-          </Field>
-          <Field label="Provincia">
-            {editing ? (
-              <input
-                className="input"
-                value={form.asegurado_provincia}
-                onChange={(e) => update("asegurado_provincia", e.target.value)}
-              />
-            ) : (
-              caso.asegurado?.provincia || "—"
             )}
           </Field>
         </div>
