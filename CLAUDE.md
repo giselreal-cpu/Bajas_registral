@@ -35,6 +35,19 @@ que tramita las bajas.
   Registro, Observaciones, Recibos, Otros — sin necesitar login. Es distinto
   del "responsable" interno: no reemplaza roles del equipo, es acceso
   externo de solo-carga.
+- **Rentabilidad / módulo financiero**: cada `caso` funciona como la
+  "operación" financiera (no hay tabla aparte). Se le cargan
+  `movimientos_caso` (ingresos/egresos tipados por un catálogo abierto
+  `conceptos_movimiento` — cobro a la aseguradora, cobro/pago al
+  desarmadero, pago a la compañía, comisión de gestoría, informes, etc.).
+  Los movimientos de ingreso se agrupan en `facturas` (comprobante
+  interno, no fiscal — no se usa Contabilium) hacia un receptor (compañía
+  o desarmadero), y contra cada factura se registran `cobros` parciales
+  o totales. `comercial_aseguradora` guarda, por aseguradora, el % que se
+  le cobra al desarmadero (sobre Valor InfoAuto) y el % que se le paga a
+  la compañía (sobre Valor InfoAuto o Suma Asegurada, configurable). Todo
+  esto es información interna: el rol `compania` no tiene ningún acceso
+  (ni lectura), a diferencia del resto de las tablas.
 
 ## Proceso de negocio (resumen del flujo real)
 
@@ -65,12 +78,19 @@ Tablas: `aseguradoras`, `asegurados`, `vehiculos`, `desarmaderos`,
 
 ## Fuera del alcance del MVP (fase 2)
 
-- Módulo financiero: valores InfoAuto, cobros/pagos a desarmadero, gestoría,
-  compañía, comisiones. Es un módulo grande, se aborda una vez que el flujo de
-  casos esté sólido.
-- Notificaciones automáticas.
+- Notificaciones automáticas — **excepto** el módulo financiero, cuya Fase 4
+  sí las va a incluir (WhatsApp/Email vía Edge Functions + cron), a pedido
+  explícito del usuario, adaptando `tf3040-plataforma`.
 - Roles internos separados (gestor/tramitador) — el modelo ya está preparado
   para sumarlos sin romper nada.
+
+El módulo financiero (antes listado acá como "fuera de alcance") se está
+construyendo por fases, adaptado de un sistema propio del usuario
+(`tf3040-plataforma`), con todo salvo la integración fiscal con Contabilium
+(no la usan). Fase 1 (rentabilidad/facturación/cobranza/cuenta corriente
+por caso) ya está implementada — ver `README.md` para el detalle. Fases 2
+(anticipos, notas de crédito, control documental), 3 (RBAC granular) y 4
+(notificaciones automáticas) quedan para próximas sesiones.
 
 ## Stack técnico
 

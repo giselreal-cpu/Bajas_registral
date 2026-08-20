@@ -69,6 +69,7 @@ export default function CasoCabecera({
     deuda_patentes: caso.deuda_patentes ?? 0,
     deuda_multas: caso.deuda_multas ?? 0,
     suma_asegurada: caso.suma_asegurada ?? 0,
+    valor_infoauto: caso.valor_infoauto ?? 0,
     fecha_cierre: caso.fecha_cierre ?? "",
     observaciones: caso.observaciones ?? "",
     tercero_nombre: caso.tercero_nombre ?? "",
@@ -781,6 +782,20 @@ export default function CasoCabecera({
               />
             ) : (
               formatCurrency(caso.suma_asegurada)
+            )}
+          </Field>
+
+          <Field label="Valor InfoAuto">
+            {editing ? (
+              <input
+                type="number"
+                step="0.01"
+                className="input"
+                value={form.valor_infoauto}
+                onChange={(e) => update("valor_infoauto", Number(e.target.value))}
+              />
+            ) : (
+              formatCurrency(caso.valor_infoauto)
             )}
           </Field>
 

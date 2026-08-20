@@ -57,6 +57,16 @@ export interface Aseguradora {
   telefono: string | null;
 }
 
+export type BaseCalculoCompania = "valor_infoauto" | "suma_asegurada";
+
+export interface ComercialAseguradora {
+  id: string;
+  aseguradora_id: string;
+  porcentaje_desarmadero: number | null;
+  porcentaje_compania: number | null;
+  base_calculo_compania: BaseCalculoCompania | null;
+}
+
 export interface Asegurado {
   id: string;
   nombre: string;
@@ -152,6 +162,7 @@ export interface Caso {
   tercero_dni: string | null;
   tercero_contacto: string | null;
   suma_asegurada: number | null;
+  valor_infoauto: number | null;
   productor_nombre: string | null;
   productor_contacto: string | null;
   tramitador_nombre: string | null;
@@ -221,4 +232,62 @@ export interface HistorialCambio {
   detalle: string | null;
   created_at: string;
   usuario: { nombre: string } | null;
+}
+
+// ==========================================================
+// Módulo financiero (rentabilidad / facturación interna)
+// ==========================================================
+
+export type TipoMovimiento = "ingreso" | "egreso";
+
+export interface ConceptoMovimiento {
+  id: string;
+  nombre: string;
+  tipo: TipoMovimiento;
+}
+
+export interface MovimientoCaso {
+  id: string;
+  caso_id: string;
+  concepto_id: string;
+  monto: number;
+  fecha: string;
+  observacion: string | null;
+  factura_id: string | null;
+  creado_por: string | null;
+  created_at: string;
+  concepto: ConceptoMovimiento | null;
+}
+
+export type TipoReceptor = "compania" | "desarmadero";
+export type EstadoFactura = "pendiente" | "cobrado_parcial" | "cobrado_total";
+
+export const ESTADOS_FACTURA: { value: EstadoFactura; label: string }[] = [
+  { value: "pendiente", label: "Pendiente" },
+  { value: "cobrado_parcial", label: "Cobrado parcial" },
+  { value: "cobrado_total", label: "Cobrado total" }
+];
+
+export interface Factura {
+  id: string;
+  numero_factura: number;
+  caso_id: string;
+  tipo_receptor: TipoReceptor;
+  receptor_id: string;
+  monto_total: number;
+  estado: EstadoFactura;
+  fecha_emision: string;
+  created_at: string;
+  receptor_nombre?: string;
+  cobros?: Cobro[];
+}
+
+export interface Cobro {
+  id: string;
+  factura_id: string;
+  monto: number;
+  fecha: string;
+  medio_pago: string | null;
+  observacion: string | null;
+  created_at: string;
 }

@@ -6,6 +6,7 @@ import CasoCabecera from "@/components/casos/CasoCabecera";
 import BitacoraSection from "@/components/casos/BitacoraSection";
 import DocumentosSection from "@/components/casos/DocumentosSection";
 import HistorialSection from "@/components/casos/HistorialSection";
+import RentabilidadSection from "@/components/casos/RentabilidadSection";
 
 export const dynamic = "force-dynamic";
 
@@ -79,6 +80,10 @@ export default async function CasoDetallePage({
           Descargar autorización (.docx)
         </a>
       </section>
+
+      {!soloLectura && (
+        <RentabilidadSection casoId={caso.id} caso={caso as CasoConRelaciones} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <BitacoraSection

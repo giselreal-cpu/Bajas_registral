@@ -30,6 +30,7 @@ const NAV_LINKS = [
   { href: "/casos", label: "Casos" },
   { href: "/agenda", label: "Agenda" },
   { href: "/catalogos", label: "Catálogos", ocultarParaCompania: true },
+  { href: "/cuenta-corriente", label: "Cta. Corriente", ocultarParaCompania: true },
   { href: "/exportar", label: "Exportar" }
 ];
 

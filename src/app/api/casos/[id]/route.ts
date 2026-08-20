@@ -62,6 +62,7 @@ export async function PUT(
     "tercero_dni",
     "tercero_contacto",
     "suma_asegurada",
+    "valor_infoauto",
     "productor_nombre",
     "productor_contacto",
     "tramitador_nombre",

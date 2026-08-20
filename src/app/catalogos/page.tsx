@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 
 const CATALOGOS = [
   {
@@ -27,13 +28,24 @@ const CATALOGOS = [
     description: "Catálogo abierto: 04D, 04C, 04 Digital, etc."
   },
   {
+    href: "/catalogos/conceptos-movimiento",
+    title: "Conceptos de movimiento",
+    description: "Rubros de ingreso/egreso para la rentabilidad de los casos.",
+    ocultarParaCompania: true
+  },
+  {
     href: "/catalogos/usuarios",
     title: "Usuarios",
     description: "Personas del equipo que pueden ser responsables de un caso."
   }
 ];
 
-export default function CatalogosPage() {
+export default async function CatalogosPage() {
+  const usuarioActual = await getUsuarioActual();
+  const catalogos = CATALOGOS.filter(
+    (c) => !(c.ocultarParaCompania && usuarioActual?.rol === "compania")
+  );
+
   return (
     <div>
       <h1 className="text-xl font-semibold text-slate-900 mb-1">Catálogos</h1>
@@ -41,7 +53,7 @@ export default function CatalogosPage() {
         Datos maestros que se usan al cargar y gestionar los casos.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {CATALOGOS.map((c) => (
+        {catalogos.map((c) => (
           <Link key={c.href} href={c.href} className="card p-4 hover:border-brand-300">
             <h2 className="font-medium text-slate-800">{c.title}</h2>
             <p className="text-sm text-slate-500">{c.description}</p>

@@ -32,6 +32,10 @@ interface CasoResumen {
 
 const DIAS_SIN_MOVIMIENTO = 7;
 
+function formatCurrency(value: number): string {
+  return value.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+}
+
 function estadoBadgeClass(estado: string) {
   switch (estado) {
     case "cerrado":
@@ -207,6 +211,41 @@ export default async function PanelPage({
     .map(([id, v]) => ({ id, ...v }))
     .sort((a, b) => b.pendientes.length - a.pendientes.length);
   const gestorSeleccionado = rankingGestores.find((g) => g.id === searchParams.gestor_id);
+
+  // Rentabilidad: ingresos/egresos/ganancia neta sobre los mismos casos ya
+  // filtrados arriba, más las facturas todavía no cobradas del todo.
+  const casoIds = (casos ?? []).map((c) => c.id);
+  const [{ data: movimientosFinancieros }, { data: facturasPendientes }] =
+    casoIds.length > 0
+      ? await Promise.all([
+          supabase
+            .from("movimientos_caso")
+            .select("monto, concepto:conceptos_movimiento(tipo)")
+            .in("caso_id", casoIds),
+          supabase
+            .from("facturas")
+            .select(
+              "id, numero_factura, caso_id, tipo_receptor, monto_total, estado, caso:casos(numero_siniestro)"
+            )
+            .in("caso_id", casoIds)
+            .neq("estado", "cobrado_total")
+            .order("fecha_emision", { ascending: false })
+            .limit(8)
+        ])
+      : [{ data: [] as any[] }, { data: [] as any[] }];
+
+  const movimientosTipados = (movimientosFinancieros ?? []) as unknown as {
+    monto: number;
+    concepto: { tipo: string } | null;
+  }[];
+
+  const totalIngresosPanel = movimientosTipados
+    .filter((m) => m.concepto?.tipo === "ingreso")
+    .reduce((acc, m) => acc + Number(m.monto), 0);
+  const totalEgresosPanel = movimientosTipados
+    .filter((m) => m.concepto?.tipo === "egreso")
+    .reduce((acc, m) => acc + Number(m.monto), 0);
+  const gananciaNetaPanel = totalIngresosPanel - totalEgresosPanel;
 
   // Días entre dos fechas (ISO date, sin horas).
   function diasEntre(desde: string, hasta: string) {
@@ -519,6 +558,69 @@ export default async function PanelPage({
                 </div>
               )}
             </div>
+          )}
+        </section>
+      )}
+
+      {puedeVerTiempos && (
+        <section className="card p-4">
+          <h2 className="font-medium text-slate-800 mb-3">Rentabilidad</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            <div className="rounded-md bg-emerald-50 border border-emerald-100 p-3">
+              <div className="text-xs text-emerald-700">Ingresos</div>
+              <div className="text-lg font-semibold text-emerald-800">
+                {formatCurrency(totalIngresosPanel)}
+              </div>
+            </div>
+            <div className="rounded-md bg-red-50 border border-red-100 p-3">
+              <div className="text-xs text-red-700">Egresos</div>
+              <div className="text-lg font-semibold text-red-800">
+                {formatCurrency(totalEgresosPanel)}
+              </div>
+            </div>
+            <div
+              className={`rounded-md border p-3 ${
+                gananciaNetaPanel >= 0
+                  ? "bg-accent-50 border-accent-200"
+                  : "bg-red-50 border-red-200"
+              }`}
+            >
+              <div className="text-xs text-slate-600">Ganancia neta</div>
+              <div
+                className={`text-lg font-semibold ${
+                  gananciaNetaPanel >= 0 ? "text-accent-700" : "text-red-800"
+                }`}
+              >
+                {formatCurrency(gananciaNetaPanel)}
+              </div>
+            </div>
+          </div>
+
+          <h3 className="text-sm font-medium text-slate-700 mb-2">Facturas pendientes de cobro</h3>
+          {facturasPendientes && facturasPendientes.length > 0 ? (
+            <div className="divide-y divide-slate-100">
+              {facturasPendientes.map((f) => (
+                <div key={f.id} className="py-2 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/casos/${f.caso_id}`}
+                      className="text-brand-700 font-medium hover:underline text-sm"
+                    >
+                      N° {f.numero_factura} — {f.caso?.numero_siniestro}
+                    </Link>
+                    <p className="text-xs text-slate-500">
+                      {f.tipo_receptor === "compania" ? "Compañía" : "Desarmadero"} ·{" "}
+                      {formatCurrency(f.monto_total)}
+                    </p>
+                  </div>
+                  <span className="badge bg-amber-100 text-amber-800 shrink-0">
+                    {f.estado === "cobrado_parcial" ? "Cobrado parcial" : "Pendiente"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">No hay facturas pendientes de cobro.</p>
           )}
         </section>
       )}

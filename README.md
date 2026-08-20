@@ -255,12 +255,49 @@ siguiendo el `CLAUDE.md` del proyecto.
   responsiva: menú hamburguesa en mobile, tablas con scroll horizontal en
   pantallas chicas, formularios que pasan a una sola columna.
 
-No incluido todavía (a propósito, según el `CLAUDE.md`): módulo financiero,
-notificaciones automáticas y roles separados internos (gestor/tramitador
-dentro del equipo propio — distinto de los roles de acceso operador/
-administrador/compañía, que sí están implementados, y también distinto del
-"Gestor de campo" de arriba, que es una persona externa sin cuenta en el
-sistema, no un rol interno del equipo).
+- **Rentabilidad / módulo financiero (Fase 1)**: nueva sección "Rentabilidad"
+  en el detalle del caso (oculta para el rol compañía), adaptada de un
+  sistema propio del usuario (`tf3040-plataforma`), tratando cada `caso`
+  como la unidad de "operación" financiera:
+  - **Movimientos** (`movimientos_caso`): ingresos/egresos tipados por el
+    catálogo abierto **Conceptos de movimiento** (`/catalogos/conceptos-movimiento`,
+    precargado con Cobro a la aseguradora, Cobro/Pago al desarmadero, Pago
+    a la compañía, Comisión de gestoría, Informes de dominio/multas/
+    patentes/Ingeniero, Correo/moto envío, Otro). La cabecera de la
+    sección muestra Ingresos / Egresos / **Ganancia neta** en vivo.
+  - **Configuración comercial por aseguradora** (`/catalogos/aseguradoras`,
+    tabla `comercial_aseguradora`): % que se le cobra al desarmadero
+    (sobre Valor InfoAuto) y % que se le paga a la compañía (sobre Valor
+    InfoAuto o Suma Asegurada, a elección) — el formulario de carga de
+    movimientos sugiere el monto automático según estos %, editable a
+    mano si hace falta.
+  - **Valor InfoAuto**: nuevo campo en "Datos económicos" de la cabecera
+    del caso, al lado de Suma asegurada.
+  - **Facturas y cobros** (comprobantes internos, no fiscales — no se
+    usa Contabilium): desde la sección Rentabilidad se agrupan movimientos
+    de ingreso sin facturar en una factura (numerada, autonumerada) hacia
+    un receptor (compañía o desarmadero), y se registran cobros parciales
+    o totales contra ella; el estado (Pendiente/Cobrado parcial/Cobrado
+    total) se recalcula solo.
+  - **Cuenta corriente** (`/cuenta-corriente`): saldo pendiente por
+    compañía/desarmadero, sumando todas sus facturas y cobros across
+    todos sus casos.
+  - **Panel → Rentabilidad**: totales de ingresos/egresos/ganancia neta
+    sobre los casos ya filtrados, más una lista de facturas pendientes de
+    cobro.
+  - Es información **100% interna**: el rol compañía no tiene ningún
+    acceso a nada de esto, ni por pantalla ni por API directa (RLS real).
+  - Es la Fase 1 de un módulo más grande — quedan pendientes anticipos,
+    notas de crédito, control documental atado al estado financiero, RBAC
+    granular en paralelo al sistema de roles actual, y notificaciones
+    automáticas (WhatsApp/Email), para próximas sesiones.
+
+No incluido todavía (a propósito, según el `CLAUDE.md`): las fases 2-4 del
+módulo financiero recién descriptas, y roles separados internos
+(gestor/tramitador dentro del equipo propio — distinto de los roles de
+acceso operador/administrador/compañía, que sí están implementados, y
+también distinto del "Gestor de campo" de arriba, que es una persona
+externa sin cuenta en el sistema, no un rol interno del equipo).
 
 ## Puesta en marcha
 
@@ -316,6 +353,18 @@ sistema, no un rol interno del equipo).
    - `supabase/migrations/0022_recalcular_estados_v2.sql` (recalcula el
      estado de todos los casos con el criterio ampliado de avance
      automático — ver más abajo)
+   - `supabase/migrations/0023_estado_gestor_asignado.sql` y
+     `0024_estado_baja_patentes_pendiente.sql` (dos estados nuevos:
+     "Gestor Asignado" y "Baja de Patentes Pendiente")
+   - `supabase/migrations/0025_gruero_traslado.sql` (datos del gruero
+     dentro del evento "Traslado") y `0027_token_gruero.sql` (enlace
+     público de solo lectura para el gruero, `/gr/<token>`)
+   - `supabase/migrations/0026_recalcular_numero_caso_v2.sql` (recálculo
+     puntual de `numero_caso` para sacar huecos)
+   - `supabase/migrations/0028_rentabilidad.sql` (módulo financiero Fase
+     1: `comercial_aseguradora`, `conceptos_movimiento`,
+     `movimientos_caso`, `facturas`, `cobros`, vista `cuenta_corriente`,
+     `casos.valor_infoauto`)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.
