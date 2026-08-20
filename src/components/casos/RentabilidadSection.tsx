@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  Anticipo,
   CasoConRelaciones,
   ComercialAseguradora,
   ConceptoMovimiento,
@@ -71,6 +72,18 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
   const [cobroMedioPago, setCobroMedioPago] = useState("");
   const [savingCobro, setSavingCobro] = useState(false);
 
+  const [anticiposCompania, setAnticiposCompania] = useState<Anticipo[]>([]);
+  const [anticiposDesarmadero, setAnticiposDesarmadero] = useState<Anticipo[]>([]);
+  const [anticipoFacturaId, setAnticipoFacturaId] = useState<string | null>(null);
+  const [anticipoId, setAnticipoId] = useState("");
+  const [anticipoMonto, setAnticipoMonto] = useState("");
+  const [savingAnticipo, setSavingAnticipo] = useState(false);
+
+  const [notaFacturaId, setNotaFacturaId] = useState<string | null>(null);
+  const [notaMonto, setNotaMonto] = useState("");
+  const [notaMotivo, setNotaMotivo] = useState("");
+  const [savingNota, setSavingNota] = useState(false);
+
   async function loadMovimientos() {
     const res = await fetch(`/api/casos/${casoId}/movimientos`);
     const json = await res.json();
@@ -85,12 +98,26 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     else setError(json.error);
   }
 
+  async function loadAnticipos() {
+    if (caso.aseguradora_id) {
+      const res = await fetch(`/api/anticipos?tipo=compania&receptor_id=${caso.aseguradora_id}`);
+      const json = await res.json();
+      if (res.ok) setAnticiposCompania(json.data ?? []);
+    }
+    if (caso.desarmadero_id) {
+      const res = await fetch(`/api/anticipos?tipo=desarmadero&receptor_id=${caso.desarmadero_id}`);
+      const json = await res.json();
+      if (res.ok) setAnticiposDesarmadero(json.data ?? []);
+    }
+  }
+
   useEffect(() => {
     fetch("/api/conceptos-movimiento")
       .then((r) => r.json())
       .then((j) => setConceptos(j.data ?? []));
     loadMovimientos();
     loadFacturas();
+    loadAnticipos();
     if (caso.aseguradora_id) {
       fetch(`/api/aseguradoras/${caso.aseguradora_id}/comercial`)
         .then((r) => r.json())
@@ -98,6 +125,11 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [casoId]);
+
+  function anticiposDe(f: Factura): Anticipo[] {
+    const lista = f.tipo_receptor === "compania" ? anticiposCompania : anticiposDesarmadero;
+    return lista.filter((a) => a.saldo_disponible > 0);
+  }
 
   function montoSugerido(conceptoId: string): string {
     const concepto = conceptos.find((c) => c.id === conceptoId);
@@ -273,9 +305,84 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     }
   }
 
-  const totalIngresos = (movimientos ?? [])
-    .filter((m) => m.concepto?.tipo === "ingreso")
-    .reduce((acc, m) => acc + Number(m.monto), 0);
+  async function handleEliminarFactura(facturaId: string) {
+    if (!confirm("¿Eliminar esta factura? Sus movimientos volverán a quedar sin facturar.")) return;
+    setError(null);
+    const res = await fetch(`/api/facturas/${facturaId}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok) {
+      setError(json.error);
+      return;
+    }
+    loadFacturas();
+    loadMovimientos();
+  }
+
+  async function handleAplicarAnticipo(facturaId: string) {
+    if (!anticipoId || !anticipoMonto) {
+      setError("Elegí un anticipo y cargá un monto.");
+      return;
+    }
+    setSavingAnticipo(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/facturas/${facturaId}/aplicar-anticipo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ anticipo_id: anticipoId, monto: Number(anticipoMonto) })
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error);
+        return;
+      }
+      setAnticipoFacturaId(null);
+      setAnticipoId("");
+      setAnticipoMonto("");
+      loadFacturas();
+      loadAnticipos();
+    } finally {
+      setSavingAnticipo(false);
+    }
+  }
+
+  async function handleEmitirNota(facturaId: string) {
+    if (!notaMonto || !notaMotivo.trim()) {
+      setError("Cargá el monto y el motivo de la nota de crédito.");
+      return;
+    }
+    setSavingNota(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/facturas/${facturaId}/notas-credito`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ monto: Number(notaMonto), motivo: notaMotivo })
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error);
+        return;
+      }
+      setNotaFacturaId(null);
+      setNotaMonto("");
+      setNotaMotivo("");
+      loadFacturas();
+    } finally {
+      setSavingNota(false);
+    }
+  }
+
+  // Ingresos = plata efectivamente cobrada (cobros + notas de crédito de
+  // las facturas de este caso), no lo devengado al cargar el movimiento.
+  // Un ingreso sin facturar o facturado pero no cobrado todavía no suma
+  // acá, aunque siga listado abajo como pendiente.
+  const totalIngresos = (facturas ?? []).reduce((acc, f) => {
+    const cobradoFactura =
+      (f.cobros ?? []).reduce((a, c) => a + Number(c.monto), 0) +
+      (f.notas_credito ?? []).reduce((a, n) => a + Number(n.monto), 0);
+    return acc + cobradoFactura;
+  }, 0);
   const totalEgresos = (movimientos ?? [])
     .filter((m) => m.concepto?.tipo === "egreso")
     .reduce((acc, m) => acc + Number(m.monto), 0);
@@ -283,12 +390,15 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
 
   return (
     <section className="card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
         <h2 className="font-medium text-slate-800">Rentabilidad</h2>
         <button className="btn-secondary text-xs" onClick={() => setShowForm((s) => !s)}>
           {showForm ? "Cancelar" : "+ Agregar movimiento"}
         </button>
       </div>
+      <p className="text-xs text-slate-400 mb-3">
+        Ingresos = plata efectivamente cobrada, no lo facturado pendiente.
+      </p>
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
 
@@ -539,6 +649,12 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
         <ul className="space-y-2">
           {facturas?.map((f) => {
             const cobrado = (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0);
+            const acreditadoPorNotas = (f.notas_credito ?? []).reduce(
+              (acc, n) => acc + Number(n.monto),
+              0
+            );
+            const saldo = f.monto_total - cobrado - acreditadoPorNotas;
+            const anticiposDisponibles = anticiposDe(f);
             return (
               <li key={f.id} className="rounded-md border border-slate-100 p-3 text-sm">
                 <div className="flex items-center justify-between gap-2">
@@ -549,17 +665,39 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                       {new Date(f.fecha_emision + "T00:00:00").toLocaleDateString("es-AR")}
                     </span>
                   </div>
-                  <span className={`badge ${estadoFacturaBadgeClass(f.estado)}`}>
-                    {ESTADOS_FACTURA.find((e) => e.value === f.estado)?.label ?? f.estado}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`badge ${estadoFacturaBadgeClass(f.estado)}`}>
+                      {ESTADOS_FACTURA.find((e) => e.value === f.estado)?.label ?? f.estado}
+                    </span>
+                    {cobrado === 0 && acreditadoPorNotas === 0 && (
+                      <button
+                        className="text-xs text-slate-400 hover:text-red-600"
+                        onClick={() => handleEliminarFactura(f.id)}
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <div className="mt-1 text-slate-600">
-                  Total: {formatCurrency(f.monto_total)} · Cobrado: {formatCurrency(cobrado)} ·
-                  Saldo: {formatCurrency(f.monto_total - cobrado)}
+                  Total: {formatCurrency(f.monto_total)} · Cobrado: {formatCurrency(cobrado)}
+                  {acreditadoPorNotas > 0 && (
+                    <> · Notas de crédito: {formatCurrency(acreditadoPorNotas)}</>
+                  )}{" "}
+                  · Saldo: {formatCurrency(saldo)}
                 </div>
+                {(f.notas_credito ?? []).length > 0 && (
+                  <ul className="mt-1 text-xs text-slate-500 space-y-0.5">
+                    {f.notas_credito?.map((n) => (
+                      <li key={n.id}>
+                        Nota de crédito {formatCurrency(n.monto)} — {n.motivo}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {f.estado !== "cobrado_total" && (
-                  <div className="mt-2">
-                    {cobroFacturaId === f.id ? (
+                  <div className="mt-2 space-y-2">
+                    {cobroFacturaId === f.id && (
                       <div className="flex flex-wrap items-end gap-2">
                         <div>
                           <label className="label">Monto cobrado</label>
@@ -593,13 +731,108 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                           Cancelar
                         </button>
                       </div>
-                    ) : (
-                      <button
-                        className="text-xs text-brand-600 hover:underline"
-                        onClick={() => setCobroFacturaId(f.id)}
-                      >
-                        Registrar cobro
-                      </button>
+                    )}
+                    {anticipoFacturaId === f.id && (
+                      <div className="flex flex-wrap items-end gap-2">
+                        <div>
+                          <label className="label">Anticipo</label>
+                          <select
+                            className="input w-52"
+                            value={anticipoId}
+                            onChange={(e) => setAnticipoId(e.target.value)}
+                          >
+                            <option value="">Seleccionar...</option>
+                            {anticiposDisponibles.map((a) => (
+                              <option key={a.id} value={a.id}>
+                                {formatCurrency(a.saldo_disponible)} disponibles
+                                {a.observacion ? ` — ${a.observacion}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="label">Monto a aplicar</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="input w-32"
+                            value={anticipoMonto}
+                            onChange={(e) => setAnticipoMonto(e.target.value)}
+                          />
+                        </div>
+                        <button
+                          className="btn-primary text-xs"
+                          disabled={savingAnticipo}
+                          onClick={() => handleAplicarAnticipo(f.id)}
+                        >
+                          Aplicar
+                        </button>
+                        <button
+                          className="btn-secondary text-xs"
+                          onClick={() => setAnticipoFacturaId(null)}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                    {notaFacturaId === f.id && (
+                      <div className="flex flex-wrap items-end gap-2">
+                        <div>
+                          <label className="label">Monto</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="input w-32"
+                            value={notaMonto}
+                            onChange={(e) => setNotaMonto(e.target.value)}
+                          />
+                        </div>
+                        <div>
+                          <label className="label">Motivo</label>
+                          <input
+                            className="input w-52"
+                            value={notaMotivo}
+                            onChange={(e) => setNotaMotivo(e.target.value)}
+                          />
+                        </div>
+                        <button
+                          className="btn-primary text-xs"
+                          disabled={savingNota}
+                          onClick={() => handleEmitirNota(f.id)}
+                        >
+                          Emitir
+                        </button>
+                        <button
+                          className="btn-secondary text-xs"
+                          onClick={() => setNotaFacturaId(null)}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    )}
+                    {cobroFacturaId !== f.id && anticipoFacturaId !== f.id && notaFacturaId !== f.id && (
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          className="text-xs text-brand-600 hover:underline"
+                          onClick={() => setCobroFacturaId(f.id)}
+                        >
+                          Registrar cobro
+                        </button>
+                        {anticiposDisponibles.length > 0 && (
+                          <button
+                            className="text-xs text-brand-600 hover:underline"
+                            onClick={() => setAnticipoFacturaId(f.id)}
+                          >
+                            Aplicar anticipo
+                          </button>
+                        )}
+                        <button
+                          className="text-xs text-brand-600 hover:underline"
+                          onClick={() => setNotaFacturaId(f.id)}
+                        >
+                          Emitir nota de crédito
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}

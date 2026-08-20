@@ -4,6 +4,9 @@ import { getUsuarioActual, getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { recalcularEstado } from "@/lib/estadoAutomatico";
 import { registrarCambio } from "@/lib/historial";
 import { motivoBloqueo } from "@/lib/eventosBitacora";
+import { casoEstaSaldado } from "@/lib/estadoFinanciero";
+
+const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
 
 export async function GET(
   _request: NextRequest,
@@ -58,7 +61,9 @@ export async function POST(
     fecha_inicio,
     fecha_fin,
     gruero_nombre,
-    gruero_contacto
+    gruero_contacto,
+    excepcion_financiera,
+    motivo_excepcion
   } = body;
 
   if (!tipo_evento) {
@@ -106,6 +111,39 @@ export async function POST(
     }
   }
 
+  // Control documental atado al estado financiero: no se puede completar
+  // "Envío de documentación Cía" si el caso no está saldado, salvo
+  // excepción autorizada por un administrador con motivo.
+  let excepcionFinancieraFinal = false;
+  if (completado && tipo_evento === EVENTO_LIBERACION_DOCUMENTAL) {
+    const saldado = await casoEstaSaldado(params.id);
+    if (!saldado) {
+      if (!excepcion_financiera) {
+        return NextResponse.json(
+          {
+            error:
+              "El caso no está saldado (todas las facturas cobradas). Se requiere autorización de un administrador para liberar documentación con excepción."
+          },
+          { status: 409 }
+        );
+      }
+      const usuarioActual = await getUsuarioActual();
+      if (usuarioActual?.rol !== "administrador") {
+        return NextResponse.json(
+          { error: "Solo un administrador puede autorizar la excepción financiera." },
+          { status: 403 }
+        );
+      }
+      if (!motivo_excepcion || !String(motivo_excepcion).trim()) {
+        return NextResponse.json(
+          { error: "El motivo de la excepción es obligatorio." },
+          { status: 400 }
+        );
+      }
+      excepcionFinancieraFinal = true;
+    }
+  }
+
   const { data, error } = await supabase
     .from("bitacora")
     .insert({
@@ -118,7 +156,9 @@ export async function POST(
       fecha_fin: fecha_fin ?? null,
       gruero_nombre: gruero_nombre || null,
       gruero_contacto: gruero_contacto || null,
-      creado_por: usuarioActualId
+      creado_por: usuarioActualId,
+      excepcion_financiera: excepcionFinancieraFinal,
+      motivo_excepcion: excepcionFinancieraFinal ? motivo_excepcion : null
     })
     .select("*")
     .single();
@@ -132,7 +172,11 @@ export async function POST(
   await registrarCambio(
     params.id,
     `Agregó evento de bitácora: ${data.tipo_evento}`,
-    data.completado ? "Cargado como completado" : null
+    data.excepcion_financiera
+      ? `Cargado como completado con excepción financiera: ${data.motivo_excepcion}`
+      : data.completado
+      ? "Cargado como completado"
+      : null
   );
 
   return NextResponse.json({ data, estadoDebug }, { status: 201 });

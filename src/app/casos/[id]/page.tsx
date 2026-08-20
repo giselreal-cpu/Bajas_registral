@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CasoConRelaciones } from "@/types/database";
@@ -6,9 +7,14 @@ import CasoCabecera from "@/components/casos/CasoCabecera";
 import BitacoraSection from "@/components/casos/BitacoraSection";
 import DocumentosSection from "@/components/casos/DocumentosSection";
 import HistorialSection from "@/components/casos/HistorialSection";
-import RentabilidadSection from "@/components/casos/RentabilidadSection";
+import { casoEstaSaldado } from "@/lib/estadoFinanciero";
+import { ingresosCobradosPorCasos } from "@/lib/rentabilidad";
 
 export const dynamic = "force-dynamic";
+
+function formatCurrency(value: number): string {
+  return value.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+}
 
 const CASO_SELECT = `
   *,
@@ -54,6 +60,24 @@ export default async function CasoDetallePage({
   const usuarioActual = await getUsuarioActual();
   const soloLectura = usuarioActual?.rol === "compania";
   const esAdministrador = usuarioActual?.rol === "administrador";
+  const casoSaldado = soloLectura ? true : await casoEstaSaldado(params.id);
+
+  let ingresos = 0;
+  let egresos = 0;
+  if (!soloLectura) {
+    const [{ data: movimientos }, cobrado] = await Promise.all([
+      supabase
+        .from("movimientos_caso")
+        .select("monto, concepto:conceptos_movimiento(tipo)")
+        .eq("caso_id", params.id),
+      ingresosCobradosPorCasos([params.id])
+    ]);
+    ingresos = cobrado;
+    for (const m of (movimientos ?? []) as unknown as { monto: number; concepto: { tipo: string } | null }[]) {
+      if (m.concepto?.tipo === "egreso") egresos += Number(m.monto);
+    }
+  }
+  const gananciaNeta = ingresos - egresos;
 
   return (
     <div className="space-y-6">
@@ -82,7 +106,37 @@ export default async function CasoDetallePage({
       </section>
 
       {!soloLectura && (
-        <RentabilidadSection casoId={caso.id} caso={caso as CasoConRelaciones} />
+        <section className="card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+            <h2 className="font-medium text-slate-800">Rentabilidad</h2>
+            <Link href={`/casos/${caso.id}/rentabilidad`} className="btn-secondary text-xs">
+              Ver detalle financiero →
+            </Link>
+          </div>
+          <p className="text-xs text-slate-400 mb-3">
+            Ingresos = plata efectivamente cobrada, no lo facturado pendiente.
+          </p>
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            <div className="rounded-md bg-emerald-50 border border-emerald-100 p-2">
+              <div className="text-xs text-emerald-700">Ingresos</div>
+              <div className="font-semibold text-emerald-800">{formatCurrency(ingresos)}</div>
+            </div>
+            <div className="rounded-md bg-red-50 border border-red-100 p-2">
+              <div className="text-xs text-red-700">Egresos</div>
+              <div className="font-semibold text-red-800">{formatCurrency(egresos)}</div>
+            </div>
+            <div
+              className={`rounded-md border p-2 ${
+                gananciaNeta >= 0 ? "bg-accent-50 border-accent-200" : "bg-red-50 border-red-200"
+              }`}
+            >
+              <div className="text-xs text-slate-600">Ganancia neta</div>
+              <div className={`font-semibold ${gananciaNeta >= 0 ? "text-accent-700" : "text-red-800"}`}>
+                {formatCurrency(gananciaNeta)}
+              </div>
+            </div>
+          </div>
+        </section>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -90,6 +144,8 @@ export default async function CasoDetallePage({
           casoId={caso.id}
           caso={caso as CasoConRelaciones}
           soloLectura={soloLectura}
+          casoSaldado={casoSaldado}
+          esAdministrador={esAdministrador}
         />
         <DocumentosSection casoId={caso.id} soloLectura={soloLectura} />
       </div>

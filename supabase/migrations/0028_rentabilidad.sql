@@ -51,7 +51,6 @@ insert into conceptos_movimiento (nombre, tipo) values
   ('Cobro a la aseguradora', 'ingreso'),
   ('Cobro al desarmadero', 'ingreso'),
   ('Informe de Ingeniero', 'ingreso'),
-  ('Pago al desarmadero', 'egreso'),
   ('Pago a la compañía', 'egreso'),
   ('Comisión de gestoría', 'egreso'),
   ('Informe de dominio', 'egreso'),

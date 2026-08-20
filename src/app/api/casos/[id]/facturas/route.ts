@@ -10,7 +10,7 @@ export async function GET(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("facturas")
-    .select("*, cobros(*)")
+    .select("*, cobros(*), notas_credito(*)")
     .eq("caso_id", params.id)
     .order("fecha_emision", { ascending: false });
 

@@ -5,6 +5,9 @@ import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { recalcularEstado } from "@/lib/estadoAutomatico";
 import { registrarCambio } from "@/lib/historial";
 import { motivoBloqueo } from "@/lib/eventosBitacora";
+import { casoEstaSaldado } from "@/lib/estadoFinanciero";
+
+const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
 
 // PUT /api/bitacora/[id] -> ej. marcar como completada, editar fecha_fin, etc.
 export async function PUT(
@@ -35,6 +38,45 @@ export async function PUT(
     .select("caso_id, es_interna, tipo_evento, completado, gruero_nombre")
     .eq("id", params.id)
     .maybeSingle();
+
+  // Si esto va a marcar como completado el evento que libera la
+  // documentación original, exige que el caso esté saldado o, si no, una
+  // excepción autorizada por un administrador con motivo. No se toca si
+  // el evento ya estaba completado (edición de otros campos).
+  if (existente) {
+    const tipoFinal = ("tipo_evento" in update ? update.tipo_evento : existente.tipo_evento) as string;
+    const vaACompletarAhora = "completado" in update && update.completado && !existente.completado;
+
+    if (vaACompletarAhora && tipoFinal === EVENTO_LIBERACION_DOCUMENTAL) {
+      const saldado = await casoEstaSaldado(existente.caso_id);
+      if (!saldado) {
+        if (!body.excepcion_financiera) {
+          return NextResponse.json(
+            {
+              error:
+                "El caso no está saldado (todas las facturas cobradas). Se requiere autorización de un administrador para liberar documentación con excepción."
+            },
+            { status: 409 }
+          );
+        }
+        const usuarioActual = await getUsuarioActual();
+        if (usuarioActual?.rol !== "administrador") {
+          return NextResponse.json(
+            { error: "Solo un administrador puede autorizar la excepción financiera." },
+            { status: 403 }
+          );
+        }
+        if (!body.motivo_excepcion || !String(body.motivo_excepcion).trim()) {
+          return NextResponse.json(
+            { error: "El motivo de la excepción es obligatorio." },
+            { status: 400 }
+          );
+        }
+        update.excepcion_financiera = true;
+        update.motivo_excepcion = body.motivo_excepcion;
+      }
+    }
+  }
 
   // Si el evento es (o va a ser) interno y el pedido intenta tocar la
   // observación, solo lo permitimos si quien pide el cambio es el
@@ -129,7 +171,9 @@ export async function PUT(
   const marcoCompletado = "completado" in update && update.completado && !existente?.completado;
   await registrarCambio(
     data.caso_id,
-    marcoCompletado
+    update.excepcion_financiera
+      ? `Completó evento de bitácora: ${data.tipo_evento} (con excepción financiera: ${data.motivo_excepcion})`
+      : marcoCompletado
       ? `Completó evento de bitácora: ${data.tipo_evento}`
       : `Editó evento de bitácora: ${data.tipo_evento}`
   );

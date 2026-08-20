@@ -196,6 +196,8 @@ export interface BitacoraEvento {
   gruero_contacto: string | null;
   token_gruero: string;
   creado_por: string | null;
+  excepcion_financiera: boolean;
+  motivo_excepcion: string | null;
   created_at: string;
 }
 
@@ -280,6 +282,7 @@ export interface Factura {
   created_at: string;
   receptor_nombre?: string;
   cobros?: Cobro[];
+  notas_credito?: NotaCredito[];
 }
 
 export interface Cobro {
@@ -289,5 +292,28 @@ export interface Cobro {
   fecha: string;
   medio_pago: string | null;
   observacion: string | null;
+  anticipo_id: string | null;
+  created_at: string;
+}
+
+export interface NotaCredito {
+  id: string;
+  factura_id: string;
+  monto: number;
+  motivo: string;
+  fecha: string;
+  creado_por: string | null;
+  created_at: string;
+}
+
+export interface Anticipo {
+  id: string;
+  tipo_receptor: TipoReceptor;
+  receptor_id: string;
+  monto: number;
+  saldo_disponible: number;
+  fecha: string;
+  observacion: string | null;
+  creado_por: string | null;
   created_at: string;
 }

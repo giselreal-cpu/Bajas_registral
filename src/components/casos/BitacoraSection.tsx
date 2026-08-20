@@ -5,6 +5,7 @@ import { BitacoraEvento, CasoConRelaciones } from "@/types/database";
 import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
 
 const GESTORIA_NOMBRE = "Oltra Gestión Integral";
+const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
 
 function mensajeContacto(caso: CasoConRelaciones): string {
   const nombreTitular = caso.asegurado?.nombre ?? "";
@@ -145,6 +146,8 @@ interface Props {
   casoId: string;
   caso: CasoConRelaciones;
   soloLectura?: boolean;
+  casoSaldado?: boolean;
+  esAdministrador?: boolean;
 }
 
 interface FormEvento {
@@ -171,11 +174,27 @@ function formVacio(): FormEvento {
   };
 }
 
-export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
+export default function BitacoraSection({
+  casoId,
+  caso,
+  soloLectura,
+  casoSaldado = true,
+  esAdministrador = false
+}: Props) {
   const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [origin, setOrigin] = useState("");
+
+  // Control documental atado al estado financiero: completar "Envío de
+  // documentación Cía" sin que el caso esté saldado requiere que un
+  // administrador autorice una excepción con motivo.
+  function necesitaExcepcionFinanciera(tipoEvento: string) {
+    return tipoEvento === EVENTO_LIBERACION_DOCUMENTAL && !casoSaldado;
+  }
+  const [excepcionEventoId, setExcepcionEventoId] = useState<string | null>(null);
+  const [excepcionMotivo, setExcepcionMotivo] = useState("");
+  const [guardandoExcepcion, setGuardandoExcepcion] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -213,6 +232,18 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
         setError(bloqueo);
         return;
       }
+      if (necesitaExcepcionFinanciera(form.tipo_evento)) {
+        if (!esAdministrador) {
+          setError(
+            "El caso no está saldado (todas las facturas cobradas). Solo un administrador puede autorizar una excepción para completar este evento."
+          );
+          return;
+        }
+        if (!excepcionMotivo.trim()) {
+          setError("Cargá el motivo de la excepción financiera para poder completar este evento.");
+          return;
+        }
+      }
     }
 
     setSaving(true);
@@ -229,7 +260,12 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
         ...(form.tipo_evento === "Traslado" && {
           gruero_nombre: form.gruero_nombre || null,
           gruero_contacto: form.gruero_contacto || null
-        })
+        }),
+        ...(form.completado &&
+          necesitaExcepcionFinanciera(form.tipo_evento) && {
+            excepcion_financiera: true,
+            motivo_excepcion: excepcionMotivo
+          })
       })
     });
     const json = await res.json();
@@ -241,6 +277,7 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
     }
 
     setForm(formVacio());
+    setExcepcionMotivo("");
     setShowForm(false);
     load();
   }
@@ -263,11 +300,26 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
   async function guardarEdicion(id: string) {
     setError(null);
 
+    const yaEstabaCompletado = eventos?.find((ev) => ev.id === id)?.completado ?? false;
+    const vaACompletarAhora = editForm.completado && !yaEstabaCompletado;
+
     if (editForm.completado) {
       const bloqueo = motivoBloqueo(editForm.tipo_evento, eventos ?? [], id);
       if (bloqueo) {
         setError(bloqueo);
         return;
+      }
+      if (vaACompletarAhora && necesitaExcepcionFinanciera(editForm.tipo_evento)) {
+        if (!esAdministrador) {
+          setError(
+            "El caso no está saldado (todas las facturas cobradas). Solo un administrador puede autorizar una excepción para completar este evento."
+          );
+          return;
+        }
+        if (!excepcionMotivo.trim()) {
+          setError("Cargá el motivo de la excepción financiera para poder completar este evento.");
+          return;
+        }
       }
     }
 
@@ -285,7 +337,12 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
         ...(editForm.tipo_evento === "Traslado" && {
           gruero_nombre: editForm.gruero_nombre || null,
           gruero_contacto: editForm.gruero_contacto || null
-        })
+        }),
+        ...(vaACompletarAhora &&
+          necesitaExcepcionFinanciera(editForm.tipo_evento) && {
+            excepcion_financiera: true,
+            motivo_excepcion: excepcionMotivo
+          })
       })
     });
     const json = await res.json();
@@ -296,6 +353,7 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
       return;
     }
 
+    setExcepcionMotivo("");
     setEditingId(null);
     load();
   }
@@ -324,6 +382,19 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
         setError(bloqueo);
         return;
       }
+      if (necesitaExcepcionFinanciera(evento.tipo_evento)) {
+        if (!esAdministrador) {
+          setError(
+            "El caso no está saldado (todas las facturas cobradas). Solo un administrador puede autorizar una excepción para completar este evento."
+          );
+          return;
+        }
+        // En vez de completar directo, se abre el cuadro para cargar el
+        // motivo de la excepción (ver confirmarExcepcion más abajo).
+        setExcepcionEventoId(evento.id);
+        setExcepcionMotivo("");
+        return;
+      }
     }
 
     const res = await fetch(`/api/bitacora/${evento.id}`, {
@@ -334,6 +405,36 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
     const json = await res.json();
     if (res.ok) load();
     else setError(json.error);
+  }
+
+  async function confirmarExcepcion(eventoId: string) {
+    if (!excepcionMotivo.trim()) {
+      setError("Cargá el motivo de la excepción financiera.");
+      return;
+    }
+    setError(null);
+    setGuardandoExcepcion(true);
+    try {
+      const res = await fetch(`/api/bitacora/${eventoId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          completado: true,
+          excepcion_financiera: true,
+          motivo_excepcion: excepcionMotivo
+        })
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error);
+        return;
+      }
+      setExcepcionEventoId(null);
+      setExcepcionMotivo("");
+      load();
+    } finally {
+      setGuardandoExcepcion(false);
+    }
   }
 
   const tiposYaCargados = new Set((eventos ?? []).map((ev) => ev.tipo_evento));
@@ -435,6 +536,30 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
               Completada
             </label>
           </div>
+          {form.completado && necesitaExcepcionFinanciera(form.tipo_evento) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm space-y-2">
+              {esAdministrador ? (
+                <>
+                  <p className="text-amber-800">
+                    El caso no está saldado. Para completar este evento igual, cargá el motivo de
+                    la excepción financiera.
+                  </p>
+                  <textarea
+                    className="input"
+                    rows={2}
+                    placeholder="Motivo de la excepción"
+                    value={excepcionMotivo}
+                    onChange={(e) => setExcepcionMotivo(e.target.value)}
+                  />
+                </>
+              ) : (
+                <p className="text-amber-800">
+                  El caso no está saldado (todas las facturas cobradas). Solo un administrador
+                  puede autorizar una excepción para completar este evento.
+                </p>
+              )}
+            </div>
+          )}
           <button className="btn-primary" disabled={saving} type="submit">
             {saving ? "Guardando..." : "Guardar evento"}
           </button>
@@ -526,6 +651,32 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
                     Completada
                   </label>
                 </div>
+                {editForm.completado &&
+                  !ev.completado &&
+                  necesitaExcepcionFinanciera(editForm.tipo_evento) && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-md p-3 space-y-2">
+                      {esAdministrador ? (
+                        <>
+                          <p className="text-amber-800">
+                            El caso no está saldado. Para completar este evento igual, cargá el
+                            motivo de la excepción financiera.
+                          </p>
+                          <textarea
+                            className="input"
+                            rows={2}
+                            placeholder="Motivo de la excepción"
+                            value={excepcionMotivo}
+                            onChange={(e) => setExcepcionMotivo(e.target.value)}
+                          />
+                        </>
+                      ) : (
+                        <p className="text-amber-800">
+                          El caso no está saldado (todas las facturas cobradas). Solo un
+                          administrador puede autorizar una excepción para completar este evento.
+                        </p>
+                      )}
+                    </div>
+                  )}
                 <div className="flex gap-2">
                   <button
                     className="btn-primary text-xs"
@@ -551,7 +702,20 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
                     {ev.es_interna && (
                       <span className="badge bg-slate-100 text-slate-500 ml-2">interna</span>
                     )}
+                    {ev.excepcion_financiera && (
+                      <span
+                        className="badge bg-amber-100 text-amber-700 ml-2"
+                        title={ev.motivo_excepcion ?? undefined}
+                      >
+                        Excepción financiera
+                      </span>
+                    )}
                   </p>
+                  {ev.excepcion_financiera && ev.motivo_excepcion && (
+                    <p className="text-xs text-amber-700 italic">
+                      Motivo: {ev.motivo_excepcion}
+                    </p>
+                  )}
                   {observacionOculta ? (
                     <p className="text-slate-400 italic">
                       🔒 Observación interna (visible solo para el responsable del caso)
@@ -614,6 +778,39 @@ export default function BitacoraSection({ casoId, caso, soloLectura }: Props) {
                   )}
                 </div>
               </div>
+              {excepcionEventoId === ev.id && (
+                <div className="mt-3 bg-amber-50 border border-amber-200 rounded-md p-3 text-sm space-y-2">
+                  <p className="text-amber-800">
+                    El caso no está saldado. Cargá el motivo de la excepción financiera para
+                    completar este evento igual.
+                  </p>
+                  <textarea
+                    className="input"
+                    rows={2}
+                    placeholder="Motivo de la excepción"
+                    value={excepcionMotivo}
+                    onChange={(e) => setExcepcionMotivo(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      className="btn-primary text-xs"
+                      disabled={guardandoExcepcion}
+                      onClick={() => confirmarExcepcion(ev.id)}
+                    >
+                      {guardandoExcepcion ? "Guardando..." : "Completar con excepción financiera"}
+                    </button>
+                    <button
+                      className="btn-secondary text-xs"
+                      onClick={() => {
+                        setExcepcionEventoId(null);
+                        setExcepcionMotivo("");
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
             </li>
           );
         })}

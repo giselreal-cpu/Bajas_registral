@@ -255,16 +255,18 @@ siguiendo el `CLAUDE.md` del proyecto.
   responsiva: menú hamburguesa en mobile, tablas con scroll horizontal en
   pantallas chicas, formularios que pasan a una sola columna.
 
-- **Rentabilidad / módulo financiero (Fase 1)**: nueva sección "Rentabilidad"
-  en el detalle del caso (oculta para el rol compañía), adaptada de un
-  sistema propio del usuario (`tf3040-plataforma`), tratando cada `caso`
-  como la unidad de "operación" financiera:
+- **Rentabilidad / módulo financiero (Fases 1 y 2)**: página dedicada
+  `/casos/[id]/rentabilidad` (accesible desde un resumen compacto —
+  Ingresos/Egresos/Ganancia neta — en el detalle del caso; oculta para el
+  rol compañía), adaptada de un sistema propio del usuario
+  (`tf3040-plataforma`), tratando cada `caso` como la unidad de
+  "operación" financiera:
   - **Movimientos** (`movimientos_caso`): ingresos/egresos tipados por el
     catálogo abierto **Conceptos de movimiento** (`/catalogos/conceptos-movimiento`,
-    precargado con Cobro a la aseguradora, Cobro/Pago al desarmadero, Pago
+    precargado con Cobro a la aseguradora, Cobro al desarmadero, Pago
     a la compañía, Comisión de gestoría, Informes de dominio/multas/
-    patentes/Ingeniero, Correo/moto envío, Otro). La cabecera de la
-    sección muestra Ingresos / Egresos / **Ganancia neta** en vivo.
+    patentes/Ingeniero, Correo/moto envío, Otro — no incluye "Pago al
+    desarmadero": a él solo se le cobra, nunca se le paga).
   - **Configuración comercial por aseguradora** (`/catalogos/aseguradoras`,
     tabla `comercial_aseguradora`): % que se le cobra al desarmadero
     (sobre Valor InfoAuto) y % que se le paga a la compañía (sobre Valor
@@ -274,25 +276,47 @@ siguiendo el `CLAUDE.md` del proyecto.
   - **Valor InfoAuto**: nuevo campo en "Datos económicos" de la cabecera
     del caso, al lado de Suma asegurada.
   - **Facturas y cobros** (comprobantes internos, no fiscales — no se
-    usa Contabilium): desde la sección Rentabilidad se agrupan movimientos
-    de ingreso sin facturar en una factura (numerada, autonumerada) hacia
-    un receptor (compañía o desarmadero), y se registran cobros parciales
-    o totales contra ella; el estado (Pendiente/Cobrado parcial/Cobrado
-    total) se recalcula solo.
+    usa Contabilium): se agrupan movimientos de ingreso sin facturar en
+    una factura (numerada, autonumerada) hacia un receptor (compañía o
+    desarmadero), y se registran cobros parciales o totales contra ella;
+    el estado (Pendiente/Cobrado parcial/Cobrado total) se recalcula
+    solo. Una factura sin cobros ni notas de crédito se puede eliminar
+    (sus movimientos vuelven al pool de "sin facturar").
+  - **Anticipos** (`anticipos`): saldo a favor de un tercero (compañía o
+    desarmadero) que no queda atado a un caso puntual — se registra desde
+    `/cuenta-corriente` y se puede aplicar contra cualquier factura
+    pendiente de ese mismo tercero, en cualquier caso, no solo el de
+    origen.
+  - **Notas de crédito** (`notas_credito`): ajustan/nettean el saldo
+    pendiente de una factura ya emitida (error de facturación, descuento)
+    sin borrarla ni tocar los movimientos que la originaron.
+  - **Ingresos = plata efectivamente cobrada**: la cifra de "Ingresos" (y
+    por lo tanto "Ganancia neta") en la ficha del caso, la página de
+    rentabilidad y el Panel se calcula sobre cobros + notas de crédito
+    realmente registrados contra facturas — no sobre lo devengado al
+    cargar un movimiento. Un ingreso cargado pero todavía sin facturar o
+    sin cobrar sigue viéndose en la lista de movimientos, pero no suma a
+    la ganancia hasta que haya un cobro real.
+  - **Control documental atado al estado financiero**: el evento de
+    bitácora "Envío de documentación Cía" no se puede completar si el
+    caso no está saldado (todas sus facturas en Cobrado total), salvo que
+    un administrador autorice una excepción con motivo (columnas
+    `bitacora.excepcion_financiera`/`motivo_excepcion`), validado tanto en
+    el cliente como en el servidor.
   - **Cuenta corriente** (`/cuenta-corriente`): saldo pendiente por
-    compañía/desarmadero, sumando todas sus facturas y cobros across
-    todos sus casos.
-  - **Panel → Rentabilidad**: totales de ingresos/egresos/ganancia neta
-    sobre los casos ya filtrados, más una lista de facturas pendientes de
-    cobro.
+    compañía/desarmadero (facturado, cobrado —incluye notas de
+    crédito—, saldo) sumando todas sus facturas across todos sus casos,
+    más los anticipos disponibles de cada uno.
+  - **Panel → Rentabilidad**: totales de ingresos (cobrados)/egresos/
+    ganancia neta sobre los casos ya filtrados, más una lista de facturas
+    pendientes de cobro.
   - Es información **100% interna**: el rol compañía no tiene ningún
     acceso a nada de esto, ni por pantalla ni por API directa (RLS real).
-  - Es la Fase 1 de un módulo más grande — quedan pendientes anticipos,
-    notas de crédito, control documental atado al estado financiero, RBAC
-    granular en paralelo al sistema de roles actual, y notificaciones
-    automáticas (WhatsApp/Email), para próximas sesiones.
+  - Quedan pendientes para próximas sesiones: RBAC granular en paralelo
+    al sistema de roles actual (Fase 3) y notificaciones automáticas
+    WhatsApp/Email (Fase 4).
 
-No incluido todavía (a propósito, según el `CLAUDE.md`): las fases 2-4 del
+No incluido todavía (a propósito, según el `CLAUDE.md`): las fases 3-4 del
 módulo financiero recién descriptas, y roles separados internos
 (gestor/tramitador dentro del equipo propio — distinto de los roles de
 acceso operador/administrador/compañía, que sí están implementados, y
@@ -365,6 +389,10 @@ externa sin cuenta en el sistema, no un rol interno del equipo).
      1: `comercial_aseguradora`, `conceptos_movimiento`,
      `movimientos_caso`, `facturas`, `cobros`, vista `cuenta_corriente`,
      `casos.valor_infoauto`)
+   - `supabase/migrations/0029_anticipos_notas_credito.sql` (módulo
+     financiero Fase 2: `anticipos`, `notas_credito`,
+     `cobros.anticipo_id`, `bitacora.excepcion_financiera`/
+     `motivo_excepcion`, recreación de la vista `cuenta_corriente`)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.

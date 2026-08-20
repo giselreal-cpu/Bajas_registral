@@ -87,10 +87,11 @@ Tablas: `aseguradoras`, `asegurados`, `vehiculos`, `desarmaderos`,
 El módulo financiero (antes listado acá como "fuera de alcance") se está
 construyendo por fases, adaptado de un sistema propio del usuario
 (`tf3040-plataforma`), con todo salvo la integración fiscal con Contabilium
-(no la usan). Fase 1 (rentabilidad/facturación/cobranza/cuenta corriente
-por caso) ya está implementada — ver `README.md` para el detalle. Fases 2
-(anticipos, notas de crédito, control documental), 3 (RBAC granular) y 4
-(notificaciones automáticas) quedan para próximas sesiones.
+(no la usan). Fases 1 (rentabilidad/facturación/cobranza/cuenta corriente
+por caso) y 2 (anticipos aplicables entre casos de un mismo tercero, notas
+de crédito, control documental atado al estado financiero) ya están
+implementadas — ver `README.md` para el detalle. Fase 3 (RBAC granular) y
+4 (notificaciones automáticas) quedan para próximas sesiones.
 
 ## Stack técnico
 

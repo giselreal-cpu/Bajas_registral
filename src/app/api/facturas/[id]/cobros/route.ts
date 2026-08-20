@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
-import type { EstadoFactura } from "@/types/database";
+import { recalcularEstadoFactura } from "@/lib/facturas";
 
 // POST /api/facturas/[id]/cobros -> registra un cobro (parcial o total)
 // contra una factura, y recalcula su estado.
@@ -43,20 +43,7 @@ export async function POST(
     return NextResponse.json({ error: errorCobro.message }, { status: 500 });
   }
 
-  const { data: cobrosFactura } = await supabase
-    .from("cobros")
-    .select("monto")
-    .eq("factura_id", params.id);
-
-  const totalCobrado = (cobrosFactura ?? []).reduce((acc, c) => acc + Number(c.monto), 0);
-  const nuevoEstado: EstadoFactura =
-    totalCobrado >= Number(factura.monto_total)
-      ? "cobrado_total"
-      : totalCobrado > 0
-      ? "cobrado_parcial"
-      : "pendiente";
-
-  await supabase.from("facturas").update({ estado: nuevoEstado }).eq("id", params.id);
+  const nuevoEstado = await recalcularEstadoFactura(params.id);
 
   await registrarCambio(
     factura.caso_id,

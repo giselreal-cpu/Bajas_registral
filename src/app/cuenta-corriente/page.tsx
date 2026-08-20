@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
-import { Factura } from "@/types/database";
+import { Anticipo, Factura } from "@/types/database";
+import AnticipoForm from "@/components/cuentaCorriente/AnticipoForm";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +25,15 @@ export default async function CuentaCorrientePage() {
 
   const supabase = createClient();
 
-  const [{ data: facturas, error }, { data: aseguradoras }, { data: desarmaderos }] =
+  const [{ data: facturas, error }, { data: aseguradoras }, { data: desarmaderos }, { data: anticipos }] =
     await Promise.all([
-      supabase.from("facturas").select("*, cobros(*)").order("fecha_emision", { ascending: false }),
+      supabase
+        .from("facturas")
+        .select("*, cobros(*), notas_credito(*)")
+        .order("fecha_emision", { ascending: false }),
       supabase.from("aseguradoras").select("id, nombre"),
-      supabase.from("desarmaderos").select("id, nombre")
+      supabase.from("desarmaderos").select("id, nombre"),
+      supabase.from("anticipos").select("*")
     ]);
 
   if (error) {
@@ -66,12 +71,19 @@ export default async function CuentaCorrientePage() {
     }
     const entrada = resumenPorTercero.get(clave)!;
     entrada.facturado += Number(f.monto_total);
-    entrada.cobrado += (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0);
+    entrada.cobrado +=
+      (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0) +
+      (f.notas_credito ?? []).reduce((acc, n) => acc + Number(n.monto), 0);
   }
 
   const terceros = Array.from(resumenPorTercero.values()).sort(
     (a, b) => b.facturado - b.cobrado - (a.facturado - a.cobrado)
   );
+
+  const anticipoDisponibleDe = (tipo: string, id: string) =>
+    ((anticipos as Anticipo[] | null) ?? [])
+      .filter((a) => a.tipo_receptor === tipo && a.receptor_id === id)
+      .reduce((acc, a) => acc + Number(a.saldo_disponible), 0);
 
   return (
     <div>
@@ -89,6 +101,7 @@ export default async function CuentaCorrientePage() {
               <th className="px-4 py-2 font-medium">Facturado</th>
               <th className="px-4 py-2 font-medium">Cobrado</th>
               <th className="px-4 py-2 font-medium">Saldo pendiente</th>
+              <th className="px-4 py-2 font-medium">Anticipos</th>
             </tr>
           </thead>
           <tbody>
@@ -103,11 +116,18 @@ export default async function CuentaCorrientePage() {
                 <td className="px-4 py-2 font-medium">
                   {formatCurrency(t.facturado - t.cobrado)}
                 </td>
+                <td className="px-4 py-2">
+                  <AnticipoForm
+                    tipo={t.tipo as "compania" | "desarmadero"}
+                    receptorId={t.id}
+                    saldoDisponible={anticipoDisponibleDe(t.tipo, t.id)}
+                  />
+                </td>
               </tr>
             ))}
             {terceros.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                   Todavía no hay facturas generadas.
                 </td>
               </tr>

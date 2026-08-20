@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS, Estado } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { ingresosCobradosPorCasos } from "@/lib/rentabilidad";
 
 export const dynamic = "force-dynamic";
 
@@ -215,7 +216,7 @@ export default async function PanelPage({
   // Rentabilidad: ingresos/egresos/ganancia neta sobre los mismos casos ya
   // filtrados arriba, más las facturas todavía no cobradas del todo.
   const casoIds = (casos ?? []).map((c) => c.id);
-  const [{ data: movimientosFinancieros }, { data: facturasPendientes }] =
+  const [{ data: movimientosFinancieros }, { data: facturasPendientes }, totalIngresosPanel] =
     casoIds.length > 0
       ? await Promise.all([
           supabase
@@ -230,18 +231,16 @@ export default async function PanelPage({
             .in("caso_id", casoIds)
             .neq("estado", "cobrado_total")
             .order("fecha_emision", { ascending: false })
-            .limit(8)
+            .limit(8),
+          ingresosCobradosPorCasos(casoIds)
         ])
-      : [{ data: [] as any[] }, { data: [] as any[] }];
+      : [{ data: [] as any[] }, { data: [] as any[] }, 0];
 
   const movimientosTipados = (movimientosFinancieros ?? []) as unknown as {
     monto: number;
     concepto: { tipo: string } | null;
   }[];
 
-  const totalIngresosPanel = movimientosTipados
-    .filter((m) => m.concepto?.tipo === "ingreso")
-    .reduce((acc, m) => acc + Number(m.monto), 0);
   const totalEgresosPanel = movimientosTipados
     .filter((m) => m.concepto?.tipo === "egreso")
     .reduce((acc, m) => acc + Number(m.monto), 0);
@@ -564,7 +563,10 @@ export default async function PanelPage({
 
       {puedeVerTiempos && (
         <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Rentabilidad</h2>
+          <h2 className="font-medium text-slate-800 mb-1">Rentabilidad</h2>
+          <p className="text-xs text-slate-400 mb-3">
+            Ingresos = plata efectivamente cobrada, no lo facturado pendiente.
+          </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div className="rounded-md bg-emerald-50 border border-emerald-100 p-3">
               <div className="text-xs text-emerald-700">Ingresos</div>
