@@ -256,6 +256,7 @@ export interface MovimientoCaso {
   fecha: string;
   observacion: string | null;
   factura_id: string | null;
+  pagado: boolean;
   creado_por: string | null;
   created_at: string;
   concepto: ConceptoMovimiento | null;

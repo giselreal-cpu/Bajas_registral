@@ -303,10 +303,22 @@ siguiendo el `CLAUDE.md` del proyecto.
     un administrador autorice una excepción con motivo (columnas
     `bitacora.excepcion_financiera`/`motivo_excepcion`), validado tanto en
     el cliente como en el servidor.
-  - **Cuenta corriente** (`/cuenta-corriente`): saldo pendiente por
-    compañía/desarmadero (facturado, cobrado —incluye notas de
-    crédito—, saldo) sumando todas sus facturas across todos sus casos,
-    más los anticipos disponibles de cada uno.
+  - **Egresos: pagado / pendiente de pago** (`movimientos_caso.pagado`):
+    al cargar un egreso se puede marcar si ya se pagó o queda pendiente
+    (por defecto, pendiente); un badge clickeable en la lista de
+    movimientos permite cambiar el estado en cualquier momento
+    (`MovimientoPagadoToggle`, reutilizado en la ficha del caso y en
+    Seguimiento financiero).
+  - **Cuenta corriente** (`/cuenta-corriente`): por cada compañía/
+    desarmadero, fila resumen (facturado, cobrado —incluye notas de
+    crédito—, saldo, anticipos disponibles) desplegable a una tabla con
+    el detalle de cada factura: N°, caso (con link) y dominio, servicio
+    facturado, fecha, cobrado, saldo y estado.
+  - **Seguimiento financiero** (`/seguimiento-financiero`): por cada
+    caso con movimientos o facturas cargadas, desplegable con el detalle
+    de sus facturas pendientes de cobro y sus egresos cargados (con su
+    estado pagado/pendiente, editable ahí mismo); totales generales de
+    pendiente por cobrar, pendiente por pagar y ya pagado arriba de todo.
   - **Panel → Rentabilidad**: totales de ingresos (cobrados)/egresos/
     ganancia neta sobre los casos ya filtrados, más una lista de facturas
     pendientes de cobro.
@@ -393,6 +405,9 @@ externa sin cuenta en el sistema, no un rol interno del equipo).
      financiero Fase 2: `anticipos`, `notas_credito`,
      `cobros.anticipo_id`, `bitacora.excepcion_financiera`/
      `motivo_excepcion`, recreación de la vista `cuenta_corriente`)
+   - `supabase/migrations/0030_movimiento_pagado.sql`
+     (`movimientos_caso.pagado`: distingue un egreso ya pagado de uno
+     pendiente de pago)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.

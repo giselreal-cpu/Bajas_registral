@@ -32,7 +32,7 @@ export async function POST(
   const body = await request.json();
   const usuarioActualId = await getUsuarioActualId();
 
-  const { concepto_id, monto, fecha, observacion } = body;
+  const { concepto_id, monto, fecha, observacion, pagado } = body;
 
   if (!concepto_id || monto === undefined || monto === null) {
     return NextResponse.json(
@@ -49,6 +49,7 @@ export async function POST(
       monto,
       fecha: fecha || new Date().toISOString().slice(0, 10),
       observacion: observacion || null,
+      pagado: !!pagado,
       creado_por: usuarioActualId
     })
     .select("*, concepto:conceptos_movimiento(*)")

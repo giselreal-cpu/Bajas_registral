@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 
-const ALLOWED_FIELDS = ["concepto_id", "monto", "fecha", "observacion"];
+const ALLOWED_FIELDS = ["concepto_id", "monto", "fecha", "observacion", "pagado"];
 
 export async function PUT(
   request: NextRequest,
@@ -40,7 +40,13 @@ export async function PUT(
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await registrarCambio(data.caso_id, `Editó movimiento: ${data.concepto?.nombre ?? "—"}`);
+  const soloCambioPagado = Object.keys(update).length === 1 && "pagado" in update;
+  await registrarCambio(
+    data.caso_id,
+    soloCambioPagado
+      ? `Marcó movimiento como ${data.pagado ? "pagado" : "pendiente de pago"}: ${data.concepto?.nombre ?? "—"}`
+      : `Editó movimiento: ${data.concepto?.nombre ?? "—"}`
+  );
 
   return NextResponse.json({ data });
 }

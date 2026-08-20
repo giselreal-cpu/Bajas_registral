@@ -11,6 +11,7 @@ import {
   MovimientoCaso,
   TipoReceptor
 } from "@/types/database";
+import MovimientoPagadoToggle from "./MovimientoPagadoToggle";
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
@@ -38,6 +39,7 @@ interface FormMovimiento {
   monto: string;
   fecha: string;
   observacion: string;
+  pagado: boolean;
 }
 
 function formVacio(): FormMovimiento {
@@ -45,7 +47,8 @@ function formVacio(): FormMovimiento {
     concepto_id: "",
     monto: "",
     fecha: new Date().toISOString().slice(0, 10),
-    observacion: ""
+    observacion: "",
+    pagado: false
   };
 }
 
@@ -168,7 +171,8 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
           concepto_id: form.concepto_id,
           monto: Number(form.monto),
           fecha: form.fecha,
-          observacion: form.observacion
+          observacion: form.observacion,
+          pagado: form.pagado
         })
       });
       const json = await res.json();
@@ -191,7 +195,8 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
       concepto_id: m.concepto_id,
       monto: String(m.monto),
       fecha: m.fecha,
-      observacion: m.observacion ?? ""
+      observacion: m.observacion ?? "",
+      pagado: m.pagado
     });
   }
 
@@ -206,7 +211,8 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
           concepto_id: editForm.concepto_id,
           monto: Number(editForm.monto),
           fecha: editForm.fecha,
-          observacion: editForm.observacion
+          observacion: editForm.observacion,
+          pagado: editForm.pagado
         })
       });
       const json = await res.json();
@@ -478,6 +484,16 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
               onChange={(e) => setForm((f) => ({ ...f, observacion: e.target.value }))}
             />
           </div>
+          {conceptos.find((c) => c.id === form.concepto_id)?.tipo === "egreso" && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.pagado}
+                onChange={(e) => setForm((f) => ({ ...f, pagado: e.target.checked }))}
+              />
+              Ya está pagado (si no, queda como pendiente de pago)
+            </label>
+          )}
           <button className="btn-primary" disabled={saving} type="submit">
             {saving ? "Guardando..." : "Guardar movimiento"}
           </button>
@@ -522,6 +538,16 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                   value={editForm.observacion}
                   onChange={(e) => setEditForm((f) => ({ ...f, observacion: e.target.value }))}
                 />
+                {conceptos.find((c) => c.id === editForm.concepto_id)?.tipo === "egreso" && (
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editForm.pagado}
+                      onChange={(e) => setEditForm((f) => ({ ...f, pagado: e.target.checked }))}
+                    />
+                    Ya está pagado
+                  </label>
+                )}
                 <div className="flex gap-2">
                   <button
                     className="btn-primary text-xs"
@@ -556,6 +582,15 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                   </span>
                   {m.factura_id && (
                     <span className="badge ml-1 bg-slate-100 text-slate-500">Facturado</span>
+                  )}
+                  {m.concepto?.tipo === "egreso" && (
+                    <span className="ml-1 inline-block">
+                      <MovimientoPagadoToggle
+                        movimientoId={m.id}
+                        pagado={m.pagado}
+                        onChange={loadMovimientos}
+                      />
+                    </span>
                   )}
                 </p>
                 {m.observacion && <p className="text-slate-500">{m.observacion}</p>}

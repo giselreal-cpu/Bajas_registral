@@ -31,7 +31,7 @@ const NAV_LINKS = [
   { href: "/agenda", label: "Agenda" },
   { href: "/catalogos", label: "Catálogos", ocultarParaCompania: true },
   { href: "/cuenta-corriente", label: "Cta. Corriente", ocultarParaCompania: true },
-  { href: "/reporte-financiero", label: "Pendientes", ocultarParaCompania: true },
+  { href: "/seguimiento-financiero", label: "Seguimiento", ocultarParaCompania: true },
   { href: "/exportar", label: "Exportar" }
 ];
 

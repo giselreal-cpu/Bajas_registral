@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { EstadoFactura, ESTADOS_FACTURA } from "@/types/database";
+import MovimientoPagadoToggle from "@/components/casos/MovimientoPagadoToggle";
 
 export const dynamic = "force-dynamic";
 
@@ -27,9 +28,11 @@ interface CasoReporte {
   desarmadero: { nombre: string } | null;
   vehiculo: { dominio: string } | null;
   movimientos_caso: {
+    id: string;
     monto: number;
     fecha: string;
     observacion: string | null;
+    pagado: boolean;
     concepto: { nombre: string; tipo: string } | null;
   }[];
   facturas: {
@@ -44,7 +47,7 @@ interface CasoReporte {
   }[];
 }
 
-export default async function ReporteFinancieroPage() {
+export default async function SeguimientoFinancieroPage() {
   const usuarioActual = await getUsuarioActual();
 
   if (usuarioActual?.rol === "compania") {
@@ -66,7 +69,7 @@ export default async function ReporteFinancieroPage() {
       aseguradora:aseguradoras(nombre),
       desarmadero:desarmaderos(nombre),
       vehiculo:vehiculos(dominio),
-      movimientos_caso(monto, fecha, observacion, concepto:conceptos_movimiento(nombre, tipo)),
+      movimientos_caso(id, monto, fecha, observacion, pagado, concepto:conceptos_movimiento(nombre, tipo)),
       facturas(id, numero_factura, tipo_receptor, monto_total, estado, fecha_emision, cobros(monto), notas_credito(monto))
     `
     )
@@ -75,7 +78,7 @@ export default async function ReporteFinancieroPage() {
   if (error) {
     return (
       <div className="card p-4 text-sm text-red-600">
-        Error al cargar el reporte: {error.message}
+        Error al cargar el seguimiento financiero: {error.message}
       </div>
     );
   }
@@ -83,7 +86,10 @@ export default async function ReporteFinancieroPage() {
   const casosConActividad = ((casos as unknown as CasoReporte[]) ?? [])
     .map((c) => {
       const egresos = c.movimientos_caso.filter((m) => m.concepto?.tipo === "egreso");
-      const totalEgresos = egresos.reduce((acc, m) => acc + Number(m.monto), 0);
+      const egresosPendientes = egresos.filter((m) => !m.pagado);
+      const egresosPagados = egresos.filter((m) => m.pagado);
+      const totalPendientePago = egresosPendientes.reduce((acc, m) => acc + Number(m.monto), 0);
+      const totalPagado = egresosPagados.reduce((acc, m) => acc + Number(m.monto), 0);
 
       const facturasConSaldo = c.facturas.map((f) => {
         const cobrado =
@@ -93,32 +99,51 @@ export default async function ReporteFinancieroPage() {
       });
       const totalPendienteCobro = facturasConSaldo.reduce((acc, f) => acc + f.saldo, 0);
 
-      return { ...c, egresos, totalEgresos, facturasConSaldo, totalPendienteCobro };
+      return {
+        ...c,
+        egresos,
+        totalPendientePago,
+        totalPagado,
+        facturasConSaldo,
+        totalPendienteCobro
+      };
     })
     .filter((c) => c.movimientos_caso.length > 0 || c.facturas.length > 0)
-    .sort((a, b) => b.totalPendienteCobro + b.totalEgresos - (a.totalPendienteCobro + a.totalEgresos));
+    .sort(
+      (a, b) =>
+        b.totalPendienteCobro + b.totalPendientePago - (a.totalPendienteCobro + a.totalPendientePago)
+    );
 
   const totalGeneralPendienteCobro = casosConActividad.reduce((acc, c) => acc + c.totalPendienteCobro, 0);
-  const totalGeneralEgresos = casosConActividad.reduce((acc, c) => acc + c.totalEgresos, 0);
+  const totalGeneralPendientePago = casosConActividad.reduce((acc, c) => acc + c.totalPendientePago, 0);
+  const totalGeneralPagado = casosConActividad.reduce((acc, c) => acc + c.totalPagado, 0);
 
   return (
     <div>
-      <h1 className="text-xl font-semibold text-slate-900 mb-1">Pendientes</h1>
+      <h1 className="text-xl font-semibold text-slate-900 mb-1">Seguimiento financiero</h1>
       <p className="text-sm text-slate-500 mb-6">
         Por cada caso con movimientos cargados: lo que falta cobrar (facturas sin saldar) y los
-        egresos cargados (lo que corresponde pagar).
+        egresos cargados, marcando cuáles ya se pagaron y cuáles siguen pendientes.
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="card p-4 bg-emerald-50 border-emerald-100">
-          <div className="text-xs text-emerald-700">Total pendiente por cobrar</div>
+          <div className="text-xs text-emerald-700">Pendiente por cobrar</div>
           <div className="text-xl font-semibold text-emerald-800">
             {formatCurrency(totalGeneralPendienteCobro)}
           </div>
         </div>
         <div className="card p-4 bg-red-50 border-red-100">
-          <div className="text-xs text-red-700">Total de egresos cargados</div>
-          <div className="text-xl font-semibold text-red-800">{formatCurrency(totalGeneralEgresos)}</div>
+          <div className="text-xs text-red-700">Pendiente por pagar</div>
+          <div className="text-xl font-semibold text-red-800">
+            {formatCurrency(totalGeneralPendientePago)}
+          </div>
+        </div>
+        <div className="card p-4 bg-slate-50 border-slate-200">
+          <div className="text-xs text-slate-500">Ya pagado</div>
+          <div className="text-xl font-semibold text-slate-700">
+            {formatCurrency(totalGeneralPagado)}
+          </div>
         </div>
       </div>
 
@@ -141,9 +166,9 @@ export default async function ReporteFinancieroPage() {
                   Pendiente de cobro <b className="font-medium">{formatCurrency(c.totalPendienteCobro)}</b>
                 </span>
               )}
-              {c.totalEgresos > 0 && (
+              {c.totalPendientePago > 0 && (
                 <span className="text-sm text-red-700">
-                  Egresos cargados <b className="font-medium">{formatCurrency(c.totalEgresos)}</b>
+                  Pendiente de pago <b className="font-medium">{formatCurrency(c.totalPendientePago)}</b>
                 </span>
               )}
               <span className="text-xs text-slate-400 ml-auto">ver detalle</span>
@@ -209,17 +234,21 @@ export default async function ReporteFinancieroPage() {
                           <th className="py-1 pr-4 font-medium">Fecha</th>
                           <th className="py-1 pr-4 font-medium">Monto</th>
                           <th className="py-1 pr-4 font-medium">Observación</th>
+                          <th className="py-1 pr-4 font-medium">Estado</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {c.egresos.map((m, i) => (
-                          <tr key={i} className="border-t border-slate-100">
+                        {c.egresos.map((m) => (
+                          <tr key={m.id} className="border-t border-slate-100">
                             <td className="py-1.5 pr-4">{m.concepto?.nombre ?? "—"}</td>
                             <td className="py-1.5 pr-4 text-slate-500">
                               {new Date(m.fecha + "T00:00:00").toLocaleDateString("es-AR")}
                             </td>
                             <td className="py-1.5 pr-4 font-medium">{formatCurrency(m.monto)}</td>
                             <td className="py-1.5 pr-4 text-slate-500">{m.observacion || "—"}</td>
+                            <td className="py-1.5 pr-4">
+                              <MovimientoPagadoToggle movimientoId={m.id} pagado={m.pagado} />
+                            </td>
                           </tr>
                         ))}
                       </tbody>
