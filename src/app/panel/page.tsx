@@ -288,6 +288,82 @@ export default async function PanelPage({
     .sort((a, b) => (b.fecha_cierre! > a.fecha_cierre! ? 1 : -1))
     .slice(0, 8);
 
+  // Ganancia neta y cobrado al desarmadero, agrupados por mes de cierre.
+  // Ganancia neta usa el mismo criterio "cash real" que el resto del
+  // módulo financiero (cobros + notas de crédito, no lo devengado).
+  const casoIdsCerrados = casosConTiempos.map((c) => c.id);
+  const [{ data: facturasCerrados }, { data: movimientosCerrados }] =
+    casoIdsCerrados.length > 0
+      ? await Promise.all([
+          supabase
+            .from("facturas")
+            .select("caso_id, tipo_receptor, cobros(monto), notas_credito(monto)")
+            .in("caso_id", casoIdsCerrados),
+          supabase
+            .from("movimientos_caso")
+            .select("caso_id, monto, concepto:conceptos_movimiento(tipo)")
+            .in("caso_id", casoIdsCerrados)
+        ])
+      : [{ data: [] as any[] }, { data: [] as any[] }];
+
+  const ingresosPorCaso = new Map<string, number>();
+  const cobradoDesarmaderoPorCaso = new Map<string, number>();
+  for (const f of (facturasCerrados ?? []) as unknown as {
+    caso_id: string;
+    tipo_receptor: string;
+    cobros: { monto: number }[];
+    notas_credito: { monto: number }[];
+  }[]) {
+    const cobrado =
+      (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0) +
+      (f.notas_credito ?? []).reduce((acc, n) => acc + Number(n.monto), 0);
+    ingresosPorCaso.set(f.caso_id, (ingresosPorCaso.get(f.caso_id) ?? 0) + cobrado);
+    if (f.tipo_receptor === "desarmadero") {
+      cobradoDesarmaderoPorCaso.set(
+        f.caso_id,
+        (cobradoDesarmaderoPorCaso.get(f.caso_id) ?? 0) + cobrado
+      );
+    }
+  }
+  const egresosPorCaso = new Map<string, number>();
+  for (const m of (movimientosCerrados ?? []) as unknown as {
+    caso_id: string;
+    monto: number;
+    concepto: { tipo: string } | null;
+  }[]) {
+    if (m.concepto?.tipo === "egreso") {
+      egresosPorCaso.set(m.caso_id, (egresosPorCaso.get(m.caso_id) ?? 0) + Number(m.monto));
+    }
+  }
+
+  interface ResumenMes {
+    mes: string;
+    autosCerrados: number;
+    gananciaNeta: number;
+    cobradoDesarmadero: number;
+  }
+  const resumenPorMes = new Map<string, ResumenMes>();
+  for (const c of casosConTiempos) {
+    const mesKey = c.fecha_cierre!.slice(0, 7);
+    if (!resumenPorMes.has(mesKey)) {
+      resumenPorMes.set(mesKey, { mes: mesKey, autosCerrados: 0, gananciaNeta: 0, cobradoDesarmadero: 0 });
+    }
+    const entrada = resumenPorMes.get(mesKey)!;
+    entrada.autosCerrados += 1;
+    entrada.gananciaNeta += (ingresosPorCaso.get(c.id) ?? 0) - (egresosPorCaso.get(c.id) ?? 0);
+    entrada.cobradoDesarmadero += cobradoDesarmaderoPorCaso.get(c.id) ?? 0;
+  }
+  const resumenMensual = Array.from(resumenPorMes.values()).sort((a, b) => b.mes.localeCompare(a.mes));
+
+  const nombreMes = (mesKey: string) => {
+    const [anio, mes] = mesKey.split("-").map(Number);
+    const texto = new Date(anio, mes - 1, 1).toLocaleDateString("es-AR", {
+      month: "long",
+      year: "numeric"
+    });
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  };
+
   // Lista combinada para "Próximos vencimientos": eventos con fecha_fin
   // pendiente (vencimientos "de verdad") + casos sin movimiento hace 7+
   // días (aunque no tengan ninguna fecha cargada), para que se vea todo
@@ -755,6 +831,54 @@ export default async function PanelPage({
                       <td className="py-1.5 pr-4">
                         {c.diasPresentacionCierre ?? "—"}
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">
+              Todavía no hay casos cerrados con fecha de cierre cargada.
+            </p>
+          )}
+        </section>
+      )}
+
+      {puedeVerTiempos && (
+        <section className="card p-4">
+          <h2 className="font-medium text-slate-800 mb-1">
+            Ganancia neta por mes (casos cerrados)
+          </h2>
+          <p className="text-xs text-slate-400 mb-3">
+            Ganancia neta = plata efectivamente cobrada menos egresos, sobre los autos cerrados
+            cada mes.
+          </p>
+          {resumenMensual.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-slate-500">
+                  <tr>
+                    <th className="py-1 pr-4 font-medium">Mes</th>
+                    <th className="py-1 pr-4 font-medium">Autos cerrados</th>
+                    <th className="py-1 pr-4 font-medium">Ganancia neta</th>
+                    <th className="py-1 pr-4 font-medium">Cobrado al desarmadero</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resumenMensual.map((r) => (
+                    <tr key={r.mes} className="border-t border-slate-100">
+                      <td className="py-1.5 pr-4 font-medium text-slate-800">
+                        {nombreMes(r.mes)}
+                      </td>
+                      <td className="py-1.5 pr-4">{r.autosCerrados}</td>
+                      <td
+                        className={`py-1.5 pr-4 font-medium ${
+                          r.gananciaNeta >= 0 ? "text-accent-700" : "text-red-700"
+                        }`}
+                      >
+                        {formatCurrency(r.gananciaNeta)}
+                      </td>
+                      <td className="py-1.5 pr-4">{formatCurrency(r.cobradoDesarmadero)}</td>
                     </tr>
                   ))}
                 </tbody>
