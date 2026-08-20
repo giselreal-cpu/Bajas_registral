@@ -52,7 +52,7 @@ insert into conceptos_movimiento (nombre, tipo) values
   ('Cobro al desarmadero', 'ingreso'),
   ('Informe de Ingeniero', 'ingreso'),
   ('Pago a la compañía', 'egreso'),
-  ('Comisión de gestoría', 'egreso'),
+  ('Honorarios por Gestoría', 'egreso'),
   ('Informe de dominio', 'egreso'),
   ('Informe de multas', 'egreso'),
   ('Informe de patentes', 'egreso'),

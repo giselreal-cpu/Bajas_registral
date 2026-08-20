@@ -105,6 +105,17 @@ export default async function CasoDetallePage({
         </a>
       </section>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <BitacoraSection
+          casoId={caso.id}
+          caso={caso as CasoConRelaciones}
+          soloLectura={soloLectura}
+          casoSaldado={casoSaldado}
+          esAdministrador={esAdministrador}
+        />
+        <DocumentosSection casoId={caso.id} soloLectura={soloLectura} />
+      </div>
+
       {!soloLectura && (
         <section className="card p-4">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
@@ -138,17 +149,6 @@ export default async function CasoDetallePage({
           </div>
         </section>
       )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <BitacoraSection
-          casoId={caso.id}
-          caso={caso as CasoConRelaciones}
-          soloLectura={soloLectura}
-          casoSaldado={casoSaldado}
-          esAdministrador={esAdministrador}
-        />
-        <DocumentosSection casoId={caso.id} soloLectura={soloLectura} />
-      </div>
 
       <HistorialSection casoId={caso.id} soloLectura={soloLectura} />
     </div>

@@ -264,7 +264,7 @@ siguiendo el `CLAUDE.md` del proyecto.
   - **Movimientos** (`movimientos_caso`): ingresos/egresos tipados por el
     catálogo abierto **Conceptos de movimiento** (`/catalogos/conceptos-movimiento`,
     precargado con Cobro a la aseguradora, Cobro al desarmadero, Pago
-    a la compañía, Comisión de gestoría, Informes de dominio/multas/
+    a la compañía, Honorarios por Gestoría, Informes de dominio/multas/
     patentes/Ingeniero, Correo/moto envío, Otro — no incluye "Pago al
     desarmadero": a él solo se le cobra, nunca se le paga).
   - **Configuración comercial por aseguradora** (`/catalogos/aseguradoras`,
