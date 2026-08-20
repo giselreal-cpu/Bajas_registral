@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS, Estado } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
-import { ingresosCobradosPorCasos } from "@/lib/rentabilidad";
 
 export const dynamic = "force-dynamic";
 
@@ -213,39 +212,6 @@ export default async function PanelPage({
     .sort((a, b) => b.pendientes.length - a.pendientes.length);
   const gestorSeleccionado = rankingGestores.find((g) => g.id === searchParams.gestor_id);
 
-  // Rentabilidad: ingresos/egresos/ganancia neta sobre los mismos casos ya
-  // filtrados arriba, más las facturas todavía no cobradas del todo.
-  const casoIds = (casos ?? []).map((c) => c.id);
-  const [{ data: movimientosFinancieros }, { data: facturasPendientes }, totalIngresosPanel] =
-    casoIds.length > 0
-      ? await Promise.all([
-          supabase
-            .from("movimientos_caso")
-            .select("monto, concepto:conceptos_movimiento(tipo)")
-            .in("caso_id", casoIds),
-          supabase
-            .from("facturas")
-            .select(
-              "id, numero_factura, caso_id, tipo_receptor, monto_total, estado, caso:casos(numero_siniestro)"
-            )
-            .in("caso_id", casoIds)
-            .neq("estado", "cobrado_total")
-            .order("fecha_emision", { ascending: false })
-            .limit(8),
-          ingresosCobradosPorCasos(casoIds)
-        ])
-      : [{ data: [] as any[] }, { data: [] as any[] }, 0];
-
-  const movimientosTipados = (movimientosFinancieros ?? []) as unknown as {
-    monto: number;
-    concepto: { tipo: string } | null;
-  }[];
-
-  const totalEgresosPanel = movimientosTipados
-    .filter((m) => m.concepto?.tipo === "egreso")
-    .reduce((acc, m) => acc + Number(m.monto), 0);
-  const gananciaNetaPanel = totalIngresosPanel - totalEgresosPanel;
-
   // Días entre dos fechas (ISO date, sin horas).
   function diasEntre(desde: string, hasta: string) {
     return Math.round(
@@ -288,23 +254,39 @@ export default async function PanelPage({
     .sort((a, b) => (b.fecha_cierre! > a.fecha_cierre! ? 1 : -1))
     .slice(0, 8);
 
-  // Ganancia neta y cobrado al desarmadero, agrupados por mes de cierre.
-  // Ganancia neta usa el mismo criterio "cash real" que el resto del
-  // módulo financiero (cobros + notas de crédito, no lo devengado).
+  // Rentabilidad: ingresos/egresos/ganancia neta únicamente sobre casos
+  // CERRADOS (no tiene sentido contar plata de casos todavía abiertos).
+  // Ingresos = cash real (cobros + notas de crédito, no lo facturado
+  // pendiente). Egresos = solo lo efectivamente pagado
+  // (movimientos_caso.pagado = true), no lo cargado/pendiente de pago.
+  const casoIds = (casos ?? []).map((c) => c.id);
   const casoIdsCerrados = casosConTiempos.map((c) => c.id);
-  const [{ data: facturasCerrados }, { data: movimientosCerrados }] =
-    casoIdsCerrados.length > 0
-      ? await Promise.all([
-          supabase
+  const [{ data: facturasCerrados }, { data: movimientosCerrados }, { data: facturasPendientes }] =
+    await Promise.all([
+      casoIdsCerrados.length > 0
+        ? supabase
             .from("facturas")
             .select("caso_id, tipo_receptor, cobros(monto), notas_credito(monto)")
-            .in("caso_id", casoIdsCerrados),
-          supabase
-            .from("movimientos_caso")
-            .select("caso_id, monto, concepto:conceptos_movimiento(tipo)")
             .in("caso_id", casoIdsCerrados)
-        ])
-      : [{ data: [] as any[] }, { data: [] as any[] }];
+        : Promise.resolve({ data: [] as any[] }),
+      casoIdsCerrados.length > 0
+        ? supabase
+            .from("movimientos_caso")
+            .select("caso_id, monto, pagado, concepto:conceptos_movimiento(tipo)")
+            .in("caso_id", casoIdsCerrados)
+        : Promise.resolve({ data: [] as any[] }),
+      casoIds.length > 0
+        ? supabase
+            .from("facturas")
+            .select(
+              "id, numero_factura, caso_id, tipo_receptor, monto_total, estado, caso:casos(numero_siniestro)"
+            )
+            .in("caso_id", casoIds)
+            .neq("estado", "cobrado_total")
+            .order("fecha_emision", { ascending: false })
+            .limit(8)
+        : Promise.resolve({ data: [] as any[] })
+    ]);
 
   const ingresosPorCaso = new Map<string, number>();
   const cobradoDesarmaderoPorCaso = new Map<string, number>();
@@ -329,12 +311,17 @@ export default async function PanelPage({
   for (const m of (movimientosCerrados ?? []) as unknown as {
     caso_id: string;
     monto: number;
+    pagado: boolean;
     concepto: { tipo: string } | null;
   }[]) {
-    if (m.concepto?.tipo === "egreso") {
+    if (m.concepto?.tipo === "egreso" && m.pagado) {
       egresosPorCaso.set(m.caso_id, (egresosPorCaso.get(m.caso_id) ?? 0) + Number(m.monto));
     }
   }
+
+  const totalIngresosPanel = Array.from(ingresosPorCaso.values()).reduce((a, b) => a + b, 0);
+  const totalEgresosPanel = Array.from(egresosPorCaso.values()).reduce((a, b) => a + b, 0);
+  const gananciaNetaPanel = totalIngresosPanel - totalEgresosPanel;
 
   interface ResumenMes {
     mes: string;
@@ -639,9 +626,10 @@ export default async function PanelPage({
 
       {puedeVerTiempos && (
         <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-1">Rentabilidad</h2>
+          <h2 className="font-medium text-slate-800 mb-1">Rentabilidad (casos cerrados)</h2>
           <p className="text-xs text-slate-400 mb-3">
-            Ingresos = plata efectivamente cobrada, no lo facturado pendiente.
+            Ingresos = plata efectivamente cobrada, no lo facturado pendiente. Egresos = solo lo
+            efectivamente pagado, no lo cargado pendiente de pago.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
             <div className="rounded-md bg-emerald-50 border border-emerald-100 p-3">
