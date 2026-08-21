@@ -1,13 +1,16 @@
 // Catálogo cerrado de tipos de evento de bitácora. A diferencia de la
 // versión anterior (que era una secuencia numerada de 18 pasos), acá cada
-// tipo de evento indica puntualmente cuál es el evento anterior que debe
-// estar completado antes de poder completar este (campo `requiere`).
-// Un evento con `requiere: null` no tiene ninguna dependencia.
+// tipo de evento indica puntualmente cuál/cuáles son los eventos
+// anteriores que deben estar completados antes de poder completar este
+// (campo `requiere`). Un evento con `requiere: null` no tiene ninguna
+// dependencia; puede pedir un solo prerequisito (string) o varios a la
+// vez (string[], deben estar TODOS completados) — es el caso de "Cierre
+// de Caso", que no se puede cerrar si queda algún evento clave pendiente.
 
 export interface TipoEventoDef {
   value: string;
   label: string;
-  requiere: string | null; // label del tipo de evento que debe estar completado antes
+  requiere: string | string[] | null;
 }
 
 export const TIPOS_EVENTO: TipoEventoDef[] = [
@@ -43,7 +46,16 @@ export const TIPOS_EVENTO: TipoEventoDef[] = [
   {
     value: "cierre_caso",
     label: "Cierre de Caso",
-    requiere: "Asignación de desarmadero"
+    // No se puede cerrar el caso si queda alguno de estos eventos clave
+    // sin completar (a pedido explícito del usuario).
+    requiere: [
+      "Petición de Informes",
+      "Autorización de traslado",
+      "Traslado",
+      "Formulario de Baja",
+      "Presentación de Baja",
+      "Envío de documentación Cía"
+    ]
   },
   { value: "baja_patentes", label: "Baja de Patentes", requiere: null },
   { value: "observaciones", label: "Observaciones", requiere: null }
@@ -54,9 +66,9 @@ export function tipoEventoDe(label: string): TipoEventoDef | undefined {
 }
 
 // Devuelve el mensaje de bloqueo si el evento `label` no puede marcarse
-// como completado todavía (porque su prerequisito no está completado), o
-// null si se puede completar sin problema. `idEventoActual` se excluye de
-// la búsqueda (útil al editar un evento existente).
+// como completado todavía (porque algún prerequisito no está completado),
+// o null si se puede completar sin problema. `idEventoActual` se excluye
+// de la búsqueda (útil al editar un evento existente).
 export function motivoBloqueo(
   label: string,
   eventosExistentes: { id: string; tipo_evento: string; completado: boolean }[],
@@ -65,15 +77,18 @@ export function motivoBloqueo(
   const tipo = tipoEventoDe(label);
   if (!tipo || !tipo.requiere) return null;
 
-  const requisitoCumplido = eventosExistentes.some(
-    (ev) =>
-      ev.tipo_evento === tipo.requiere &&
-      ev.completado &&
-      ev.id !== idEventoActual
+  const requisitos = Array.isArray(tipo.requiere) ? tipo.requiere : [tipo.requiere];
+  const faltantes = requisitos.filter(
+    (req) =>
+      !eventosExistentes.some(
+        (ev) => ev.tipo_evento === req && ev.completado && ev.id !== idEventoActual
+      )
   );
 
-  if (!requisitoCumplido) {
-    return `No se puede completar "${label}" porque "${tipo.requiere}" todavía no está completado.`;
+  if (faltantes.length > 0) {
+    return faltantes.length === 1
+      ? `No se puede completar "${label}" porque "${faltantes[0]}" todavía no está completado.`
+      : `No se puede completar "${label}" porque todavía no están completados: ${faltantes.join(", ")}.`;
   }
   return null;
 }
