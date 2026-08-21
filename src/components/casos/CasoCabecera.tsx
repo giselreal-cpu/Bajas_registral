@@ -196,6 +196,7 @@ export default function CasoCabecera({
       : "sin asignar todavía";
     const mensaje = [
       `Se te asignó un nuevo caso: siniestro ${caso.numero_siniestro}.`,
+      `Dominio: ${caso.vehiculo?.dominio ?? "—"}`,
       `Asegurado: ${caso.asegurado?.nombre ?? "—"} - Contacto: ${caso.asegurado?.telefono ?? "—"}`,
       `Registro de radicación: ${registroTexto}`,
       `Entrá a este enlace para ver los datos y cargar la documentación: ${enlaceGestor}`
