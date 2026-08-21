@@ -85,6 +85,30 @@ class EscritorPdf {
     return ancho;
   }
 
+  // Dos bloques de texto en la misma línea (uno pegado al margen
+  // izquierdo, otro pegado al derecho) — para pares tipo "Aseguradora /
+  // Oltra" que tienen que quedar a la misma altura.
+  lineaDual(izquierda: TextSegment[], derecha: TextSegment[]) {
+    this.asegurarEspacio(LINE_HEIGHT);
+    let x = MARGIN_X;
+    for (const seg of izquierda) {
+      const font = this.fuenteDe(seg);
+      this.page.drawText(seg.text, { x, y: this.y, size: FONT_SIZE, font, color: rgb(0, 0, 0) });
+      x += font.widthOfTextAtSize(seg.text, FONT_SIZE);
+    }
+    const anchoDerecha = derecha.reduce(
+      (acc, s) => acc + this.fuenteDe(s).widthOfTextAtSize(s.text, FONT_SIZE),
+      0
+    );
+    x = MARGIN_X + CONTENT_WIDTH - anchoDerecha;
+    for (const seg of derecha) {
+      const font = this.fuenteDe(seg);
+      this.page.drawText(seg.text, { x, y: this.y, size: FONT_SIZE, font, color: rgb(0, 0, 0) });
+      x += font.widthOfTextAtSize(seg.text, FONT_SIZE);
+    }
+    this.y -= LINE_HEIGHT;
+  }
+
   // Una línea simple sin wrap (para campos cortos tipo "Etiqueta: valor").
   linea(segmentos: TextSegment[], opciones: { align?: "left" | "right" } = {}) {
     this.asegurarEspacio(LINE_HEIGHT);
@@ -197,8 +221,7 @@ export async function generarAutorizacionPdf(datos: DatosAutorizacion): Promise<
   w.linea([{ text: fechaLarga() }]);
   w.espacio();
   w.linea([{ text: "Sres." }]);
-  w.linea([{ text: datos.aseguradoraNombre }], {});
-  w.linea([{ text: "Oltra Gestión Integral S.R.L" }], { align: "right" });
+  w.lineaDual([{ text: datos.aseguradoraNombre }], [{ text: "Oltra Gestión Integral S.R.L" }]);
   w.espacio();
   w.linea([
     { text: "Ref.: ", bold: true },
