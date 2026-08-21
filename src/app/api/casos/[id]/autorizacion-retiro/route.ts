@@ -1,9 +1,15 @@
+import fs from "fs";
+import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generarAutorizacion } from "@/lib/documentos/autorizacionRetiro";
+import { generarAutorizacionPdf } from "@/lib/documentos/autorizacionRetiroPdf";
+import { descargarLogoBytes } from "@/lib/logoAseguradora";
+
+const LOGO_OLTRA_PATH = path.join(process.cwd(), "public", "logo-oltra.jpg");
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const supabase = createClient();
@@ -14,7 +20,7 @@ export async function GET(
       `
       numero_siniestro, numero_poliza, item_poliza,
       tercero_nombre, tercero_dni, tercero_contacto,
-      aseguradora:aseguradoras(nombre),
+      aseguradora:aseguradoras(nombre, logo_path),
       asegurado:asegurados(nombre, dni, direccion, entre_calles, localidad, partido, provincia, telefono),
       vehiculo:vehiculos(marca, modelo, dominio),
       desarmadero:desarmaderos(nombre, direccion, provincia)
@@ -32,7 +38,12 @@ export async function GET(
   // /api/export y /api/agenda) para poder acceder a los campos.
   const c = caso as any;
 
-  const buffer = await generarAutorizacion({
+  const [logoAseguradoraBuffer, logoOltraBuffer] = await Promise.all([
+    descargarLogoBytes(c.aseguradora?.logo_path ?? null),
+    fs.promises.readFile(LOGO_OLTRA_PATH).catch(() => null)
+  ]);
+
+  const datos = {
     aseguradoraNombre: c.aseguradora?.nombre ?? "",
     numeroSiniestro: c.numero_siniestro,
     numeroPoliza: c.numero_poliza ?? null,
@@ -48,14 +59,27 @@ export async function GET(
     aseguradoPartido: c.asegurado?.partido ?? null,
     aseguradoProvincia: c.asegurado?.provincia ?? null,
     aseguradoTelefono: c.asegurado?.telefono ?? null,
-    destinoNombre: c.desarmadero?.nombre ?? null,
-    destinoDireccion: c.desarmadero?.direccion ?? null,
-    destinoProvincia: c.desarmadero?.provincia ?? null,
     terceroNombre: c.tercero_nombre ?? null,
     terceroDni: c.tercero_dni ?? null,
-    terceroContacto: c.tercero_contacto ?? null
-  });
+    terceroContacto: c.tercero_contacto ?? null,
+    logoAseguradoraBuffer,
+    logoOltraBuffer
+  };
 
+  const formato = request.nextUrl.searchParams.get("formato") === "pdf" ? "pdf" : "docx";
+
+  if (formato === "pdf") {
+    const buffer = await generarAutorizacionPdf(datos);
+    return new NextResponse(new Uint8Array(buffer), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="autorizacion_retiro_traslado_${c.numero_siniestro}.pdf"`
+      }
+    });
+  }
+
+  const buffer = await generarAutorizacion(datos);
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {

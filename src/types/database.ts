@@ -55,6 +55,7 @@ export interface Aseguradora {
   contacto: string | null;
   email: string | null;
   telefono: string | null;
+  logo_path: string | null;
 }
 
 export type BaseCalculoCompania = "valor_infoauto" | "suma_asegurada";

@@ -211,24 +211,32 @@ siguiendo el `CLAUDE.md` del proyecto.
   para resincronizar la secuencia — si no, el próximo caso nuevo puede
   terminar repitiendo un número ya usado (fue justamente lo que pasó y
   arregla `0019_fix_duplicado_numero_caso.sql`).
-- **Autorización de retiro y traslado** (un solo botón en el detalle del
-  caso): genera un .docx descargable con una carta que combina la
-  autorización de retiro (con las declaraciones legales de embargo/
-  inhibición, multas/deudas siempre a cargo del titular, y estado de
-  entrega del vehículo) y la autorización de traslado (origen y destino
-  con entre calles/partido/provincia, datos de contacto para coordinarlo,
-  y la cláusula de disponibilidad de 20 días corridos), para que alcance
-  un solo documento firmado sin necesitar dos cartas separadas. Basado en
-  dos modelos reales que nos pasó el usuario
-  (`src/lib/documentos/autorizacionRetiro.ts`). Requirió agregar campos
-  nuevos: `numero_poliza`/`item_poliza` en casos, `entre_calles`/`partido`
-  en asegurados, y `provincia` en desarmaderos. Si en la cabecera del caso
-  se carga un **tercero autorizado a entregar la unidad** (nombre, DNI,
-  contacto), sus datos **reemplazan** (no se suman) a los del asegurado en
-  la sección "quien hará entrega del vehículo", y se agrega una frase que
-  autoriza expresamente a esa persona a entregarla en representación del
-  asegurado. Si no se carga ningún tercero, esa sección usa los datos del
-  asegurado como siempre.
+- **Autorización de retiro y traslado** (dos botones en el detalle del
+  caso — .docx y PDF): genera una carta descargable con la autorización
+  de retiro (declaraciones legales de embargo/inhibición, multas/deudas
+  siempre a cargo del titular, y estado de entrega del vehículo).
+  Requirió agregar campos nuevos: `numero_poliza`/`item_poliza` en
+  casos, `entre_calles`/`partido` en asegurados. Si en la cabecera del
+  caso se carga un **tercero autorizado a entregar la unidad** (nombre,
+  DNI, contacto), sus datos **reemplazan** (no se suman) a los del
+  asegurado en la sección "quien hará entrega del vehículo", y se agrega
+  una frase que autoriza expresamente a esa persona a entregarla en
+  representación del asegurado. Si no se carga ningún tercero, esa
+  sección usa los datos del asegurado como siempre.
+  - **Encabezado con logos**: el logo de la aseguradora (cargado por
+    aseguradora en `/catalogos/aseguradoras`, tabla `aseguradoras`,
+    columna `logo_path`, bucket privado de Storage
+    `logos-aseguradoras`) y el de Oltra (fijo, `public/logo-oltra.jpg`)
+    van lado a lado arriba de todo. Si la aseguradora todavía no tiene
+    logo cargado, el documento se genera igual, solo con el de Oltra.
+  - **Dos generadores en paralelo, mismos datos de entrada**
+    (`DatosAutorizacion`): `src/lib/documentos/autorizacionRetiro.ts`
+    arma el `.docx` con `docx` (npm); `src/lib/documentos/autorizacionRetiroPdf.ts`
+    arma el PDF con `pdf-lib`, con su propio motor de wrap/paginación de
+    texto a mano (pdf-lib no trae uno). Son dos implementaciones
+    separadas — **no** una conversión docx→PDF — porque Vercel
+    (serverless) no tiene LibreOffice/soffice disponible para hacer esa
+    conversión en runtime.
 - **Autenticación básica** (Supabase Auth): login con email/contraseña, y
   opcionalmente con **Google** (botón "Continuar con Google" en `/login`,
   requiere configuración externa — ver sección "Login con Google" más
@@ -408,6 +416,9 @@ externa sin cuenta en el sistema, no un rol interno del equipo).
    - `supabase/migrations/0030_movimiento_pagado.sql`
      (`movimientos_caso.pagado`: distingue un egreso ya pagado de uno
      pendiente de pago)
+   - `supabase/migrations/0031_logo_aseguradora.sql`
+     (`aseguradoras.logo_path` + bucket privado `logos-aseguradoras`,
+     para el encabezado de la Autorización de retiro y traslado)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.
