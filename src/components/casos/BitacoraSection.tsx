@@ -142,6 +142,86 @@ function GrueroBox({
   );
 }
 
+function mensajeFormularioBaja(
+  caso: CasoConRelaciones,
+  nombre: string,
+  enlace?: string | null
+): string {
+  const dominio = caso.vehiculo?.dominio ?? "";
+  const responsable = caso.responsable?.nombre ?? "";
+  const base = `Hola ${
+    nombre || ""
+  }, ya se encuentra disponible en la carpeta del dominio toda la documentación necesaria para completar el formulario/carga 04D del siniestro N° ${caso.numero_siniestro} (dominio ${dominio}). Por favor completalo y cargalo en el sistema. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
+  return enlace ? `${base}\nLo podés cargar acá: ${enlace}` : base;
+}
+
+function FormularioBajaBox({
+  caso,
+  nombre,
+  contacto,
+  onNombreChange,
+  onContactoChange,
+  enlace
+}: {
+  caso: CasoConRelaciones;
+  nombre: string;
+  contacto: string;
+  onNombreChange: (v: string) => void;
+  onContactoChange: (v: string) => void;
+  enlace?: string | null;
+}) {
+  const [copiado, setCopiado] = useState(false);
+  const mensaje = mensajeFormularioBaja(caso, nombre, enlace);
+  const link = linkWhatsapp(contacto, mensaje);
+
+  async function copiar() {
+    await navigator.clipboard.writeText(mensaje);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="label">Nombre de quien completa el 04D</label>
+          <input
+            className="input"
+            value={nombre}
+            onChange={(e) => onNombreChange(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">Contacto</label>
+          <input
+            className="input"
+            value={contacto}
+            placeholder="Teléfono"
+            onChange={(e) => onContactoChange(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <p className="text-slate-500">
+          Mensaje sugerido para avisarle que ya puede completar y cargar el formulario/04D
+          {!enlace && " (el enlace de carga se agrega automáticamente después de guardar)"}:
+        </p>
+        <p className="text-slate-700 whitespace-pre-wrap">{mensaje}</p>
+        <div className="flex gap-2 flex-wrap">
+          <button type="button" className="btn-secondary text-xs" onClick={copiar}>
+            {copiado ? "¡Copiado!" : "Copiar mensaje"}
+          </button>
+          {link && (
+            <a href={link} target="_blank" rel="noreferrer" className="btn-secondary text-xs">
+              Abrir WhatsApp
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   casoId: string;
   caso: CasoConRelaciones;
@@ -159,6 +239,8 @@ interface FormEvento {
   fecha_fin: string;
   gruero_nombre: string;
   gruero_contacto: string;
+  formulario_baja_nombre: string;
+  formulario_baja_contacto: string;
 }
 
 function formVacio(): FormEvento {
@@ -170,7 +252,9 @@ function formVacio(): FormEvento {
     fecha_inicio: new Date().toISOString().slice(0, 10),
     fecha_fin: "",
     gruero_nombre: "",
-    gruero_contacto: ""
+    gruero_contacto: "",
+    formulario_baja_nombre: "",
+    formulario_baja_contacto: ""
   };
 }
 
@@ -261,6 +345,10 @@ export default function BitacoraSection({
           gruero_nombre: form.gruero_nombre || null,
           gruero_contacto: form.gruero_contacto || null
         }),
+        ...(form.tipo_evento === "Formulario de Baja" && {
+          formulario_baja_nombre: form.formulario_baja_nombre || null,
+          formulario_baja_contacto: form.formulario_baja_contacto || null
+        }),
         ...(form.completado &&
           necesitaExcepcionFinanciera(form.tipo_evento) && {
             excepcion_financiera: true,
@@ -293,7 +381,9 @@ export default function BitacoraSection({
       fecha_inicio: ev.fecha_inicio,
       fecha_fin: ev.fecha_fin ?? "",
       gruero_nombre: ev.gruero_nombre ?? "",
-      gruero_contacto: ev.gruero_contacto ?? ""
+      gruero_contacto: ev.gruero_contacto ?? "",
+      formulario_baja_nombre: ev.formulario_baja_nombre ?? "",
+      formulario_baja_contacto: ev.formulario_baja_contacto ?? ""
     });
   }
 
@@ -337,6 +427,10 @@ export default function BitacoraSection({
         ...(editForm.tipo_evento === "Traslado" && {
           gruero_nombre: editForm.gruero_nombre || null,
           gruero_contacto: editForm.gruero_contacto || null
+        }),
+        ...(editForm.tipo_evento === "Formulario de Baja" && {
+          formulario_baja_nombre: editForm.formulario_baja_nombre || null,
+          formulario_baja_contacto: editForm.formulario_baja_contacto || null
         }),
         ...(vaACompletarAhora &&
           necesitaExcepcionFinanciera(editForm.tipo_evento) && {
@@ -489,6 +583,15 @@ export default function BitacoraSection({
               onContactoChange={(v) => setForm((f) => ({ ...f, gruero_contacto: v }))}
             />
           )}
+          {form.tipo_evento === "Formulario de Baja" && (
+            <FormularioBajaBox
+              caso={caso}
+              nombre={form.formulario_baja_nombre}
+              contacto={form.formulario_baja_contacto}
+              onNombreChange={(v) => setForm((f) => ({ ...f, formulario_baja_nombre: v }))}
+              onContactoChange={(v) => setForm((f) => ({ ...f, formulario_baja_contacto: v }))}
+            />
+          )}
           <div>
             <label className="label">Observación</label>
             <textarea
@@ -602,6 +705,18 @@ export default function BitacoraSection({
                     onNombreChange={(v) => setEditForm((f) => ({ ...f, gruero_nombre: v }))}
                     onContactoChange={(v) => setEditForm((f) => ({ ...f, gruero_contacto: v }))}
                     enlace={origin ? `${origin}/gr/${ev.token_gruero}` : null}
+                  />
+                )}
+                {editForm.tipo_evento === "Formulario de Baja" && (
+                  <FormularioBajaBox
+                    caso={caso}
+                    nombre={editForm.formulario_baja_nombre}
+                    contacto={editForm.formulario_baja_contacto}
+                    onNombreChange={(v) => setEditForm((f) => ({ ...f, formulario_baja_nombre: v }))}
+                    onContactoChange={(v) =>
+                      setEditForm((f) => ({ ...f, formulario_baja_contacto: v }))
+                    }
+                    enlace={origin ? `${origin}/fb/${ev.token_formulario_baja}` : null}
                   />
                 )}
                 <div>
@@ -729,6 +844,12 @@ export default function BitacoraSection({
                     <p className="text-slate-500">
                       🚚 Gruero: {ev.gruero_nombre}
                       {ev.gruero_contacto && ` · ${ev.gruero_contacto}`}
+                    </p>
+                  )}
+                  {ev.tipo_evento === "Formulario de Baja" && ev.formulario_baja_nombre && (
+                    <p className="text-slate-500">
+                      📄 Formulario de Baja: {ev.formulario_baja_nombre}
+                      {ev.formulario_baja_contacto && ` · ${ev.formulario_baja_contacto}`}
                     </p>
                   )}
                   <p className="text-xs text-slate-400 mt-1">

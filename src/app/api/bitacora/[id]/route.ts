@@ -25,7 +25,9 @@ export async function PUT(
     "fecha_inicio",
     "fecha_fin",
     "gruero_nombre",
-    "gruero_contacto"
+    "gruero_contacto",
+    "formulario_baja_nombre",
+    "formulario_baja_contacto"
   ];
 
   const update: Record<string, unknown> = {};
@@ -35,7 +37,7 @@ export async function PUT(
 
   const { data: existente } = await supabase
     .from("bitacora")
-    .select("caso_id, es_interna, tipo_evento, completado, gruero_nombre")
+    .select("caso_id, es_interna, tipo_evento, completado, gruero_nombre, formulario_baja_nombre")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -153,6 +155,16 @@ export async function PUT(
   // servir: regeneramos el token en la misma operación.
   if ("gruero_nombre" in update && existente && update.gruero_nombre !== existente.gruero_nombre) {
     update.token_gruero = randomUUID();
+  }
+
+  // Mismo criterio que con el gruero: si cambia la persona asignada al
+  // Formulario de Baja, el enlace público viejo debe dejar de servir.
+  if (
+    "formulario_baja_nombre" in update &&
+    existente &&
+    update.formulario_baja_nombre !== existente.formulario_baja_nombre
+  ) {
+    update.token_formulario_baja = randomUUID();
   }
 
   const { data, error } = await supabase

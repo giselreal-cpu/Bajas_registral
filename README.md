@@ -139,6 +139,19 @@ siguiendo el `CLAUDE.md` del proyecto.
     mande. El formato del teléfono para `wa.me` es un mejor esfuerzo (no
     siempre acierta el prefijo de celulares argentinos), por eso "Copiar
     mensaje" queda como respaldo. Ver `src/components/casos/BitacoraSection.tsx`.
+  - Mismo patrón de nombre + contacto + mensaje de WhatsApp para el evento
+    **"Traslado"** (datos del gruero asignado) y para **"Formulario de
+    Baja"** (persona que va a completar y cargar el 04D). En ambos casos,
+    una vez guardado el evento aparece además un **enlace público
+    permanente** sin necesidad de cuenta: `/gr/<token>` para el gruero (solo
+    lectura — ve un resumen de la unidad y puede descargar la autorización
+    de retiro y el informe de dominio ya cargados) y `/fb/<token>` para
+    quien complete el Formulario de Baja (puede además **subir** el
+    documento completado, que queda guardado en Documentos con categoría
+    `formulario_baja`). Si se cambia el nombre asignado, el token se
+    regenera solo y el enlace anterior deja de servir. El middleware
+    (`src/lib/supabase/middleware.ts`) exime a `/g/*`, `/gr/*` y `/fb/*` de
+    requerir sesión.
 - **Exportar datos** (`/exportar`): CSV de casos, bitácora y documentos (con
   relaciones ya resueltas, listo para Excel) más un backup completo en JSON
   de todas las tablas.
@@ -171,8 +184,8 @@ siguiendo el `CLAUDE.md` del proyecto.
   (no se envía nada automáticamente), y **"Regenerar enlace"** para invalidar
   el enlace vigente si se comparte por error. Al reasignar el caso a otro
   gestor, el enlace anterior se regenera solo. El middleware
-  (`src/lib/supabase/middleware.ts`) exime a `/g/*` de requerir sesión —
-  es la única ruta pública de todo el sistema.
+  (`src/lib/supabase/middleware.ts`) exime a `/g/*` de requerir sesión (junto
+  con `/gr/*` y `/fb/*` — ver "Bitácora" más abajo).
 - **Catálogo de registros automotores precargado**: 835 registros
   seccionales de competencia AUTOMOTOR de todo el país (DNRPA), con
   número, denominación y provincia, cargados vía
@@ -419,6 +432,10 @@ externa sin cuenta en el sistema, no un rol interno del equipo).
    - `supabase/migrations/0031_logo_aseguradora.sql`
      (`aseguradoras.logo_path` + bucket privado `logos-aseguradoras`,
      para el encabezado de la Autorización de retiro y traslado)
+   - `supabase/migrations/0032_formulario_baja.sql` (datos de la persona
+     asignada al evento "Formulario de Baja" y `token_formulario_baja`,
+     enlace público de carga para el 04D en `/fb/<token>`, y la categoría
+     de documento `formulario_baja`)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.

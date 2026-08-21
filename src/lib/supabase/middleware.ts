@@ -41,9 +41,13 @@ export async function updateSession(request: NextRequest) {
   // Enlace público del gruero asignado a un traslado: solo lectura/descarga
   // (resumen del caso, fotos del dominio, autorización en .docx).
   const esGrueroPublico = pathname.startsWith("/gr/");
+  // Enlace público de la persona asignada al Formulario de Baja (04D):
+  // puede ver un resumen acotado del caso y subir el documento completado,
+  // sin necesitar cuenta.
+  const esFormularioBajaPublico = pathname.startsWith("/fb/");
 
   if (!user) {
-    if (esGestorPublico || esGrueroPublico) {
+    if (esGestorPublico || esGrueroPublico || esFormularioBajaPublico) {
       return response;
     }
     if (esApi) {

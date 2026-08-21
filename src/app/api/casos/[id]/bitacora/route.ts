@@ -62,6 +62,8 @@ export async function POST(
     fecha_fin,
     gruero_nombre,
     gruero_contacto,
+    formulario_baja_nombre,
+    formulario_baja_contacto,
     excepcion_financiera,
     motivo_excepcion
   } = body;
@@ -156,6 +158,8 @@ export async function POST(
       fecha_fin: fecha_fin ?? null,
       gruero_nombre: gruero_nombre || null,
       gruero_contacto: gruero_contacto || null,
+      formulario_baja_nombre: formulario_baja_nombre || null,
+      formulario_baja_contacto: formulario_baja_contacto || null,
       creado_por: usuarioActualId,
       excepcion_financiera: excepcionFinancieraFinal,
       motivo_excepcion: excepcionFinancieraFinal ? motivo_excepcion : null

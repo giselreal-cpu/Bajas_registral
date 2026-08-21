@@ -196,6 +196,9 @@ export interface BitacoraEvento {
   gruero_nombre: string | null;
   gruero_contacto: string | null;
   token_gruero: string;
+  formulario_baja_nombre: string | null;
+  formulario_baja_contacto: string | null;
+  token_formulario_baja: string;
   creado_por: string | null;
   excepcion_financiera: boolean;
   motivo_excepcion: string | null;
@@ -208,7 +211,8 @@ export type CategoriaDocumento =
   | "turno_registro"
   | "observaciones_gestor"
   | "recibos_gestor"
-  | "otros_gestor";
+  | "otros_gestor"
+  | "formulario_baja";
 
 export const CATEGORIAS_GESTOR: { value: CategoriaDocumento; label: string }[] = [
   { value: "turno_registro", label: "Turno en Registro" },
