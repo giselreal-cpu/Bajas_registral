@@ -54,19 +54,34 @@ export default async function EnlaceFormularioBajaPage({
     );
   }
 
-  const { data: documentosRaw } = await supabase
+  const { data: todosLosDocumentos } = await supabase
     .from("documentos")
-    .select("id, nombre, url")
+    .select("id, nombre, url, categoria")
     .eq("caso_id", evento.caso_id)
-    .eq("categoria", "formulario_baja")
     .order("created_at", { ascending: false });
 
-  const documentos = await Promise.all(
-    (documentosRaw ?? []).map(async (d) => ({
-      ...d,
-      url_firmada: await obtenerUrlFirmada(d.url)
-    }))
+  // La carpeta del dominio (imágenes, documentos para la compañía, o
+  // cualquier link pegado) es lo que la persona necesita para completar
+  // el formulario — se muestra aparte de lo que ya subió por este enlace.
+  const documentosDelCaso = (todosLosDocumentos ?? []).filter(
+    (d) => d.categoria !== "formulario_baja"
   );
+  const formulariosCargados = (todosLosDocumentos ?? []).filter(
+    (d) => d.categoria === "formulario_baja"
+  );
+
+  const conUrlFirmada = async (docs: typeof documentosDelCaso) =>
+    Promise.all(
+      docs.map(async (d) => ({
+        ...d,
+        url_firmada: await obtenerUrlFirmada(d.url)
+      }))
+    );
+
+  const [documentosCaso, documentos] = await Promise.all([
+    conUrlFirmada(documentosDelCaso),
+    conUrlFirmada(formulariosCargados)
+  ]);
 
   const caso = evento.caso;
 
@@ -102,9 +117,29 @@ export default async function EnlaceFormularioBajaPage({
         </div>
       </section>
 
+      {documentosCaso.length > 0 && (
+        <section className="card p-4">
+          <h2 className="font-medium text-slate-800 mb-3">Documentación del caso</h2>
+          <ul className="space-y-1 text-sm">
+            {documentosCaso.map((d) => (
+              <li key={d.id}>
+                <a
+                  href={d.url_firmada ?? "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand-600 hover:underline"
+                >
+                  {d.nombre}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {documentos.length > 0 && (
         <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Documentación ya cargada</h2>
+          <h2 className="font-medium text-slate-800 mb-3">Formulario/04D ya cargado</h2>
           <ul className="space-y-1 text-sm">
             {documentos.map((d) => (
               <li key={d.id}>
