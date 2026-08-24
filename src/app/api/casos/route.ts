@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { enviarEmail } from "@/lib/email/enviarEmail";
-import { asuntoYCuerpo } from "@/lib/email/notificacionesCaso";
+import { asuntoYCuerpo, destinatariosDisponibles, Destinatario } from "@/lib/email/notificacionesCaso";
 import { CasoConRelaciones } from "@/types/database";
 
 const CASO_SELECT = `
@@ -59,10 +59,14 @@ export async function POST(request: NextRequest) {
     aseguradora_id,
     tipo_baja_id,
     responsable_id,
+    tramitador_nombre,
+    tramitador_email,
+    productor_nombre,
+    productor_contacto,
     asegurado, // { nombre, dni, telefono, email, direccion, localidad, provincia, entre_calles, partido }
     vehiculo, // { dominio, marca, modelo, anio, chasis, motor }
     observaciones,
-    notificar_asegurado
+    notificar // ("tramitador" | "productor" | "asegurado")[]
   } = body;
 
   if (!numero_siniestro || !aseguradora_id || !asegurado?.nombre || !vehiculo?.dominio) {
@@ -135,7 +139,11 @@ export async function POST(request: NextRequest) {
       vehiculo_id: vehiculoId,
       tipo_baja_id: tipo_baja_id ?? null,
       responsable_id: responsable_id ?? null,
-      observaciones: observaciones ?? null
+      observaciones: observaciones ?? null,
+      tramitador_nombre: tramitador_nombre ?? null,
+      tramitador_email: tramitador_email ?? null,
+      productor_nombre: productor_nombre ?? null,
+      productor_contacto: productor_contacto ?? null
     })
     .select(CASO_SELECT)
     .single();
@@ -156,11 +164,18 @@ export async function POST(request: NextRequest) {
   await registrarCambio(caso.id, "Creó el caso");
 
   // Notificación por mail (best-effort, no bloquea la creación del caso
-  // si falla). Al crear el caso todavía no hay tramitador/productor
-  // cargados, solo el asegurado puede tener mail en este punto.
-  if (notificar_asegurado && caso.asegurado?.email) {
-    const { subject, text } = asuntoYCuerpo("ingreso_caso", caso as unknown as CasoConRelaciones);
-    await enviarEmail({ to: caso.asegurado.email, subject, text });
+  // si falla). A esta altura puede haber mail de tramitador, productor
+  // y/o asegurado, si se cargaron en el formulario de alta.
+  if (Array.isArray(notificar) && notificar.length > 0) {
+    const casoConRelaciones = caso as unknown as CasoConRelaciones;
+    const disponibles = destinatariosDisponibles(casoConRelaciones);
+    const { subject, text } = asuntoYCuerpo("ingreso_caso", casoConRelaciones);
+    for (const destinatario of notificar as Destinatario[]) {
+      const email = disponibles[destinatario];
+      if (email) {
+        await enviarEmail({ to: email, subject, text });
+      }
+    }
   }
 
   return NextResponse.json({ data: caso }, { status: 201 });
