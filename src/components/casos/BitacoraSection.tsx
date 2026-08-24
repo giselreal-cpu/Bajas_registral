@@ -3,9 +3,20 @@
 import { useEffect, useState } from "react";
 import { BitacoraEvento, CasoConRelaciones } from "@/types/database";
 import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
+import { TipoNotificacion } from "@/lib/email/notificacionesCaso";
+import SelectorNotificacion from "./SelectorNotificacion";
 
 const GESTORIA_NOMBRE = "Oltra Gestión Integral";
 const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
+
+// Eventos cuya finalización dispara la opción de notificar por mail a
+// Tramitador/Productor/Asegurado (elegible cada vez, no es una
+// configuración fija — ver SelectorNotificacion).
+const EVENTO_A_NOTIFICACION: Record<string, TipoNotificacion> = {
+  "Contacto con el asegurado": "contacto_asegurado",
+  Traslado: "traslado",
+  "Presentación de Baja": "presentacion_baja"
+};
 
 function mensajeContacto(caso: CasoConRelaciones): string {
   const nombreTitular = caso.asegurado?.nombre ?? "";
@@ -280,6 +291,11 @@ export default function BitacoraSection({
   const [excepcionMotivo, setExcepcionMotivo] = useState("");
   const [guardandoExcepcion, setGuardandoExcepcion] = useState(false);
 
+  // Evento que se acaba de completar y para el que se puede ofrecer
+  // notificar por mail (no bloquea nada — el evento ya quedó completado
+  // igual, esto es un paso aparte y opcional).
+  const [notificarEventoId, setNotificarEventoId] = useState<string | null>(null);
+
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
@@ -362,6 +378,10 @@ export default function BitacoraSection({
     if (!res.ok) {
       setError(json.error);
       return;
+    }
+
+    if (form.completado && EVENTO_A_NOTIFICACION[form.tipo_evento]) {
+      setNotificarEventoId(json.data.id);
     }
 
     setForm(formVacio());
@@ -447,6 +467,10 @@ export default function BitacoraSection({
       return;
     }
 
+    if (vaACompletarAhora && EVENTO_A_NOTIFICACION[editForm.tipo_evento]) {
+      setNotificarEventoId(id);
+    }
+
     setExcepcionMotivo("");
     setEditingId(null);
     load();
@@ -497,8 +521,14 @@ export default function BitacoraSection({
       body: JSON.stringify({ completado: vaACompletar })
     });
     const json = await res.json();
-    if (res.ok) load();
-    else setError(json.error);
+    if (res.ok) {
+      if (vaACompletar && EVENTO_A_NOTIFICACION[evento.tipo_evento]) {
+        setNotificarEventoId(evento.id);
+      }
+      load();
+    } else {
+      setError(json.error);
+    }
   }
 
   async function confirmarExcepcion(eventoId: string) {
@@ -931,6 +961,14 @@ export default function BitacoraSection({
                     </button>
                   </div>
                 </div>
+              )}
+              {notificarEventoId === ev.id && EVENTO_A_NOTIFICACION[ev.tipo_evento] && (
+                <SelectorNotificacion
+                  casoId={casoId}
+                  caso={caso}
+                  tipo={EVENTO_A_NOTIFICACION[ev.tipo_evento]}
+                  onClose={() => setNotificarEventoId(null)}
+                />
               )}
             </li>
           );

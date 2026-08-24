@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS, Estado } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
 
 export const dynamic = "force-dynamic";
 
@@ -261,8 +262,12 @@ export default async function PanelPage({
   // (movimientos_caso.pagado = true), no lo cargado/pendiente de pago.
   const casoIds = (casos ?? []).map((c) => c.id);
   const casoIdsCerrados = casosConTiempos.map((c) => c.id);
-  const [{ data: facturasCerrados }, { data: movimientosCerrados }, { data: facturasPendientes }] =
-    await Promise.all([
+  const [
+    { data: facturasCerrados },
+    { data: movimientosCerrados },
+    { data: facturasPendientes },
+    { data: eventosSinCompletar }
+  ] = await Promise.all([
       casoIdsCerrados.length > 0
         ? supabase
             .from("facturas")
@@ -285,8 +290,45 @@ export default async function PanelPage({
             .neq("estado", "cobrado_total")
             .order("fecha_emision", { ascending: false })
             .limit(8)
+        : Promise.resolve({ data: [] as any[] }),
+      casoIds.length > 0
+        ? supabase
+            .from("bitacora")
+            .select(
+              "tipo_evento, caso_id, caso:casos(numero_siniestro, estado, vehiculo:vehiculos(dominio))"
+            )
+            .eq("completado", false)
+            .in("caso_id", casoIds)
         : Promise.resolve({ data: [] as any[] })
     ]);
+
+  // Eventos de bitácora cargados pero sin completar, agrupados por tipo
+  // — un mismo caso puede aparecer en varias categorías a la vez (ej.:
+  // "Petición de Informes" sin completar Y "Autorización de traslado"
+  // sin completar). Se arrancan todos los tipos en 0 para ver el
+  // panorama completo, incluso los que no tienen ningún pendiente.
+  interface EventoIncompletoRow {
+    casoId: string;
+    numeroSiniestro: string;
+    dominio: string;
+    estado: string;
+  }
+  const eventosPorTipo = new Map<string, EventoIncompletoRow[]>();
+  for (const t of TIPOS_EVENTO) eventosPorTipo.set(t.label, []);
+  for (const ev of (eventosSinCompletar ?? []) as unknown as {
+    tipo_evento: string;
+    caso_id: string;
+    caso: { numero_siniestro: string; estado: string; vehiculo: { dominio: string } | null } | null;
+  }[]) {
+    const lista = eventosPorTipo.get(ev.tipo_evento) ?? [];
+    lista.push({
+      casoId: ev.caso_id,
+      numeroSiniestro: ev.caso?.numero_siniestro ?? "—",
+      dominio: ev.caso?.vehiculo?.dominio ?? "—",
+      estado: ev.caso?.estado ?? ""
+    });
+    eventosPorTipo.set(ev.tipo_evento, lista);
+  }
 
   const ingresosPorCaso = new Map<string, number>();
   const cobradoDesarmaderoPorCaso = new Map<string, number>();
@@ -759,6 +801,56 @@ export default async function PanelPage({
           </div>
         </section>
       </div>
+
+      <section className="card p-4">
+        <h2 className="font-medium text-slate-800 mb-1">Eventos sin completar</h2>
+        <p className="text-xs text-slate-400 mb-3">
+          Por cada tipo de evento, cuántos casos lo tienen cargado pero todavía no completado. Un
+          mismo caso puede aparecer en más de un tipo a la vez.
+        </p>
+        <div className="space-y-2">
+          {TIPOS_EVENTO.map((t) => {
+            const lista = eventosPorTipo.get(t.label) ?? [];
+            if (lista.length === 0) {
+              return (
+                <div
+                  key={t.value}
+                  className="flex items-center justify-between text-sm px-1 py-1.5 text-slate-400"
+                >
+                  <span>{t.label}</span>
+                  <span>0</span>
+                </div>
+              );
+            }
+            return (
+              <details key={t.value} className="rounded-md border border-slate-100 overflow-hidden">
+                <summary className="cursor-pointer list-none px-3 py-2 flex items-center justify-between text-sm hover:bg-slate-50">
+                  <span className="text-slate-700">{t.label}</span>
+                  <span className="badge bg-amber-100 text-amber-800">{lista.length}</span>
+                </summary>
+                <div className="border-t border-slate-100 divide-y divide-slate-100">
+                  {lista.map((ev, i) => (
+                    <div
+                      key={`${ev.casoId}-${i}`}
+                      className="px-3 py-2 flex items-center justify-between gap-3"
+                    >
+                      <Link
+                        href={`/casos/${ev.casoId}`}
+                        className="text-brand-600 hover:underline text-sm font-medium"
+                      >
+                        {ev.numeroSiniestro} · {ev.dominio}
+                      </Link>
+                      <span className={`badge shrink-0 ${estadoBadgeClass(ev.estado)}`}>
+                        {ESTADOS.find((e) => e.value === ev.estado)?.label ?? ev.estado}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      </section>
 
       {puedeVerTiempos && (
         <section className="card p-4">

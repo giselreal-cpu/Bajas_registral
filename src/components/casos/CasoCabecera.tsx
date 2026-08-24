@@ -13,6 +13,7 @@ import {
   TipoBaja,
   Usuario
 } from "@/types/database";
+import SelectorNotificacion from "./SelectorNotificacion";
 
 interface Props {
   caso: CasoConRelaciones;
@@ -45,6 +46,10 @@ export default function CasoCabecera({
   const [origin, setOrigin] = useState("");
   const [copiado, setCopiado] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
+  // Caso recién asignado a un gestor nuevo, para ofrecer notificar por
+  // mail — se guarda el objeto ya fresco que devuelve el PUT (con
+  // relaciones), no el prop `caso` viejo.
+  const [notificarGestor, setNotificarGestor] = useState<CasoConRelaciones | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -160,6 +165,11 @@ export default function CasoCabecera({
       return;
     }
 
+    const gestorNuevo = form.gestor_id && form.gestor_id !== (caso.gestor_id ?? "");
+    if (gestorNuevo) {
+      setNotificarGestor(jsonCaso.data as CasoConRelaciones);
+    }
+
     setEditing(false);
     router.refresh();
   }
@@ -196,6 +206,7 @@ export default function CasoCabecera({
       : "sin asignar todavía";
     const mensaje = [
       `Se te asignó un nuevo caso: siniestro ${caso.numero_siniestro}.`,
+      `Tipo de Baja: ${caso.tipo_baja?.nombre ?? "—"}`,
       `Dominio: ${caso.vehiculo?.dominio ?? "—"}`,
       `Asegurado: ${caso.asegurado?.nombre ?? "—"} - Contacto: ${caso.asegurado?.telefono ?? "—"}`,
       `Registro de radicación: ${registroTexto}`,
@@ -765,6 +776,15 @@ export default function CasoCabecera({
               </button>
             </div>
           </div>
+        )}
+
+        {notificarGestor && (
+          <SelectorNotificacion
+            casoId={caso.id}
+            caso={notificarGestor}
+            tipo="gestor_asignado"
+            onClose={() => setNotificarGestor(null)}
+          />
         )}
       </Section>
       </div>

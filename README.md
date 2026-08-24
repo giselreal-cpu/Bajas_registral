@@ -55,6 +55,11 @@ siguiendo el `CLAUDE.md` del proyecto.
   oculto para el rol compañía): tiempo promedio de trámite completo (fecha
   de ingreso → fecha de cierre) y tiempo promedio entre "Presentación de
   Baja" completada y el cierre, con tabla de los últimos casos cerrados.
+  También una sección **"Eventos sin completar"**: por cada tipo de
+  evento de bitácora (`TIPOS_EVENTO` en `src/lib/eventosBitacora.ts`),
+  cuántos casos lo tienen cargado pero todavía no completado, con un
+  `<details>` desplegable por tipo listando los casos/dominios
+  afectados (un mismo caso puede aparecer en más de un tipo a la vez).
 - **Avance automático de estado**: el catálogo de estados del caso tiene un
   paso propio por cada evento clave de la bitácora (`0010_estados_por_evento.sql`),
   así el seguimiento es más preciso. Cada vez que se agrega o edita un
@@ -152,6 +157,23 @@ siguiendo el `CLAUDE.md` del proyecto.
     regenera solo y el enlace anterior deja de servir. El middleware
     (`src/lib/supabase/middleware.ts`) exime a `/g/*`, `/gr/*` y `/fb/*` de
     requerir sesión.
+  - **Notificaciones por mail**: al completar "Contacto con el
+    asegurado", "Traslado" o "Presentación de Baja" (por el form de alta,
+    por edición, o por el toggle rápido de "Completada"), al asignar un
+    gestor de campo nuevo, o al crear un caso (con el checkbox del
+    formulario de alta), aparece un selector para avisarle por mail a
+    Tramitador/Productor/Asegurado — se elige a quién cada vez, no es una
+    configuración fija, y un destinatario solo se puede tildar si tiene
+    mail cargado (`tramitador_email`, `productor_contacto` tal cual, o
+    `asegurado.email`). El envío es *best-effort*: si falla, no revierte
+    ni bloquea la acción principal, solo se muestra el error. Se envía
+    con **Gmail** (`nodemailer`, `GMAIL_USER`/`GMAIL_APP_PASSWORD` en
+    `.env.local` — hace falta una contraseña de aplicación de Gmail, no
+    la contraseña normal de la cuenta). Ver
+    `src/lib/email/enviarEmail.ts`, `src/lib/email/notificacionesCaso.ts`
+    (ahí están los textos de asunto/cuerpo por tipo de evento),
+    `src/components/casos/SelectorNotificacion.tsx` y
+    `/api/casos/[id]/notificar`.
 - **Exportar datos** (`/exportar`): CSV de casos, bitácora y documentos (con
   relaciones ya resueltas, listo para Excel) más un backup completo en JSON
   de todas las tablas.
@@ -174,11 +196,17 @@ siguiendo el `CLAUDE.md` del proyecto.
   (turno en el registro, retirar recibos, etc.). Se asignan a un caso desde
   su cabecera (campo "Gestor asignado"), lo que genera un **enlace público
   permanente** (`/g/<token>`) sin necesidad de cuenta ni login: el gestor ve
-  un resumen acotado del caso (aseguradora, vehículo, datos de contacto del
-  asegurado, registro de radicación, y los documentos ya adjuntados) y puede
-  subir archivos en 4 categorías fijas — Turno en Registro, Observaciones,
-  Recibos, Otros — que quedan visibles para el equipo en la sección
-  "Cargado por el gestor" de Documentos. Desde la cabecera del caso hay un
+  un resumen acotado del caso (aseguradora, **tipo de baja**, vehículo,
+  datos de contacto del asegurado, registro de radicación, y los
+  documentos ya adjuntados) y puede subir archivos en 4 categorías fijas —
+  Turno en Registro, Observaciones, Recibos, Otros — que quedan visibles
+  para el equipo en la sección "Cargado por el gestor" de Documentos.
+  También puede cargar una **observación libre**, que queda como un
+  evento de bitácora "Observaciones" más (completado, sin `creado_por`
+  porque el gestor no tiene cuenta — el autor va identificado dentro del
+  propio texto: `Autor: Gestor (nombre)`). Ver
+  `src/app/g/[token]/ObservacionForm.tsx` y `actions.ts` →
+  `agregarObservacionGestor`. Desde la cabecera del caso hay un
   botón **"Copiar mensaje"** que arma un texto con los datos del asegurado,
   el registro y el enlace, para pegarlo donde se le quiera avisar al gestor
   (no se envía nada automáticamente), y **"Regenerar enlace"** para invalidar
@@ -451,6 +479,16 @@ Completá `.env.local` con la URL, la anon key y la **service_role key**
 secreta — nunca lleva el prefijo `NEXT_PUBLIC_` y no debe exponerse al
 navegador; en Vercel hay que agregarla también como variable de entorno del
 proyecto.
+
+Completá también `GMAIL_USER`/`GMAIL_APP_PASSWORD` (cuenta de Gmail usada
+para las notificaciones por mail — ver "Notificaciones por mail" arriba).
+`GMAIL_APP_PASSWORD` **no** es la contraseña normal de la cuenta: hay que
+activar la verificación en 2 pasos en esa cuenta de Gmail y generar una
+"Contraseña de aplicación" (myaccount.google.com → Seguridad →
+Contraseñas de aplicaciones → app "Correo"). Sin estas dos variables, el
+resto de la app funciona igual — el envío de mail simplemente falla de
+forma controlada (se ve el error en el selector de notificación, no
+rompe nada más).
 
 ### 3. Instalar dependencias y correr en desarrollo
 

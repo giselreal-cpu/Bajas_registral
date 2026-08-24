@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
+import { enviarEmail } from "@/lib/email/enviarEmail";
+import { asuntoYCuerpo } from "@/lib/email/notificacionesCaso";
+import { CasoConRelaciones } from "@/types/database";
 
 const CASO_SELECT = `
   *,
@@ -58,7 +61,8 @@ export async function POST(request: NextRequest) {
     responsable_id,
     asegurado, // { nombre, dni, telefono, email, direccion, localidad, provincia, entre_calles, partido }
     vehiculo, // { dominio, marca, modelo, anio, chasis, motor }
-    observaciones
+    observaciones,
+    notificar_asegurado
   } = body;
 
   if (!numero_siniestro || !aseguradora_id || !asegurado?.nombre || !vehiculo?.dominio) {
@@ -150,6 +154,14 @@ export async function POST(request: NextRequest) {
   });
 
   await registrarCambio(caso.id, "Creó el caso");
+
+  // Notificación por mail (best-effort, no bloquea la creación del caso
+  // si falla). Al crear el caso todavía no hay tramitador/productor
+  // cargados, solo el asegurado puede tener mail en este punto.
+  if (notificar_asegurado && caso.asegurado?.email) {
+    const { subject, text } = asuntoYCuerpo("ingreso_caso", caso as unknown as CasoConRelaciones);
+    await enviarEmail({ to: caso.asegurado.email, subject, text });
+  }
 
   return NextResponse.json({ data: caso }, { status: 201 });
 }

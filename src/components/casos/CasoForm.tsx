@@ -15,6 +15,7 @@ export default function CasoForm() {
   const [catalogos, setCatalogos] = useState<Catalogos | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notificarAsegurado, setNotificarAsegurado] = useState(false);
 
   const [form, setForm] = useState({
     numero_siniestro: "",
@@ -65,6 +66,7 @@ export default function CasoForm() {
       tipo_baja_id: form.tipo_baja_id || null,
       responsable_id: form.responsable_id || null,
       observaciones: form.observaciones || null,
+      notificar_asegurado: notificarAsegurado && !!form.asegurado_email,
       asegurado: {
         nombre: form.asegurado_nombre,
         dni: form.asegurado_dni || null,
@@ -241,6 +243,15 @@ export default function CasoForm() {
               value={form.asegurado_email}
               onChange={(e) => update("asegurado_email", e.target.value)}
             />
+            <label className="flex items-center gap-2 mt-1 text-xs text-slate-500">
+              <input
+                type="checkbox"
+                disabled={!form.asegurado_email}
+                checked={notificarAsegurado}
+                onChange={(e) => setNotificarAsegurado(e.target.checked)}
+              />
+              Notificar por mail al asegurado del inicio del trámite
+            </label>
           </div>
           <div>
             <label className="label">Dirección</label>
