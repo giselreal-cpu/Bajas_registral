@@ -192,26 +192,32 @@ export default async function PanelPage({
 
   // Ranking de casos por gestor de campo: total asignados vs. pendientes
   // (todavía no llegaron a "Documentación enviada a la Cía", y no están
-  // cerrados). Se calcula sobre los mismos casos ya filtrados arriba.
+  // cerrados) vs. cerrados sin pagar al gestor (ver más abajo, una vez
+  // que se conocen los movimientos de "Honorarios por Gestoría"). Se
+  // calcula sobre los mismos casos ya filtrados arriba.
   const casosPorGestorMap = new Map<
     string,
-    { nombre: string; total: number; pendientes: CasoResumen[] }
+    { nombre: string; total: number; pendientes: CasoResumen[]; cerrados: CasoResumen[] }
   >();
   for (const c of (casos as CasoResumen[] | null) ?? []) {
     if (!c.gestor_id || !c.gestor) continue;
     if (!casosPorGestorMap.has(c.gestor_id)) {
-      casosPorGestorMap.set(c.gestor_id, { nombre: c.gestor.nombre, total: 0, pendientes: [] });
+      casosPorGestorMap.set(c.gestor_id, {
+        nombre: c.gestor.nombre,
+        total: 0,
+        pendientes: [],
+        cerrados: []
+      });
     }
     const entrada = casosPorGestorMap.get(c.gestor_id)!;
     entrada.total++;
     if (c.estado !== "documentacion_enviada" && c.estado !== "cerrado") {
       entrada.pendientes.push(c);
     }
+    if (c.estado === "cerrado") {
+      entrada.cerrados.push(c);
+    }
   }
-  const rankingGestores = Array.from(casosPorGestorMap.entries())
-    .map(([id, v]) => ({ id, ...v }))
-    .sort((a, b) => b.pendientes.length - a.pendientes.length);
-  const gestorSeleccionado = rankingGestores.find((g) => g.id === searchParams.gestor_id);
 
   // Días entre dos fechas (ISO date, sin horas).
   function diasEntre(desde: string, hasta: string) {
@@ -262,11 +268,19 @@ export default async function PanelPage({
   // (movimientos_caso.pagado = true), no lo cargado/pendiente de pago.
   const casoIds = (casos ?? []).map((c) => c.id);
   const casoIdsCerrados = casosConTiempos.map((c) => c.id);
+  // Casos cerrados con gestor asignado (usa directamente `estado ===
+  // "cerrado"`, no `casoIdsCerrados`, porque ese último requiere
+  // `fecha_cierre` cargada — acá no queremos perder ningún caso cerrado
+  // por eso).
+  const casoIdsCerradosConGestor = Array.from(casosPorGestorMap.values()).flatMap((v) =>
+    v.cerrados.map((c) => c.id)
+  );
   const [
     { data: facturasCerrados },
     { data: movimientosCerrados },
     { data: facturasPendientes },
-    { data: eventosSinCompletar }
+    { data: eventosSinCompletar },
+    { data: honorariosGestoria }
   ] = await Promise.all([
       casoIdsCerrados.length > 0
         ? supabase
@@ -299,8 +313,38 @@ export default async function PanelPage({
             )
             .eq("completado", false)
             .in("caso_id", casoIds)
+        : Promise.resolve({ data: [] as any[] }),
+      casoIdsCerradosConGestor.length > 0
+        ? supabase
+            .from("movimientos_caso")
+            .select("caso_id, pagado, concepto:conceptos_movimiento(nombre)")
+            .in("caso_id", casoIdsCerradosConGestor)
         : Promise.resolve({ data: [] as any[] })
     ]);
+
+  // Casos cerrados (con gestor asignado) que ya tienen un movimiento de
+  // "Honorarios por Gestoría" marcado como pagado — el resto de los
+  // cerrados de ese gestor todavía no se le pagaron (no importa si ni
+  // siquiera se cargó el movimiento, o si se cargó pero sigue pendiente).
+  const casosGestoriaPagada = new Set<string>();
+  for (const m of (honorariosGestoria ?? []) as unknown as {
+    caso_id: string;
+    pagado: boolean;
+    concepto: { nombre: string } | null;
+  }[]) {
+    if (m.concepto?.nombre === "Honorarios por Gestoría" && m.pagado) {
+      casosGestoriaPagada.add(m.caso_id);
+    }
+  }
+
+  const rankingGestores = Array.from(casosPorGestorMap.entries())
+    .map(([id, v]) => ({
+      id,
+      ...v,
+      cerradosSinPagar: v.cerrados.filter((c) => !casosGestoriaPagada.has(c.id)).length
+    }))
+    .sort((a, b) => b.pendientes.length - a.pendientes.length);
+  const gestorSeleccionado = rankingGestores.find((g) => g.id === searchParams.gestor_id);
 
   // Eventos de bitácora cargados pero sin completar, agrupados por tipo
   // — un mismo caso puede aparecer en varias categorías a la vez (ej.:
@@ -586,6 +630,7 @@ export default async function PanelPage({
                   <th className="py-1 pr-4 font-medium">Gestor</th>
                   <th className="py-1 pr-4 font-medium">Casos asignados</th>
                   <th className="py-1 pr-4 font-medium">Pendientes*</th>
+                  <th className="py-1 pr-4 font-medium">Cerrados sin pagar**</th>
                 </tr>
               </thead>
               <tbody>
@@ -594,13 +639,23 @@ export default async function PanelPage({
                     <td className="py-1.5 pr-4">{g.nombre}</td>
                     <td className="py-1.5 pr-4">{g.total}</td>
                     <td className="py-1.5 pr-4">{g.pendientes.length}</td>
+                    <td className="py-1.5 pr-4">
+                      {g.cerradosSinPagar > 0 ? (
+                        <span className="badge bg-amber-100 text-amber-800">
+                          {g.cerradosSinPagar}
+                        </span>
+                      ) : (
+                        g.cerradosSinPagar
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <p className="text-xs text-slate-400 mb-4">
-            *No están en &quot;Documentación enviada a la Cía&quot; ni cerrados.
+            *No están en &quot;Documentación enviada a la Cía&quot; ni cerrados. **Casos cerrados
+            sin un movimiento de &quot;Honorarios por Gestoría&quot; marcado como pagado.
           </p>
 
           <form className="flex flex-wrap items-end gap-3 mb-4" method="get">
