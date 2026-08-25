@@ -43,9 +43,19 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       .eq("factura_id", params.id)
   ]);
 
-  const valorOtros = ((movimientos ?? []) as unknown as { monto: number; concepto: { nombre: string } | null }[])
+  const movimientosFactura = (movimientos ?? []) as unknown as {
+    monto: number;
+    concepto: { nombre: string } | null;
+  }[];
+
+  const valorOtros = movimientosFactura
     .filter((m) => m.concepto?.nombre === "Otro")
     .reduce((acc, m) => acc + Number(m.monto), 0);
+
+  const servicios = movimientosFactura.map((m) => ({
+    concepto: m.concepto?.nombre ?? "Sin concepto",
+    monto: Number(m.monto)
+  }));
 
   const caso = factura.caso as unknown as {
     numero_siniestro: string;
@@ -66,6 +76,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     vehiculoMarca: caso?.vehiculo?.marca ?? null,
     vehiculoModelo: caso?.vehiculo?.modelo ?? null,
     vehiculoAnio: caso?.vehiculo?.anio ?? null,
+    servicios,
     valorMercado: caso?.valor_infoauto ?? null,
     valorOtros,
     total: factura.monto_total
