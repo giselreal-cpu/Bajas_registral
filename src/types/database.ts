@@ -285,6 +285,8 @@ export interface Factura {
   monto_total: number;
   estado: EstadoFactura;
   fecha_emision: string;
+  fecha_vencimiento: string | null;
+  forma_pago: string | null;
   created_at: string;
   receptor_nombre?: string;
   cobros?: Cobro[];
