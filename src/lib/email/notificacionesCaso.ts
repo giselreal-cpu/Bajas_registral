@@ -49,14 +49,14 @@ export function asuntoYCuerpo(
   const subject = `Siniestro ${numero} · Dominio ${dominio} · ${aseguradora} — ${TITULOS[tipo]}`;
 
   const cuerpos: Record<TipoNotificacion, string> = {
-    ingreso_caso: `Hola, le informamos que se dio inicio al trámite de baja registral del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}).`,
-    contacto_asegurado: `Hola, le informamos que se contactó al asegurado ${nombreAsegurado} para coordinar los próximos pasos de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}).`,
-    gestor_asignado: `Hola, le informamos que se asignó un gestor de campo (${gestor}) para continuar los trámites de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}).`,
-    traslado: `Hola, le informamos que se trasladó la unidad dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) hacia el desarmadero asignado.`,
-    presentacion_baja: `Hola, le informamos que se presentó la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) en el registro automotor.`
+    ingreso_caso: `Le informamos que se dio inicio al trámite de baja registral del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}).`,
+    contacto_asegurado: `Le informamos que se contactó al asegurado ${nombreAsegurado} para coordinar los próximos pasos de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}).`,
+    gestor_asignado: `Le informamos que se asignó un gestor de campo (${gestor}) para continuar los trámites de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}).`,
+    traslado: `Le informamos que se trasladó la unidad dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) hacia el desarmadero asignado.`,
+    presentacion_baja: `Le informamos que se presentó la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) en el registro automotor.`
   };
 
-  const text = `${cuerpos[tipo]}\n\nOltra Gestión Integral`;
+  const text = `Hola,\n\n${cuerpos[tipo]}\n\nSaludos,\nOltra Gestión Integral`;
 
   return { subject, text };
 }
