@@ -154,7 +154,7 @@ export async function generarOrdenCobroDesarmadero(datos: DatosOrdenCobro): Prom
     }
   }
 
-  fila("Valor de mercado", formatearMoneda(datos.valorMercado), true);
+  fila("Valor InfoAuto", formatearMoneda(datos.valorMercado), true);
   fila("Valor otros", formatearMoneda(datos.valorOtros));
   fila("Total", formatearMoneda(datos.total));
 
