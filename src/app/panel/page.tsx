@@ -108,7 +108,7 @@ export default async function PanelPage({
     { data: movimientos, error: errorMov },
     { data: casosCerradosConFechas, error: errorCerrados },
     { data: eventosPresentacion, error: errorPresentacion },
-    { data: contactosExistentes },
+    { data: contactosExistentes, error: errorContactos },
     { data: aseguradoras },
     { data: tiposBaja }
   ] = await Promise.all([
@@ -185,10 +185,16 @@ export default async function PanelPage({
   // Casos abiertos que todavía no tienen ningún evento "Contacto con el
   // asegurado" cargado (ni pendiente ni completado) — para recordar que
   // hay que contactarlo.
+  // Si esta consulta puntual falla, no calculamos la lista: mostrar
+  // "todos los casos sin contactar" por un error transitorio sería peor
+  // que no mostrar nada (el banner de error de arriba ya avisa del
+  // problema).
   const casosConContactoIniciado = new Set((contactosExistentes ?? []).map((c) => c.caso_id));
-  const casosSinContactar = ((casos as CasoResumen[] | null) ?? []).filter(
-    (c) => c.estado !== "cerrado" && !casosConContactoIniciado.has(c.id)
-  );
+  const casosSinContactar = errorContactos
+    ? []
+    : ((casos as CasoResumen[] | null) ?? []).filter(
+        (c) => c.estado !== "cerrado" && !casosConContactoIniciado.has(c.id)
+      );
 
   // Ranking de casos por gestor de campo: total asignados vs. pendientes
   // (todavía no llegaron a "Documentación enviada a la Cía", y no están
@@ -546,13 +552,14 @@ export default async function PanelPage({
         )}
       </form>
 
-      {(errorCasos || errorVenc || errorMov || errorCerrados || errorPresentacion) && (
+      {(errorCasos || errorVenc || errorMov || errorCerrados || errorPresentacion || errorContactos) && (
         <div className="card p-3 text-sm text-red-600 border-red-200 bg-red-50">
           {errorCasos?.message ||
             errorVenc?.message ||
             errorMov?.message ||
             errorCerrados?.message ||
-            errorPresentacion?.message}
+            errorPresentacion?.message ||
+            errorContactos?.message}
         </div>
       )}
 
