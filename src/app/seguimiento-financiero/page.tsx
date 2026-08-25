@@ -21,6 +21,19 @@ function estadoFacturaBadgeClass(estado: string) {
   }
 }
 
+const PAGO_COMPANIA = "Pago a la compañía";
+
+interface CasoCerradoReporte {
+  id: string;
+  numero_siniestro: string;
+  fecha_cierre: string | null;
+  tramitador_nombre: string | null;
+  aseguradora: { nombre: string } | null;
+  desarmadero: { nombre: string } | null;
+  vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
+  movimientos_caso: { monto: number; pagado: boolean; concepto: { nombre: string } | null }[];
+}
+
 interface CasoReporte {
   id: string;
   numero_siniestro: string;
@@ -61,19 +74,33 @@ export default async function SeguimientoFinancieroPage() {
 
   const supabase = createClient();
 
-  const { data: casos, error } = await supabase
-    .from("casos")
-    .select(
+  const [{ data: casos, error }, { data: casosCerrados, error: errorCerrados }] = await Promise.all([
+    supabase
+      .from("casos")
+      .select(
+        `
+        id, numero_siniestro,
+        aseguradora:aseguradoras(nombre),
+        desarmadero:desarmaderos(nombre),
+        vehiculo:vehiculos(dominio),
+        movimientos_caso(id, monto, fecha, observacion, pagado, concepto:conceptos_movimiento(nombre, tipo)),
+        facturas(id, numero_factura, tipo_receptor, monto_total, estado, fecha_emision, cobros(monto), notas_credito(monto))
       `
-      id, numero_siniestro,
-      aseguradora:aseguradoras(nombre),
-      desarmadero:desarmaderos(nombre),
-      vehiculo:vehiculos(dominio),
-      movimientos_caso(id, monto, fecha, observacion, pagado, concepto:conceptos_movimiento(nombre, tipo)),
-      facturas(id, numero_factura, tipo_receptor, monto_total, estado, fecha_emision, cobros(monto), notas_credito(monto))
-    `
-    )
-    .order("numero_caso", { ascending: false });
+      )
+      .order("numero_caso", { ascending: false }),
+    supabase
+      .from("casos")
+      .select(
+        `
+        id, numero_siniestro, fecha_cierre, tramitador_nombre,
+        aseguradora:aseguradoras(nombre),
+        desarmadero:desarmaderos(nombre),
+        vehiculo:vehiculos(dominio, marca, modelo, anio),
+        movimientos_caso(monto, pagado, concepto:conceptos_movimiento(nombre))
+      `
+      )
+      .eq("estado", "cerrado")
+  ]);
 
   if (error) {
     return (
@@ -82,6 +109,47 @@ export default async function SeguimientoFinancieroPage() {
       </div>
     );
   }
+
+  // Casos cerrados sin el "Pago a la compañía" ya marcado como pagado —
+  // sea porque ni siquiera se cargó ese movimiento, o porque se cargó
+  // pero sigue sin tildar "pagado".
+  const casosPendientesPagoCompania = (
+    (errorCerrados ? [] : (casosCerrados as unknown as CasoCerradoReporte[] | null)) ?? []
+  )
+    .map((c) => ({
+      ...c,
+      movPago: c.movimientos_caso.find((m) => m.concepto?.nombre === PAGO_COMPANIA) ?? null
+    }))
+    .filter((c) => !c.movPago || !c.movPago.pagado);
+
+  interface GrupoMes {
+    mes: string;
+    casos: typeof casosPendientesPagoCompania;
+  }
+  const gruposPorCompania = new Map<string, { nombre: string; meses: Map<string, GrupoMes> }>();
+  for (const c of casosPendientesPagoCompania) {
+    const compania = c.aseguradora?.nombre ?? "Sin aseguradora";
+    const mesKey = c.fecha_cierre ? c.fecha_cierre.slice(0, 7) : "Sin fecha de cierre";
+    if (!gruposPorCompania.has(compania)) {
+      gruposPorCompania.set(compania, { nombre: compania, meses: new Map() });
+    }
+    const grupo = gruposPorCompania.get(compania)!;
+    if (!grupo.meses.has(mesKey)) grupo.meses.set(mesKey, { mes: mesKey, casos: [] });
+    grupo.meses.get(mesKey)!.casos.push(c);
+  }
+  const companiasPendientes = Array.from(gruposPorCompania.values()).sort(
+    (a, b) => b.meses.size - a.meses.size || a.nombre.localeCompare(b.nombre)
+  );
+
+  const nombreMes = (mesKey: string) => {
+    if (mesKey === "Sin fecha de cierre") return mesKey;
+    const [anio, mes] = mesKey.split("-").map(Number);
+    const texto = new Date(anio, mes - 1, 1).toLocaleDateString("es-AR", {
+      month: "long",
+      year: "numeric"
+    });
+    return texto.charAt(0).toUpperCase() + texto.slice(1);
+  };
 
   const casosConActividad = ((casos as unknown as CasoReporte[]) ?? [])
     .map((c) => {
@@ -146,6 +214,76 @@ export default async function SeguimientoFinancieroPage() {
           </div>
         </div>
       </div>
+
+      <section className="card p-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h2 className="font-medium text-slate-800">
+            Casos cerrados pendientes de pago a compañía ({casosPendientesPagoCompania.length})
+          </h2>
+          {casosPendientesPagoCompania.length > 0 && (
+            <a
+              href="/api/seguimiento-financiero/pendientes-pago-compania/export"
+              className="btn-secondary text-xs"
+            >
+              Descargar reporte (CSV)
+            </a>
+          )}
+        </div>
+        <p className="text-xs text-slate-400 mb-3">
+          Casos cerrados donde todavía no se cargó el movimiento de &quot;Pago a la compañía&quot;,
+          o se cargó pero no está marcado como pagado. Agrupados por compañía y mes de cierre.
+        </p>
+
+        {companiasPendientes.length === 0 ? (
+          <p className="text-sm text-slate-500">No hay casos cerrados pendientes de pago a compañía.</p>
+        ) : (
+          <div className="space-y-2">
+            {companiasPendientes.map((g) => {
+              const totalCasos = Array.from(g.meses.values()).reduce((acc, m) => acc + m.casos.length, 0);
+              return (
+                <details key={g.nombre} className="rounded-md border border-slate-100 overflow-hidden">
+                  <summary className="cursor-pointer list-none px-3 py-2 flex items-center justify-between text-sm hover:bg-slate-50">
+                    <span className="text-slate-700">{g.nombre}</span>
+                    <span className="badge bg-amber-100 text-amber-800">{totalCasos}</span>
+                  </summary>
+                  <div className="border-t border-slate-100 divide-y divide-slate-100">
+                    {Array.from(g.meses.values())
+                      .sort((a, b) => b.mes.localeCompare(a.mes))
+                      .map((m) => (
+                        <div key={m.mes} className="px-3 py-2">
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
+                            {nombreMes(m.mes)}
+                          </p>
+                          <div className="space-y-1">
+                            {m.casos.map((c) => (
+                              <div
+                                key={c.id}
+                                className="flex items-center justify-between gap-3 text-sm py-1"
+                              >
+                                <Link
+                                  href={`/casos/${c.id}`}
+                                  className="text-brand-600 hover:underline"
+                                >
+                                  {c.numero_siniestro}
+                                  {c.vehiculo?.dominio && (
+                                    <span className="text-slate-400"> · {c.vehiculo.dominio}</span>
+                                  )}
+                                </Link>
+                                <span className="text-slate-500">
+                                  {c.movPago ? formatCurrency(c.movPago.monto) : "Sin cargar"}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        )}
+      </section>
 
       <div className="space-y-3">
         {casosConActividad.map((c) => (
