@@ -9,7 +9,10 @@ interface FacturaExport {
   monto_total: number;
   estado: string;
   fecha_emision: string;
-  caso: { numero_siniestro: string; vehiculo: { dominio: string } | null } | null;
+  caso: {
+    numero_siniestro: string;
+    vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
+  } | null;
   movimientos_caso: { concepto: { nombre: string } | null }[] | null;
   cobros: { monto: number; fecha: string; medio_pago: string | null }[] | null;
   notas_credito: { monto: number; fecha: string; motivo: string }[] | null;
@@ -35,7 +38,7 @@ export async function GET(request: NextRequest) {
       .select(
         `
         id, numero_factura, monto_total, estado, fecha_emision,
-        caso:casos(numero_siniestro, vehiculo:vehiculos(dominio)),
+        caso:casos(numero_siniestro, vehiculo:vehiculos(dominio, marca, modelo, anio)),
         movimientos_caso(concepto:conceptos_movimiento(nombre)),
         cobros(monto, fecha, medio_pago),
         notas_credito(monto, fecha, motivo)
@@ -64,10 +67,15 @@ export async function GET(request: NextRequest) {
       .map((n) => `${n.fecha}: $${n.monto} - ${n.motivo}`)
       .join("; ");
 
+    const vehiculo = [f.caso?.vehiculo?.marca, f.caso?.vehiculo?.modelo, f.caso?.vehiculo?.anio]
+      .filter(Boolean)
+      .join(" ");
+
     return {
       numero_factura: f.numero_factura,
       caso: f.caso?.numero_siniestro ?? "",
       dominio: f.caso?.vehiculo?.dominio ?? "",
+      vehiculo,
       servicios,
       fecha_emision: f.fecha_emision,
       total: f.monto_total,
@@ -84,6 +92,7 @@ export async function GET(request: NextRequest) {
     { key: "numero_factura", label: "N° Factura" },
     { key: "caso", label: "Caso" },
     { key: "dominio", label: "Dominio" },
+    { key: "vehiculo", label: "Marca/Modelo/Año" },
     { key: "servicios", label: "Servicio(s)" },
     { key: "fecha_emision", label: "Fecha Emisión" },
     { key: "total", label: "Total" },
