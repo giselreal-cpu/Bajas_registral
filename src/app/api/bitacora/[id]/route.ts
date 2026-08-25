@@ -8,6 +8,7 @@ import { motivoBloqueo } from "@/lib/eventosBitacora";
 import { casoEstaSaldado } from "@/lib/estadoFinanciero";
 
 const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
+const EVENTO_ASIGNACION_DESARMADERO = "Asignación de desarmadero";
 
 // PUT /api/bitacora/[id] -> ej. marcar como completada, editar fecha_fin, etc.
 export async function PUT(
@@ -27,7 +28,8 @@ export async function PUT(
     "gruero_nombre",
     "gruero_contacto",
     "formulario_baja_nombre",
-    "formulario_baja_contacto"
+    "formulario_baja_contacto",
+    "desarmadero_id"
   ];
 
   const update: Record<string, unknown> = {};
@@ -176,6 +178,16 @@ export async function PUT(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // El desarmadero elegido dentro del evento se replica en el caso
+  // (la cabecera del caso ya no lo edita por separado, solo lo muestra).
+  if (
+    "desarmadero_id" in update &&
+    update.desarmadero_id &&
+    data.tipo_evento === EVENTO_ASIGNACION_DESARMADERO
+  ) {
+    await supabase.from("casos").update({ desarmadero_id: update.desarmadero_id }).eq("id", data.caso_id);
   }
 
   const estadoDebug = await recalcularEstado(data.caso_id);

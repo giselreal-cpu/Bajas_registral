@@ -84,7 +84,6 @@ export default async function CasoDetallePage({
       <CasoCabecera
         caso={caso as CasoConRelaciones}
         aseguradoras={aseguradoras ?? []}
-        desarmaderos={desarmaderos ?? []}
         registros={registros ?? []}
         tiposBaja={tiposBaja ?? []}
         usuarios={usuarios ?? []}
@@ -117,6 +116,7 @@ export default async function CasoDetallePage({
         <BitacoraSection
           casoId={caso.id}
           caso={caso as CasoConRelaciones}
+          desarmaderos={desarmaderos ?? []}
           soloLectura={soloLectura}
           casoSaldado={casoSaldado}
           esAdministrador={esAdministrador}

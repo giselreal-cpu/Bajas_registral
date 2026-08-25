@@ -199,6 +199,7 @@ export interface BitacoraEvento {
   formulario_baja_nombre: string | null;
   formulario_baja_contacto: string | null;
   token_formulario_baja: string;
+  desarmadero_id: string | null;
   creado_por: string | null;
   excepcion_financiera: boolean;
   motivo_excepcion: string | null;

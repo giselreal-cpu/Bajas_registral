@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BitacoraEvento, CasoConRelaciones } from "@/types/database";
+import { BitacoraEvento, CasoConRelaciones, Desarmadero } from "@/types/database";
 import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
 import { TipoNotificacion } from "@/lib/email/notificacionesCaso";
 import SelectorNotificacion from "./SelectorNotificacion";
@@ -237,6 +237,7 @@ function FormularioBajaBox({
 interface Props {
   casoId: string;
   caso: CasoConRelaciones;
+  desarmaderos?: Desarmadero[];
   soloLectura?: boolean;
   casoSaldado?: boolean;
   esAdministrador?: boolean;
@@ -253,6 +254,7 @@ interface FormEvento {
   gruero_contacto: string;
   formulario_baja_nombre: string;
   formulario_baja_contacto: string;
+  desarmadero_id: string;
 }
 
 function formVacio(): FormEvento {
@@ -266,13 +268,17 @@ function formVacio(): FormEvento {
     gruero_nombre: "",
     gruero_contacto: "",
     formulario_baja_nombre: "",
-    formulario_baja_contacto: ""
+    formulario_baja_contacto: "",
+    desarmadero_id: ""
   };
 }
+
+const EVENTO_ASIGNACION_DESARMADERO = "Asignación de desarmadero";
 
 export default function BitacoraSection({
   casoId,
   caso,
+  desarmaderos = [],
   soloLectura,
   casoSaldado = true,
   esAdministrador = false
@@ -366,6 +372,9 @@ export default function BitacoraSection({
           formulario_baja_nombre: form.formulario_baja_nombre || null,
           formulario_baja_contacto: form.formulario_baja_contacto || null
         }),
+        ...(form.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && {
+          desarmadero_id: form.desarmadero_id || null
+        }),
         ...(form.completado &&
           necesitaExcepcionFinanciera(form.tipo_evento) && {
             excepcion_financiera: true,
@@ -404,7 +413,8 @@ export default function BitacoraSection({
       gruero_nombre: ev.gruero_nombre ?? "",
       gruero_contacto: ev.gruero_contacto ?? "",
       formulario_baja_nombre: ev.formulario_baja_nombre ?? "",
-      formulario_baja_contacto: ev.formulario_baja_contacto ?? ""
+      formulario_baja_contacto: ev.formulario_baja_contacto ?? "",
+      desarmadero_id: ev.desarmadero_id ?? ""
     });
   }
 
@@ -452,6 +462,9 @@ export default function BitacoraSection({
         ...(editForm.tipo_evento === "Formulario de Baja" && {
           formulario_baja_nombre: editForm.formulario_baja_nombre || null,
           formulario_baja_contacto: editForm.formulario_baja_contacto || null
+        }),
+        ...(editForm.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && {
+          desarmadero_id: editForm.desarmadero_id || null
         }),
         ...(vaACompletarAhora &&
           necesitaExcepcionFinanciera(editForm.tipo_evento) && {
@@ -623,6 +636,23 @@ export default function BitacoraSection({
               onContactoChange={(v) => setForm((f) => ({ ...f, formulario_baja_contacto: v }))}
             />
           )}
+          {form.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && (
+            <div>
+              <label className="label">Desarmadero</label>
+              <select
+                className="input"
+                value={form.desarmadero_id}
+                onChange={(e) => setForm((f) => ({ ...f, desarmadero_id: e.target.value }))}
+              >
+                <option value="">Seleccionar...</option>
+                {desarmaderos.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="label">Observación</label>
             <textarea
@@ -749,6 +779,23 @@ export default function BitacoraSection({
                     }
                     enlace={origin ? `${origin}/fb/${ev.token_formulario_baja}` : null}
                   />
+                )}
+                {editForm.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && (
+                  <div>
+                    <label className="label">Desarmadero</label>
+                    <select
+                      className="input"
+                      value={editForm.desarmadero_id}
+                      onChange={(e) => setEditForm((f) => ({ ...f, desarmadero_id: e.target.value }))}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {desarmaderos.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 )}
                 <div>
                   <label className="label">Observación</label>
@@ -881,6 +928,12 @@ export default function BitacoraSection({
                     <p className="text-slate-500">
                       📄 Formulario de Baja: {ev.formulario_baja_nombre}
                       {ev.formulario_baja_contacto && ` · ${ev.formulario_baja_contacto}`}
+                    </p>
+                  )}
+                  {ev.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && ev.desarmadero_id && (
+                    <p className="text-slate-500">
+                      🔧 Desarmadero:{" "}
+                      {desarmaderos.find((d) => d.id === ev.desarmadero_id)?.nombre ?? "—"}
                     </p>
                   )}
                   <p className="text-xs text-slate-400 mt-1">

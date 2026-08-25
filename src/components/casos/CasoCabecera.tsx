@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
   Aseguradora,
   CasoConRelaciones,
-  Desarmadero,
   ESTADOS,
   Gestor,
   RAMAS,
@@ -18,7 +17,6 @@ import SelectorNotificacion from "./SelectorNotificacion";
 interface Props {
   caso: CasoConRelaciones;
   aseguradoras: Aseguradora[];
-  desarmaderos: Desarmadero[];
   registros: RegistroAutomotor[];
   tiposBaja: TipoBaja[];
   usuarios: Usuario[];
@@ -30,7 +28,6 @@ interface Props {
 export default function CasoCabecera({
   caso,
   aseguradoras,
-  desarmaderos,
   registros,
   tiposBaja,
   usuarios,
@@ -66,7 +63,6 @@ export default function CasoCabecera({
     item_poliza: caso.item_poliza ?? "",
     rama: caso.rama ?? "",
     tipo_tramite: caso.tipo_tramite ?? "",
-    desarmadero_id: caso.desarmadero_id ?? "",
     registro_id: caso.registro_id ?? "",
     tipo_baja_id: caso.tipo_baja_id ?? "",
     responsable_id: caso.responsable_id ?? "",
@@ -111,7 +107,6 @@ export default function CasoCabecera({
           ...form,
           rama: form.rama || null,
           tipo_tramite: form.tipo_tramite || null,
-          desarmadero_id: form.desarmadero_id || null,
           registro_id: form.registro_id || null,
           tipo_baja_id: form.tipo_baja_id || null,
           responsable_id: form.responsable_id || null,
@@ -709,22 +704,7 @@ export default function CasoCabecera({
           </Field>
 
           <Field label="Desarmadero">
-            {editing ? (
-              <select
-                className="input"
-                value={form.desarmadero_id}
-                onChange={(e) => update("desarmadero_id", e.target.value)}
-              >
-                <option value="">Sin asignar</option>
-                {desarmaderos.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nombre}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              caso.desarmadero?.nombre ?? "—"
-            )}
+            {caso.desarmadero?.nombre ?? "—"}
           </Field>
         </div>
       </Section>
