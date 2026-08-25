@@ -31,7 +31,13 @@ export const TIPOS_EVENTO: TipoEventoDef[] = [
   {
     value: "formulario_baja",
     label: "Formulario de Baja",
-    requiere: "Traslado"
+    // En la práctica el 04D a veces se completa antes de que la unidad
+    // termine de trasladarse (no siempre van en ese orden estricto), así
+    // que este evento ya no exige "Traslado" completado — BitacoraSection
+    // muestra un aviso (no bloqueante) si se completa sin Traslado. El
+    // bloqueo real sigue estando en "Cierre de Caso", que sí exige
+    // "Traslado" completado.
+    requiere: null
   },
   {
     value: "presentacion_baja",

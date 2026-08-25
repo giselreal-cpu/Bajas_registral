@@ -294,6 +294,17 @@ export default function BitacoraSection({
   function necesitaExcepcionFinanciera(tipoEvento: string) {
     return tipoEvento === EVENTO_LIBERACION_DOCUMENTAL && !casoSaldado;
   }
+
+  // "Formulario de Baja" ya no exige "Traslado" completado (el 04D a
+  // veces se completa antes de que la unidad termine de trasladarse),
+  // pero se avisa igual — no bloquea, solo informa. El bloqueo real
+  // sigue estando en "Cierre de Caso".
+  function faltaTrasladoParaFormularioBaja(tipoEvento: string) {
+    return (
+      tipoEvento === "Formulario de Baja" &&
+      !(eventos ?? []).some((ev) => ev.tipo_evento === "Traslado" && ev.completado)
+    );
+  }
   const [excepcionEventoId, setExcepcionEventoId] = useState<string | null>(null);
   const [excepcionMotivo, setExcepcionMotivo] = useState("");
   const [guardandoExcepcion, setGuardandoExcepcion] = useState(false);
@@ -514,6 +525,14 @@ export default function BitacoraSection({
         setError(bloqueo);
         return;
       }
+      if (
+        faltaTrasladoParaFormularioBaja(evento.tipo_evento) &&
+        !confirm(
+          'Todavía no se completó el evento "Traslado" para este caso. ¿Completar "Formulario de Baja" igual?'
+        )
+      ) {
+        return;
+      }
       if (necesitaExcepcionFinanciera(evento.tipo_evento)) {
         if (!esAdministrador) {
           setError(
@@ -724,6 +743,14 @@ export default function BitacoraSection({
               )}
             </div>
           )}
+          {form.completado && faltaTrasladoParaFormularioBaja(form.tipo_evento) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm">
+              <p className="text-amber-800">
+                ⚠ Todavía no se completó el evento &quot;Traslado&quot; para este caso — se puede
+                completar igual, es solo un aviso.
+              </p>
+            </div>
+          )}
           <button className="btn-primary" disabled={saving} type="submit">
             {saving ? "Guardando..." : "Guardar evento"}
           </button>
@@ -870,6 +897,14 @@ export default function BitacoraSection({
                       )}
                     </div>
                   )}
+                {editForm.completado && faltaTrasladoParaFormularioBaja(editForm.tipo_evento) && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm">
+                    <p className="text-amber-800">
+                      ⚠ Todavía no se completó el evento &quot;Traslado&quot; para este caso — se
+                      puede completar igual, es solo un aviso.
+                    </p>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button
                     className="btn-primary text-xs"
