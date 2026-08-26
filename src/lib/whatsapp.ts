@@ -20,16 +20,12 @@ export interface DatosEncuesta {
   numeroSiniestro: string;
 }
 
-// Mensaje de la encuesta de satisfacción: a pedido explícito del
-// usuario, las 3 preguntas van visibles en el propio texto (no solo
-// "completá esta encuesta" genérico) — cada una apunta a una etapa
-// distinta del proceso para que el dato sirva para saber qué mejorar.
+// Mensaje de la encuesta de satisfacción: las 3 preguntas puntuales
+// (contacto inicial, traslado, gestoría) se responden dentro del link
+// de la encuesta, no van listadas en el propio mensaje de WhatsApp —
+// acá va solo la invitación, corta.
 export function mensajeEncuesta(datos: DatosEncuesta, enlace: string): string {
-  return `Hola ${datos.asegurado}, en Oltra Gestión Integral buscamos mejorar cada día. Nos encantaría conocer tu opinión sobre el proceso de baja de tu vehículo dominio ${datos.dominio} (Siniestro N° ${datos.numeroSiniestro}):
-
-1️⃣ ¿La información que recibiste en el primer contacto fue clara y completa?
-2️⃣ ¿Cómo calificarías la atención y puntualidad durante el traslado de tu vehículo?
-3️⃣ ¿Qué tan conforme estás con el asesoramiento y acompañamiento de la gestoría durante todo el trámite?
+  return `Hola ${datos.asegurado}, en Oltra Gestión Integral buscamos mejorar cada día. Nos encantaría conocer tu opinión sobre el proceso de baja de tu vehículo dominio ${datos.dominio} (Siniestro N° ${datos.numeroSiniestro}).
 
 Completá esta breve encuesta (1 minuto) y contanos tu experiencia: ${enlace}
 
