@@ -326,3 +326,17 @@ export interface Anticipo {
   creado_por: string | null;
   created_at: string;
 }
+
+export interface EncuestaSatisfaccion {
+  id: string;
+  caso_id: string;
+  token: string;
+  calificacion_contacto: number | null;
+  calificacion_traslado: number | null;
+  calificacion_gestoria: number | null;
+  comentario: string | null;
+  respondida: boolean;
+  respondida_at: string | null;
+  ultimo_contacto_at: string;
+  created_at: string;
+}

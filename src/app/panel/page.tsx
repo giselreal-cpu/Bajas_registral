@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS, Estado } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
+import { horasHabilesTranscurridas } from "@/lib/fechas";
+import RecordatorioEncuesta from "@/components/panel/RecordatorioEncuesta";
 
 export const dynamic = "force-dynamic";
 
@@ -286,7 +288,8 @@ export default async function PanelPage({
     { data: movimientosCerrados },
     { data: facturasPendientes },
     { data: eventosSinCompletar },
-    { data: honorariosGestoria }
+    { data: honorariosGestoria },
+    { data: encuestas }
   ] = await Promise.all([
       casoIdsCerrados.length > 0
         ? supabase
@@ -325,6 +328,18 @@ export default async function PanelPage({
             .from("movimientos_caso")
             .select("caso_id, pagado, concepto:conceptos_movimiento(nombre)")
             .in("caso_id", casoIdsCerradosConGestor)
+        : Promise.resolve({ data: [] as any[] }),
+      casoIds.length > 0
+        ? supabase
+            .from("encuestas_satisfaccion")
+            .select(
+              `
+              id, token, calificacion_contacto, calificacion_traslado, calificacion_gestoria,
+              comentario, respondida, ultimo_contacto_at, created_at,
+              caso:casos(id, numero_siniestro, vehiculo:vehiculos(dominio), asegurado:asegurados(nombre, telefono))
+            `
+            )
+            .in("caso_id", casoIds)
         : Promise.resolve({ data: [] as any[] })
     ]);
 
@@ -379,6 +394,51 @@ export default async function PanelPage({
     });
     eventosPorTipo.set(ev.tipo_evento, lista);
   }
+
+  // Dashboard de encuestas de satisfacción.
+  interface EncuestaRow {
+    id: string;
+    token: string;
+    calificacion_contacto: number | null;
+    calificacion_traslado: number | null;
+    calificacion_gestoria: number | null;
+    comentario: string | null;
+    respondida: boolean;
+    ultimo_contacto_at: string;
+    created_at: string;
+    caso: {
+      id: string;
+      numero_siniestro: string;
+      vehiculo: { dominio: string } | null;
+      asegurado: { nombre: string; telefono: string | null } | null;
+    } | null;
+  }
+  const encuestasRows = (encuestas ?? []) as unknown as EncuestaRow[];
+  const encuestasEnviadas = encuestasRows.length;
+  const encuestasRespondidas = encuestasRows.filter((e) => e.respondida).length;
+  const encuestasSinResponder = encuestasEnviadas - encuestasRespondidas;
+  const promedioEncuesta = (campo: "calificacion_contacto" | "calificacion_traslado" | "calificacion_gestoria") =>
+    promedio(
+      encuestasRows
+        .filter((e) => e.respondida && e[campo] !== null)
+        .map((e) => e[campo] as number)
+    );
+  const promedioContacto = promedioEncuesta("calificacion_contacto");
+  const promedioTraslado = promedioEncuesta("calificacion_traslado");
+  const promedioGestoria = promedioEncuesta("calificacion_gestoria");
+  const comentariosDestacados = encuestasRows
+    .filter((e) => e.respondida && e.comentario)
+    .sort((a, b) => (b.created_at > a.created_at ? 1 : -1))
+    .slice(0, 5);
+  const ahora = new Date();
+  const encuestasPendientesRecordatorio = encuestasRows
+    .filter((e) => !e.respondida)
+    .map((e) => ({
+      ...e,
+      horasHabiles: horasHabilesTranscurridas(e.ultimo_contacto_at, ahora)
+    }))
+    .filter((e) => e.horasHabiles >= 48)
+    .sort((a, b) => b.horasHabiles - a.horasHabiles);
 
   const ingresosPorCaso = new Map<string, number>();
   const cobradoDesarmaderoPorCaso = new Map<string, number>();
@@ -911,6 +971,86 @@ export default async function PanelPage({
               </details>
             );
           })}
+        </div>
+      </section>
+
+      <section className="card p-4">
+        <h2 className="font-medium text-slate-800 mb-3">Encuestas de satisfacción</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <StatCard label="Enviadas" value={encuestasEnviadas} />
+          <StatCard label="Respondidas" value={encuestasRespondidas} />
+          <StatCard label="Sin responder" value={encuestasSinResponder} />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+          <StatCard
+            label="Contacto inicial (promedio)"
+            value={promedioContacto ?? 0}
+            sufijo="/5"
+          />
+          <StatCard label="Traslado (promedio)" value={promedioTraslado ?? 0} sufijo="/5" />
+          <StatCard label="Gestoría (promedio)" value={promedioGestoria ?? 0} sufijo="/5" />
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-slate-700 mb-2">Comentarios destacados</h3>
+            {comentariosDestacados.length > 0 ? (
+              <ul className="space-y-2">
+                {comentariosDestacados.map((e) => (
+                  <li key={e.id} className="border border-slate-100 rounded-md p-2 text-sm">
+                    <Link
+                      href={`/casos/${e.caso?.id}`}
+                      className="text-brand-600 hover:underline font-medium"
+                    >
+                      {e.caso?.numero_siniestro} · {e.caso?.vehiculo?.dominio ?? "—"}
+                    </Link>
+                    <p className="text-slate-600 italic">&quot;{e.comentario}&quot;</p>
+                    <p className="text-xs text-slate-400">
+                      Contacto {e.calificacion_contacto}/5 · Traslado {e.calificacion_traslado}/5 ·
+                      Gestoría {e.calificacion_gestoria}/5
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-slate-500">Todavía no hay comentarios cargados.</p>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-sm font-medium text-slate-700 mb-2">
+              Pendientes de recordatorio (48hs hábiles sin responder)
+            </h3>
+            {encuestasPendientesRecordatorio.length > 0 ? (
+              <ul className="space-y-2">
+                {encuestasPendientesRecordatorio.map((e) => (
+                  <li key={e.id} className="border border-slate-100 rounded-md p-2 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link
+                        href={`/casos/${e.caso?.id}`}
+                        className="text-brand-600 hover:underline font-medium"
+                      >
+                        {e.caso?.numero_siniestro} · {e.caso?.vehiculo?.dominio ?? "—"}
+                      </Link>
+                      <span className="badge bg-amber-100 text-amber-800 shrink-0">
+                        {e.horasHabiles}hs hábiles
+                      </span>
+                    </div>
+                    <RecordatorioEncuesta
+                      encuestaId={e.id}
+                      token={e.token}
+                      asegurado={e.caso?.asegurado?.nombre ?? ""}
+                      telefono={e.caso?.asegurado?.telefono ?? null}
+                      dominio={e.caso?.vehiculo?.dominio ?? ""}
+                      numeroSiniestro={e.caso?.numero_siniestro ?? ""}
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-slate-500">No hay encuestas pendientes de recordatorio.</p>
+            )}
+          </div>
         </div>
       </section>
 

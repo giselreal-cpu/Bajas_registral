@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BitacoraEvento, CasoConRelaciones, Desarmadero } from "@/types/database";
+import { BitacoraEvento, CasoConRelaciones, Desarmadero, EncuestaSatisfaccion } from "@/types/database";
 import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
 import { TipoNotificacion } from "@/lib/email/notificacionesCaso";
+import { linkWhatsapp, mensajeEncuesta } from "@/lib/whatsapp";
 import SelectorNotificacion from "./SelectorNotificacion";
 
 const GESTORIA_NOMBRE = "Oltra Gestión Integral";
@@ -25,17 +26,6 @@ function mensajeContacto(caso: CasoConRelaciones): string {
   const aseguradora = caso.aseguradora?.nombre ?? "";
   const dominio = caso.vehiculo?.dominio ?? "";
   return `Hola ${nombreTitular}, buenas tardes. Te saluda ${responsable} de parte de la gestoría ${GESTORIA_NOMBRE} y su compañía de seguros ${aseguradora} por el siniestro N° ${caso.numero_siniestro} sobre el dominio ${dominio}. Quisiera contactar con vos dentro del horario en que se encuentre disponible y así poder brindarle la información de cómo se va a estar gestionando la baja de su unidad y el asesoramiento dentro del proceso en sí.`;
-}
-
-// wa.me necesita el número en formato internacional sin signos. Es un
-// mejor esfuerzo (no siempre acierta el prefijo "9" de celulares
-// argentinos) — por eso también se ofrece "Copiar mensaje" como respaldo.
-function linkWhatsapp(telefono: string | null | undefined, mensaje: string): string | null {
-  if (!telefono) return null;
-  let digitos = telefono.replace(/\D/g, "");
-  if (!digitos) return null;
-  if (!digitos.startsWith("54")) digitos = `54${digitos}`;
-  return `https://wa.me/${digitos}?text=${encodeURIComponent(mensaje)}`;
 }
 
 function MensajeContactoBox({ caso }: { caso: CasoConRelaciones }) {
@@ -234,6 +224,55 @@ function FormularioBajaBox({
   );
 }
 
+function EncuestaBox({ casoId, caso }: { casoId: string; caso: CasoConRelaciones }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    fetch(`/api/casos/${casoId}/encuesta`, { method: "POST" })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.data) setToken(json.data.token);
+      });
+  }, [casoId]);
+
+  const enlace = token && origin ? `${origin}/encuesta/${token}` : null;
+  const mensaje = mensajeEncuesta(
+    {
+      asegurado: caso.asegurado?.nombre ?? "",
+      dominio: caso.vehiculo?.dominio ?? "",
+      numeroSiniestro: caso.numero_siniestro
+    },
+    enlace ?? "(el enlace se genera al guardar)"
+  );
+  const link = linkWhatsapp(caso.asegurado?.telefono, mensaje);
+
+  async function copiar() {
+    await navigator.clipboard.writeText(mensaje);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  return (
+    <div className="mt-3 bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-2">
+      <p className="text-slate-500">Encuesta de satisfacción para enviarle por WhatsApp:</p>
+      <p className="text-slate-700 whitespace-pre-wrap">{mensaje}</p>
+      <div className="flex gap-2 flex-wrap">
+        <button type="button" className="btn-secondary text-xs" onClick={copiar} disabled={!enlace}>
+          {copiado ? "¡Copiado!" : "Copiar mensaje"}
+        </button>
+        {link && enlace && (
+          <a href={link} target="_blank" rel="noreferrer" className="btn-secondary text-xs">
+            Abrir WhatsApp
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   casoId: string;
   caso: CasoConRelaciones;
@@ -313,6 +352,7 @@ export default function BitacoraSection({
   // notificar por mail (no bloquea nada — el evento ya quedó completado
   // igual, esto es un paso aparte y opcional).
   const [notificarEventoId, setNotificarEventoId] = useState<string | null>(null);
+  const [encuesta, setEncuesta] = useState<EncuestaSatisfaccion | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -328,6 +368,10 @@ export default function BitacoraSection({
     const json = await res.json();
     if (res.ok) setEventos(json.data);
     else setError(json.error);
+
+    const resEncuesta = await fetch(`/api/casos/${casoId}/encuesta`);
+    const jsonEncuesta = await resEncuesta.json();
+    if (resEncuesta.ok) setEncuesta(jsonEncuesta.data);
   }
 
   useEffect(() => {
@@ -971,6 +1015,18 @@ export default function BitacoraSection({
                       {desarmaderos.find((d) => d.id === ev.desarmadero_id)?.nombre ?? "—"}
                     </p>
                   )}
+                  {ev.tipo_evento === "Presentación de Baja" && encuesta?.respondida && (
+                    <div className="text-slate-500">
+                      <p>
+                        ⭐ Encuesta: Contacto {encuesta.calificacion_contacto}/5 · Traslado{" "}
+                        {encuesta.calificacion_traslado}/5 · Gestoría {encuesta.calificacion_gestoria}
+                        /5
+                      </p>
+                      {encuesta.comentario && (
+                        <p className="italic">&quot;{encuesta.comentario}&quot;</p>
+                      )}
+                    </div>
+                  )}
                   <p className="text-xs text-slate-400 mt-1">
                     {new Date(ev.fecha_inicio + "T00:00:00").toLocaleDateString("es-AR")}
                     {ev.fecha_fin &&
@@ -1058,6 +1114,9 @@ export default function BitacoraSection({
                   tipo={EVENTO_A_NOTIFICACION[ev.tipo_evento]}
                   onClose={() => setNotificarEventoId(null)}
                 />
+              )}
+              {notificarEventoId === ev.id && ev.tipo_evento === "Presentación de Baja" && (
+                <EncuestaBox casoId={casoId} caso={caso} />
               )}
             </li>
           );
