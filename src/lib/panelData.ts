@@ -294,7 +294,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     casoIdsCerrados.length > 0
       ? supabase
           .from("facturas")
-          .select("caso_id, tipo_receptor, cobros(monto), notas_credito(monto)")
+          .select("caso_id, tipo_receptor, monto_total, cobros(monto), notas_credito(monto)")
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({ data: [] as any[] }),
     casoIdsCerrados.length > 0
@@ -403,11 +403,17 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     .filter((e) => e.horasHabiles >= 48)
     .sort((a, b) => b.horasHabiles - a.horasHabiles);
 
+  // Ingresos cobrados (para "Rentabilidad": cash-basis, solo plata
+  // efectivamente cobrada) vs. facturado total — con o sin cobrar (para
+  // "Ganancia neta por mes": ahí interesa ver el valor total facturado
+  // de un auto ya cerrado, esté o no cobrado todavía).
   const ingresosPorCaso = new Map<string, number>();
+  const facturadoPorCaso = new Map<string, number>();
   const cobradoDesarmaderoPorCaso = new Map<string, number>();
   for (const f of (facturasCerrados ?? []) as unknown as {
     caso_id: string;
     tipo_receptor: string;
+    monto_total: number;
     cobros: { monto: number }[];
     notas_credito: { monto: number }[];
   }[]) {
@@ -415,6 +421,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
       (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0) +
       (f.notas_credito ?? []).reduce((acc, n) => acc + Number(n.monto), 0);
     ingresosPorCaso.set(f.caso_id, (ingresosPorCaso.get(f.caso_id) ?? 0) + cobrado);
+    facturadoPorCaso.set(f.caso_id, (facturadoPorCaso.get(f.caso_id) ?? 0) + Number(f.monto_total));
     if (f.tipo_receptor === "desarmadero") {
       cobradoDesarmaderoPorCaso.set(
         f.caso_id,
@@ -456,7 +463,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     }
     const entrada = resumenPorMes.get(mesKey)!;
     entrada.autosCerrados += 1;
-    entrada.gananciaNeta += (ingresosPorCaso.get(c.id) ?? 0) - (egresosTotalesPorCaso.get(c.id) ?? 0);
+    entrada.gananciaNeta += (facturadoPorCaso.get(c.id) ?? 0) - (egresosTotalesPorCaso.get(c.id) ?? 0);
     entrada.cobradoDesarmadero += cobradoDesarmaderoPorCaso.get(c.id) ?? 0;
   }
   const resumenMensual = Array.from(resumenPorMes.values()).sort((a, b) => b.mes.localeCompare(a.mes));

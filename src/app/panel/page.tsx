@@ -469,8 +469,8 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
             Ganancia neta por mes (casos cerrados)
           </h2>
           <p className="text-xs text-slate-400 mb-3">
-            Ganancia neta = plata efectivamente cobrada menos todos los egresos cargados (pagados
-            y pendientes de pago), sobre los autos cerrados cada mes.
+            Ganancia neta = todo lo facturado (cobrado o no) menos todos los egresos cargados
+            (pagados y pendientes de pago), sobre los autos cerrados cada mes.
           </p>
           {resumenMensual.length > 0 ? (
             <div className="overflow-x-auto">
