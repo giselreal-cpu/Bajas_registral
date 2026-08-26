@@ -21,10 +21,13 @@ siguiendo el `CLAUDE.md` del proyecto.
     número de siniestro, número de póliza/ítem, **aseguradora**, nombre y
     contacto del productor, nombre y email del trámitador de la compañía,
     dominio/marca/modelo/año del vehículo, suma asegurada, estado, rama,
-    tipo de trámite, tipo de baja, responsable, desarmadero, registro,
-    deudas, fechas, los datos propios del asegurado, y el tercero
-    autorizado a entregar la unidad. Editar el vehículo o los datos del
-    asegurado actualiza `vehiculos`/`asegurados` por separado
+    tipo de trámite, tipo de baja, responsable, registro, deudas, fechas,
+    los datos propios del asegurado, y el tercero autorizado a entregar la
+    unidad. El campo **desarmadero** de la cabecera es de solo lectura
+    desde `0036_desarmadero_en_evento.sql` — se asigna desde el propio
+    evento de bitácora "Asignación de desarmadero" (ver "Bitácora" más
+    abajo), no desde acá. Editar el vehículo o los datos del asegurado
+    actualiza `vehiculos`/`asegurados` por separado
     (`/api/vehiculos/[id]`, `/api/asegurados/[id]`). El campo de
     Observaciones se sacó de esta vista (el dato sigue existiendo en la
     base por si se usa en otro lado, simplemente ya no se muestra acá).
@@ -60,6 +63,14 @@ siguiendo el `CLAUDE.md` del proyecto.
   cuántos casos lo tienen cargado pero todavía no completado, con un
   `<details>` desplegable por tipo listando los casos/dominios
   afectados (un mismo caso puede aparecer en más de un tipo a la vez).
+  Una tabla **"Casos por gestor"**: por cada gestor de campo con casos
+  asignados, total de casos, pendientes (no están en "Documentación
+  enviada a la Cía" ni cerrados) y **cerrados sin pagar** (casos
+  cerrados de ese gestor sin un movimiento "Honorarios por Gestoría"
+  marcado como pagado), con un desplegable para ver el detalle de
+  trámites pendientes de un gestor puntual. Y una sección **"Encuestas
+  de satisfacción"** — ver el detalle en "Notificaciones por mail" más
+  abajo.
 - **Avance automático de estado**: el catálogo de estados del caso tiene un
   paso propio por cada evento clave de la bitácora (`0010_estados_por_evento.sql`),
   así el seguimiento es más preciso. Cada vez que se agrega o edita un
@@ -88,7 +99,12 @@ siguiendo el `CLAUDE.md` del proyecto.
     si todavía no tenía una)
 
   "Ingreso de caso", "Baja de Patentes" y "Observaciones" no mueven el
-  estado. Solo avanza hacia adelante — nunca retrocede el estado
+  estado. **Solo "Cierre de Caso" puede llevar el caso a "Cerrado"** —
+  hasta agosto de 2026 completar "Baja de Patentes" también lo cerraba
+  directamente (sin pasar por el gating de prerequisitos de "Cierre de
+  Caso"), lo que llegó a dejar un caso marcado como cerrado con
+  "Presentación de Baja" todavía pendiente; se sacó ese atajo. Solo
+  avanza hacia adelante — nunca retrocede el estado
   automáticamente, ni siquiera si se destilda un evento o se lo borra. El
   estado se puede seguir cambiando a mano en cualquier momento desde la
   cabecera del caso, esto es un adicional, no un reemplazo (aunque un
@@ -121,13 +137,22 @@ siguiendo el `CLAUDE.md` del proyecto.
     (sin prerequisito ni estado asociado, para registrar ese trámite sin
     que bloquee ni mueva nada más) y Observaciones (sin prerequisito, para
     anotaciones sueltas que no encajan en los otros).
-  - Cada tipo tiene su propio prerequisito puntual: "Autorización de
+  - Cada tipo tiene su propio prerequisito puntual (`TIPOS_EVENTO` en
+    `src/lib/eventosBitacora.ts` → `motivoBloqueo`): "Autorización de
     traslado" requiere "Contacto con el asegurado" completado; "Asignación
     de desarmadero" requiere "Autorización de traslado" completado;
-    "Formulario de Baja", "Presentación de Baja", "Envío de documentación
-    Cía" y "Cierre de Caso" requieren todos "Asignación de desarmadero"
-    completado. No se puede marcar un evento como completado si su
-    prerequisito no lo está.
+    "Traslado" requiere "Petición de Informes" completado; "Presentación
+    de Baja" y "Envío de documentación Cía" requieren "Asignación de
+    desarmadero" completado; "Cierre de Caso" requiere que estén TODOS
+    completados: Petición de Informes, Autorización de traslado, Traslado,
+    Formulario de Baja, Presentación de Baja y Envío de documentación Cía.
+    No se puede marcar un evento como completado si su prerequisito no lo
+    está. **"Formulario de Baja" no tiene prerequisito duro** (en la
+    práctica el 04D a veces se completa antes de que la unidad termine de
+    trasladarse) — si se completa sin que "Traslado" esté completado
+    todavía, se muestra un aviso no bloqueante en vez de impedirlo; el
+    bloqueo real sigue estando en "Cierre de Caso", que sí exige
+    "Traslado" completado.
   - Los eventos ya cargados se pueden **editar** (tipo, observación,
     fechas, interna/completada) con el botón "Editar".
   - Las observaciones marcadas como **interna** solo se muestran a quien
@@ -155,25 +180,56 @@ siguiendo el `CLAUDE.md` del proyecto.
     documento completado, que queda guardado en Documentos con categoría
     `formulario_baja`). Si se cambia el nombre asignado, el token se
     regenera solo y el enlace anterior deja de servir. El middleware
-    (`src/lib/supabase/middleware.ts`) exime a `/g/*`, `/gr/*` y `/fb/*` de
-    requerir sesión.
-  - **Notificaciones por mail**: al completar "Contacto con el
-    asegurado", "Traslado" o "Presentación de Baja" (por el form de alta,
-    por edición, o por el toggle rápido de "Completada"), al asignar un
-    gestor de campo nuevo, o al crear un caso (con el checkbox del
-    formulario de alta), aparece un selector para avisarle por mail a
-    Tramitador/Productor/Asegurado — se elige a quién cada vez, no es una
-    configuración fija, y un destinatario solo se puede tildar si tiene
-    mail cargado (`tramitador_email`, `productor_contacto` tal cual, o
-    `asegurado.email`). El envío es *best-effort*: si falla, no revierte
-    ni bloquea la acción principal, solo se muestra el error. Se envía
-    con **Gmail** (`nodemailer`, `GMAIL_USER`/`GMAIL_APP_PASSWORD` en
-    `.env.local` — hace falta una contraseña de aplicación de Gmail, no
+    (`src/lib/supabase/middleware.ts`) exime a `/g/*`, `/gr/*`, `/fb/*` y
+    `/encuesta/*` de requerir sesión.
+  - El evento **"Asignación de desarmadero"** tiene su propio selector de
+    desarmadero (catálogo `/catalogos/desarmaderos`); al guardarlo se
+    replica en `casos.desarmadero_id` desde el servidor, así la cabecera
+    del caso queda al día sin tener que tocarla a mano.
+  - **Notificaciones por mail**: al completar "Ingreso de caso", "Contacto
+    con el asegurado", "Traslado" o "Presentación de Baja" (por el form de
+    alta, por edición, o por el toggle rápido de "Completada"), al asignar
+    un gestor de campo nuevo, o al crear un caso, aparece un selector para
+    avisarle por mail a Tramitador/Productor/Asegurado — se elige a quién
+    cada vez, no es una configuración fija, y un destinatario solo se
+    puede tildar si tiene mail cargado (`tramitador_email`,
+    `productor_contacto` tal cual, o `asegurado.email`). El formulario de
+    alta de caso (`/casos/nuevo`) tiene sus propios campos de
+    Tramitador/Productor (nombre + mail/contacto) para poder cargarlos
+    desde el vamos, justamente para que este selector tenga con qué
+    trabajar apenas se crea el caso. El envío es *best-effort*: si falla,
+    no revierte ni bloquea la acción principal, solo se muestra el error.
+    Se envía con **Gmail** (`nodemailer`, `GMAIL_USER`/`GMAIL_APP_PASSWORD`
+    en `.env.local` — hace falta una contraseña de aplicación de Gmail, no
     la contraseña normal de la cuenta). Ver
     `src/lib/email/enviarEmail.ts`, `src/lib/email/notificacionesCaso.ts`
     (ahí están los textos de asunto/cuerpo por tipo de evento),
     `src/components/casos/SelectorNotificacion.tsx` y
     `/api/casos/[id]/notificar`.
+  - **Encuesta de satisfacción**: al completar "Presentación de Baja"
+    aparece, junto al selector de notificación por mail, una caja con un
+    mensaje de WhatsApp sugerido (3 preguntas puntuales — información
+    recibida en el primer contacto, atención durante el traslado,
+    acompañamiento de la gestoría — cada una calificable de 1 a 5, más un
+    comentario opcional) y un enlace público de una sola respuesta
+    (`/encuesta/<token>`, sin necesidad de cuenta). El alta de la encuesta
+    es get-or-create (`POST /api/casos/[id]/encuesta`, upsert atómico
+    sobre un constraint único de `caso_id` — ver `0038`) para no duplicar
+    filas si la caja se llega a montar más de una vez. Una vez respondida,
+    el resultado se ve en la propia bitácora del caso, y el Panel suma una
+    sección "Encuestas de satisfacción" con enviadas/respondidas/sin
+    responder, promedio de calificación por pregunta, comentarios
+    destacados, y una lista de "Pendientes de recordatorio" (más de 48hs
+    hábiles sin responder, calculado con
+    `src/lib/fechas.ts` → `horasHabilesTranscurridas`) con un botón
+    **"Reenviar recordatorio"** (`src/components/panel/RecordatorioEncuesta.tsx`
+    → `POST /api/encuestas/[id]/recordatorio`) que reinicia ese conteo y
+    vuelve a mostrar la caja de WhatsApp. Igual que el resto de los
+    enlaces públicos, no envía nada automáticamente — solo arma el
+    mensaje y el enlace para que la persona responsable lo mande a mano.
+    Ver `src/lib/whatsapp.ts` (mensaje + armado del link `wa.me`,
+    compartido con el resto de las cajas de WhatsApp de la bitácora) y
+    `src/app/encuesta/[token]/`.
 - **Exportar datos** (`/exportar`): CSV de casos, bitácora y documentos (con
   relaciones ya resueltas, listo para Excel) más un backup completo en JSON
   de todas las tablas.
@@ -213,7 +269,7 @@ siguiendo el `CLAUDE.md` del proyecto.
   el enlace vigente si se comparte por error. Al reasignar el caso a otro
   gestor, el enlace anterior se regenera solo. El middleware
   (`src/lib/supabase/middleware.ts`) exime a `/g/*` de requerir sesión (junto
-  con `/gr/*` y `/fb/*` — ver "Bitácora" más abajo).
+  con `/gr/*`, `/fb/*` y `/encuesta/*` — ver "Bitácora" más abajo).
 - **Catálogo de registros automotores precargado**: 835 registros
   seccionales de competencia AUTOMOTOR de todo el país (DNRPA), con
   número, denominación y provincia, cargados vía
@@ -327,10 +383,26 @@ siguiendo el `CLAUDE.md` del proyecto.
   - **Facturas y cobros** (comprobantes internos, no fiscales — no se
     usa Contabilium): se agrupan movimientos de ingreso sin facturar en
     una factura (numerada, autonumerada) hacia un receptor (compañía o
-    desarmadero), y se registran cobros parciales o totales contra ella;
-    el estado (Pendiente/Cobrado parcial/Cobrado total) se recalcula
-    solo. Una factura sin cobros ni notas de crédito se puede eliminar
-    (sus movimientos vuelven al pool de "sin facturar").
+    desarmadero), con fecha de vencimiento y forma de pago
+    (`facturas.fecha_vencimiento`/`forma_pago`, `0035`), y se registran
+    cobros parciales o totales contra ella; el estado (Pendiente/Cobrado
+    parcial/Cobrado total) se recalcula solo. Una factura sin cobros ni
+    notas de crédito se puede eliminar (sus movimientos vuelven al pool
+    de "sin facturar"). Cada **cobro individual** también se puede
+    **eliminar** (`DELETE /api/facturas/[id]/cobros/[cobroId]`, revierte
+    el saldo del anticipo si el cobro vino de uno) — pensado para
+    corregir un cobro cargado por error contra la factura equivocada
+    (por ejemplo, facturada a "Compañía" cuando el receptor real era el
+    desarmadero), sin tener que tocar la base a mano.
+  - **Orden de cobro (PDF)**, solo para facturas a **desarmadero**: botón
+    "Descargar detalle" en la factura ya creada
+    (`GET /api/facturas/[id]/orden-cobro`,
+    `src/lib/documentos/ordenCobroDesarmadero.ts`, con `pdf-lib`) que
+    arma un comprobante con los datos del desarmadero, tipo de baja,
+    Valor InfoAuto, y el detalle de cada servicio/movimiento facturado
+    (itemizado, con su monto) — "Valor otros" suma específicamente los
+    movimientos con concepto "Otro" (agregado en `0035` para esto), no
+    todo lo que no sea "Cobro al desarmadero".
   - **Anticipos** (`anticipos`): saldo a favor de un tercero (compañía o
     desarmadero) que no queda atado a un caso puntual — se registra desde
     `/cuenta-corriente` y se puede aplicar contra cualquier factura
@@ -361,13 +433,23 @@ siguiendo el `CLAUDE.md` del proyecto.
   - **Cuenta corriente** (`/cuenta-corriente`): por cada compañía/
     desarmadero, fila resumen (facturado, cobrado —incluye notas de
     crédito—, saldo, anticipos disponibles) desplegable a una tabla con
-    el detalle de cada factura: N°, caso (con link) y dominio, servicio
-    facturado, fecha, cobrado, saldo y estado.
+    el detalle de cada factura: N°, caso (con link), dominio y
+    marca/modelo/año del vehículo, servicio facturado, fecha, cobrado,
+    saldo y estado. Botón **"Descargar reporte (CSV)"** dentro de cada
+    tercero desplegado (`GET /api/cuenta-corriente/export?tipo=...&id=...`),
+    una fila por factura con el detalle de sus cobros y notas de crédito.
   - **Seguimiento financiero** (`/seguimiento-financiero`): por cada
     caso con movimientos o facturas cargadas, desplegable con el detalle
     de sus facturas pendientes de cobro y sus egresos cargados (con su
     estado pagado/pendiente, editable ahí mismo); totales generales de
     pendiente por cobrar, pendiente por pagar y ya pagado arriba de todo.
+    Sección aparte **"Casos cerrados pendientes de pago a compañía"**:
+    agrupados por compañía/mes, solo los casos donde el movimiento "Pago
+    a la compañía" todavía no está cargado o está cargado pero sin
+    tildar como pagado, con botón de exportación a CSV
+    (`GET /api/seguimiento-financiero/pendientes-pago-compania/export`)
+    con siniestro, dominio, marca/modelo/año, desarmadero, trámitador,
+    valor restos y fecha de cierre.
   - **Panel → Rentabilidad**: totales de ingresos (cobrados)/egresos/
     ganancia neta sobre los casos ya filtrados, más una lista de facturas
     pendientes de cobro.
@@ -464,6 +546,23 @@ externa sin cuenta en el sistema, no un rol interno del equipo).
      asignada al evento "Formulario de Baja" y `token_formulario_baja`,
      enlace público de carga para el 04D en `/fb/<token>`, y la categoría
      de documento `formulario_baja`)
+   - `supabase/migrations/0033_recalcular_numero_caso_v3.sql` y
+     `0034_recalcular_numero_caso_v4.sql` (mismo recálculo puntual que
+     `0017`/`0026`, para sacar huecos de `numero_caso` que se volvieron a
+     generar)
+   - `supabase/migrations/0035_orden_cobro_desarmadero.sql`
+     (`facturas.fecha_vencimiento`/`forma_pago`, y el concepto "Otro" de
+     tipo ingreso, para la Orden de cobro en PDF de una factura a
+     desarmadero)
+   - `supabase/migrations/0036_desarmadero_en_evento.sql`
+     (`bitacora.desarmadero_id`: el desarmadero se asigna ahora desde el
+     propio evento "Asignación de desarmadero", no desde un campo suelto
+     en la cabecera del caso)
+   - `supabase/migrations/0037_encuesta_satisfaccion.sql` (tabla
+     `encuestas_satisfaccion`, para la encuesta de satisfacción por
+     WhatsApp) y `0038_encuesta_satisfaccion_unique_caso.sql` (constraint
+     único de `caso_id`, para que el alta get-or-create sea atómica y no
+     pueda duplicar filas)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.
@@ -625,6 +724,12 @@ Supabase. El código ya está listo (botón "Continuar con Google" en
 
 ## Próximos pasos sugeridos (ver `CLAUDE.md`)
 
-- Módulo financiero (valores InfoAuto, cobros/pagos).
-- Notificaciones automáticas.
-- Roles internos separados (gestor/tramitador).
+- Módulo financiero — Fase 3: RBAC granular en paralelo al sistema de
+  roles actual. (Fases 1 y 2 ya están implementadas — ver arriba.)
+- Módulo financiero — Fase 4: notificaciones automáticas por
+  WhatsApp/Email vía Edge Functions + cron (distinto de las
+  notificaciones por mail y la encuesta de satisfacción ya
+  implementadas, que son manuales — la persona responsable dispara el
+  envío a mano cada vez).
+- Roles internos separados (gestor/tramitador dentro del equipo
+  propio — el modelo ya está preparado para sumarlos sin romper nada).
