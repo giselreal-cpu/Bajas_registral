@@ -60,7 +60,6 @@ export default function CasoCabecera({
     vehiculo_anio: caso.vehiculo?.anio ?? "",
     numero_poliza: caso.numero_poliza ?? "",
     aseguradora_id: caso.aseguradora_id,
-    item_poliza: caso.item_poliza ?? "",
     rama: caso.rama ?? "",
     tipo_tramite: caso.tipo_tramite ?? "",
     registro_id: caso.registro_id ?? "",
@@ -73,13 +72,10 @@ export default function CasoCabecera({
     valor_infoauto: caso.valor_infoauto ?? 0,
     fecha_cierre: caso.fecha_cierre ?? "",
     observaciones: caso.observaciones ?? "",
-    tercero_nombre: caso.tercero_nombre ?? "",
     productor_nombre: caso.productor_nombre ?? "",
     productor_contacto: caso.productor_contacto ?? "",
     tramitador_nombre: caso.tramitador_nombre ?? "",
     tramitador_email: caso.tramitador_email ?? "",
-    tercero_dni: caso.tercero_dni ?? "",
-    tercero_contacto: caso.tercero_contacto ?? "",
     asegurado_nombre: caso.asegurado?.nombre ?? "",
     asegurado_dni: caso.asegurado?.dni ?? "",
     asegurado_telefono: caso.asegurado?.telefono ?? "",
@@ -111,10 +107,7 @@ export default function CasoCabecera({
           tipo_baja_id: form.tipo_baja_id || null,
           responsable_id: form.responsable_id || null,
           gestor_id: form.gestor_id || null,
-          fecha_cierre: form.fecha_cierre || null,
-          tercero_nombre: form.tercero_nombre || null,
-          tercero_dni: form.tercero_dni || null,
-          tercero_contacto: form.tercero_contacto || null
+          fecha_cierre: form.fecha_cierre || null
         })
       }),
       fetch(`/api/vehiculos/${caso.vehiculo_id}`, {
@@ -331,18 +324,6 @@ export default function CasoCabecera({
               />
             ) : (
               caso.numero_poliza || "—"
-            )}
-          </Field>
-
-          <Field label="Ítem">
-            {editing ? (
-              <input
-                className="input"
-                value={form.item_poliza}
-                onChange={(e) => update("item_poliza", e.target.value)}
-              />
-            ) : (
-              caso.item_poliza || "—"
             )}
           </Field>
 
@@ -831,44 +812,6 @@ export default function CasoCabecera({
       </Section>
       </div>
       </div>
-
-      <Section title="Tercero autorizado a entregar la unidad (si no es el asegurado)">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-          <Field label="Nombre y apellido">
-            {editing ? (
-              <input
-                className="input"
-                value={form.tercero_nombre}
-                onChange={(e) => update("tercero_nombre", e.target.value)}
-              />
-            ) : (
-              caso.tercero_nombre || "—"
-            )}
-          </Field>
-          <Field label="DNI">
-            {editing ? (
-              <input
-                className="input"
-                value={form.tercero_dni}
-                onChange={(e) => update("tercero_dni", e.target.value)}
-              />
-            ) : (
-              caso.tercero_dni || "—"
-            )}
-          </Field>
-          <Field label="Contacto">
-            {editing ? (
-              <input
-                className="input"
-                value={form.tercero_contacto}
-                onChange={(e) => update("tercero_contacto", e.target.value)}
-              />
-            ) : (
-              caso.tercero_contacto || "—"
-            )}
-          </Field>
-        </div>
-      </Section>
     </div>
   );
 }

@@ -18,7 +18,6 @@ export interface DatosAutorizacion {
   aseguradoraNombre: string;
   numeroSiniestro: string;
   numeroPoliza: string | null;
-  itemPoliza: string | null;
 
   vehiculoMarca: string | null;
   vehiculoModelo: string | null;
@@ -32,10 +31,6 @@ export interface DatosAutorizacion {
   aseguradoPartido: string | null;
   aseguradoProvincia: string | null;
   aseguradoTelefono: string | null;
-
-  terceroNombre: string | null;
-  terceroDni: string | null;
-  terceroContacto: string | null;
 
   // Logo de la aseguradora (null si todavía no cargó uno) y de Oltra —
   // se muestran lado a lado en el encabezado del documento.
@@ -140,15 +135,6 @@ function filaDosColumnas(izquierda: Paragraph, derecha: Paragraph) {
 // encabezado de logos (aseguradora + Oltra) y el texto acordado con el
 // usuario a partir del documento real que usan hoy.
 export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buffer> {
-  const hayTercero = !!datos.terceroNombre;
-
-  // Si se cargó un tercero autorizado, sus datos reemplazan a los del
-  // asegurado en la sección de "quien hará entrega"; si no, es el propio
-  // asegurado.
-  const entregaNombre = hayTercero ? datos.terceroNombre : datos.aseguradoNombre;
-  const entregaDni = hayTercero ? datos.terceroDni : datos.aseguradoDni;
-  const entregaTelefono = hayTercero ? datos.terceroContacto : datos.aseguradoTelefono;
-
   const children: (Paragraph | Table)[] = [];
 
   if (datos.logoAseguradoraBuffer || datos.logoOltraBuffer) {
@@ -179,8 +165,7 @@ export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buf
     ]),
     camposEnLinea([
       ["Siniestro", datos.numeroSiniestro],
-      ["Póliza", datos.numeroPoliza],
-      ["Ítem", datos.itemPoliza]
+      ["Póliza", datos.numeroPoliza]
     ]),
     parrafo([texto("De nuestra consideración:")]),
     parrafo([
@@ -204,21 +189,9 @@ export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buf
     campo("Titular / contacto en el domicilio", datos.aseguradoNombre),
     campo("Teléfono de contacto", datos.aseguradoTelefono),
     parrafo([texto("Datos de quien hará entrega del vehículo:")]),
-    campo("Nombre y apellido", entregaNombre),
-    campo("DNI", entregaDni),
-    campo("Teléfono", entregaTelefono),
-    ...(hayTercero
-      ? [
-          parrafo([
-            texto(
-              `El Asegurado autoriza expresamente a ${datos.terceroNombre}${
-                datos.terceroDni ? ` (DNI ${datos.terceroDni})` : ""
-              } a hacer entrega de la unidad en su representación, con el mismo alcance que si la entrega fuera realizada por el propio Asegurado.`,
-              { italics: true }
-            )
-          ])
-        ]
-      : []),
+    campo("Nombre y apellido", null),
+    campo("DNI", null),
+    campo("Teléfono", null),
     parrafo([texto(" ")], {
       border: {
         bottom: { color: "000000", space: 1, style: BorderStyle.SINGLE, size: 6 }

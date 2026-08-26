@@ -21,7 +21,6 @@ export default function CasoForm() {
   const [form, setForm] = useState({
     numero_siniestro: "",
     numero_poliza: "",
-    item_poliza: "",
     suma_asegurada: "",
     aseguradora_id: "",
     tipo_baja_id: "",
@@ -80,7 +79,6 @@ export default function CasoForm() {
     const payload = {
       numero_siniestro: form.numero_siniestro,
       numero_poliza: form.numero_poliza || null,
-      item_poliza: form.item_poliza || null,
       suma_asegurada: form.suma_asegurada ? Number(form.suma_asegurada) : null,
       aseguradora_id: form.aseguradora_id,
       tipo_baja_id: form.tipo_baja_id || null,
@@ -153,14 +151,6 @@ export default function CasoForm() {
               className="input"
               value={form.numero_poliza}
               onChange={(e) => update("numero_poliza", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="label">Ítem</label>
-            <input
-              className="input"
-              value={form.item_poliza}
-              onChange={(e) => update("item_poliza", e.target.value)}
             />
           </div>
           <div>

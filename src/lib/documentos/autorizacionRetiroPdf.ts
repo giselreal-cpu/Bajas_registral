@@ -192,11 +192,6 @@ function camposEnLinea(w: EscritorPdf, pares: [string, string | null][]) {
 }
 
 export async function generarAutorizacionPdf(datos: DatosAutorizacion): Promise<Buffer> {
-  const hayTercero = !!datos.terceroNombre;
-  const entregaNombre = hayTercero ? datos.terceroNombre : datos.aseguradoNombre;
-  const entregaDni = hayTercero ? datos.terceroDni : datos.aseguradoDni;
-  const entregaTelefono = hayTercero ? datos.terceroContacto : datos.aseguradoTelefono;
-
   const doc = await PDFDocument.create();
   const w = await EscritorPdf.crear(doc);
 
@@ -229,8 +224,7 @@ export async function generarAutorizacionPdf(datos: DatosAutorizacion): Promise<
   ]);
   camposEnLinea(w, [
     ["Siniestro", datos.numeroSiniestro],
-    ["Póliza", datos.numeroPoliza],
-    ["Ítem", datos.itemPoliza]
+    ["Póliza", datos.numeroPoliza]
   ]);
   w.parrafo("De nuestra consideración:");
   w.parrafo(
@@ -252,17 +246,9 @@ export async function generarAutorizacionPdf(datos: DatosAutorizacion): Promise<
   campo(w, "Titular / contacto en el domicilio", datos.aseguradoNombre);
   campo(w, "Teléfono de contacto", datos.aseguradoTelefono);
   w.parrafo("Datos de quien hará entrega del vehículo:");
-  campo(w, "Nombre y apellido", entregaNombre);
-  campo(w, "DNI", entregaDni);
-  campo(w, "Teléfono", entregaTelefono);
-  if (hayTercero) {
-    w.parrafo(
-      `El Asegurado autoriza expresamente a ${datos.terceroNombre}${
-        datos.terceroDni ? ` (DNI ${datos.terceroDni})` : ""
-      } a hacer entrega de la unidad en su representación, con el mismo alcance que si la entrega fuera realizada por el propio Asegurado.`,
-      { italic: true }
-    );
-  }
+  campo(w, "Nombre y apellido", null);
+  campo(w, "DNI", null);
+  campo(w, "Teléfono", null);
   w.lineaHorizontal();
   w.parrafo(
     "El Asegurado declara bajo juramento que, a la fecha de la presente, la unidad no registra embargo ni inhibición vigente sobre su titular. En caso de constatarse la existencia de alguna de estas situaciones con posterioridad al retiro, la Compañía procederá a restituir la unidad al Asegurado, quedando el costo del traslado correspondiente a cargo de este último."

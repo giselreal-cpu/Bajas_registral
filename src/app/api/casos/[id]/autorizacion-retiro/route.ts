@@ -18,8 +18,7 @@ export async function GET(
     .from("casos")
     .select(
       `
-      numero_siniestro, numero_poliza, item_poliza,
-      tercero_nombre, tercero_dni, tercero_contacto,
+      numero_siniestro, numero_poliza,
       aseguradora:aseguradoras(nombre, logo_path),
       asegurado:asegurados(nombre, dni, direccion, entre_calles, localidad, partido, provincia, telefono),
       vehiculo:vehiculos(marca, modelo, dominio),
@@ -47,7 +46,6 @@ export async function GET(
     aseguradoraNombre: c.aseguradora?.nombre ?? "",
     numeroSiniestro: c.numero_siniestro,
     numeroPoliza: c.numero_poliza ?? null,
-    itemPoliza: c.item_poliza ?? null,
     vehiculoMarca: c.vehiculo?.marca ?? null,
     vehiculoModelo: c.vehiculo?.modelo ?? null,
     vehiculoDominio: c.vehiculo?.dominio ?? "",
@@ -59,9 +57,6 @@ export async function GET(
     aseguradoPartido: c.asegurado?.partido ?? null,
     aseguradoProvincia: c.asegurado?.provincia ?? null,
     aseguradoTelefono: c.asegurado?.telefono ?? null,
-    terceroNombre: c.tercero_nombre ?? null,
-    terceroDni: c.tercero_dni ?? null,
-    terceroContacto: c.tercero_contacto ?? null,
     logoAseguradoraBuffer,
     logoOltraBuffer
   };
