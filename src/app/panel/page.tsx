@@ -362,7 +362,7 @@ export default async function PanelPage({
     .map(([id, v]) => ({
       id,
       ...v,
-      cerradosSinPagar: v.cerrados.filter((c) => !casosGestoriaPagada.has(c.id)).length
+      cerradosSinPagar: v.cerrados.filter((c) => !casosGestoriaPagada.has(c.id))
     }))
     .sort((a, b) => b.pendientes.length - a.pendientes.length);
   const gestorSeleccionado = rankingGestores.find((g) => g.id === searchParams.gestor_id);
@@ -707,12 +707,12 @@ export default async function PanelPage({
                     <td className="py-1.5 pr-4">{g.total}</td>
                     <td className="py-1.5 pr-4">{g.pendientes.length}</td>
                     <td className="py-1.5 pr-4">
-                      {g.cerradosSinPagar > 0 ? (
+                      {g.cerradosSinPagar.length > 0 ? (
                         <span className="badge bg-amber-100 text-amber-800">
-                          {g.cerradosSinPagar}
+                          {g.cerradosSinPagar.length}
                         </span>
                       ) : (
-                        g.cerradosSinPagar
+                        0
                       )}
                     </td>
                   </tr>
@@ -734,7 +734,7 @@ export default async function PanelPage({
               <input type="hidden" name="tipo_baja_id" value={searchParams.tipo_baja_id} />
             )}
             <div className="flex-1 min-w-[220px]">
-              <label className="label">Ver trámites pendientes de</label>
+              <label className="label">Ver detalle de</label>
               <select
                 name="gestor_id"
                 defaultValue={searchParams.gestor_id ?? ""}
@@ -743,7 +743,8 @@ export default async function PanelPage({
                 <option value="">Elegí un gestor...</option>
                 {rankingGestores.map((g) => (
                   <option key={g.id} value={g.id}>
-                    {g.nombre} ({g.pendientes.length} pendientes)
+                    {g.nombre} ({g.pendientes.length} pendientes, {g.cerradosSinPagar.length} sin
+                    pagar)
                   </option>
                 ))}
               </select>
@@ -754,35 +755,68 @@ export default async function PanelPage({
           </form>
 
           {gestorSeleccionado && (
-            <div>
-              <h3 className="text-sm font-medium text-slate-700 mb-2">
-                Pendientes de {gestorSeleccionado.nombre} ({gestorSeleccionado.pendientes.length})
-              </h3>
-              {gestorSeleccionado.pendientes.length === 0 ? (
-                <p className="text-sm text-slate-500">
-                  No tiene casos pendientes — todos llegaron a &quot;Documentación enviada a la
-                  Cía&quot; o están cerrados.
-                </p>
-              ) : (
-                <div className="divide-y divide-slate-100">
-                  {gestorSeleccionado.pendientes.map((c) => (
-                    <div key={c.id} className="py-2 flex items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <Link
-                          href={`/casos/${c.id}`}
-                          className="text-brand-700 font-medium hover:underline text-sm"
-                        >
-                          {c.numero_siniestro}
-                        </Link>
-                        <p className="text-xs text-slate-500">{c.asegurado?.nombre}</p>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-sm font-medium text-slate-700 mb-2">
+                  Pendientes de {gestorSeleccionado.nombre} ({gestorSeleccionado.pendientes.length})
+                </h3>
+                {gestorSeleccionado.pendientes.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    No tiene casos pendientes — todos llegaron a &quot;Documentación enviada a la
+                    Cía&quot; o están cerrados.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {gestorSeleccionado.pendientes.map((c) => (
+                      <div key={c.id} className="py-2 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link
+                            href={`/casos/${c.id}`}
+                            className="text-brand-700 font-medium hover:underline text-sm"
+                          >
+                            {c.numero_siniestro}
+                          </Link>
+                          <p className="text-xs text-slate-500">{c.asegurado?.nombre}</p>
+                        </div>
+                        <span className={`badge shrink-0 ${estadoBadgeClass(c.estado)}`}>
+                          {ESTADOS.find((e) => e.value === c.estado)?.label ?? c.estado}
+                        </span>
                       </div>
-                      <span className={`badge shrink-0 ${estadoBadgeClass(c.estado)}`}>
-                        {ESTADOS.find((e) => e.value === c.estado)?.label ?? c.estado}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-slate-700 mb-2">
+                  Cerrados sin pagar a {gestorSeleccionado.nombre} (
+                  {gestorSeleccionado.cerradosSinPagar.length})
+                </h3>
+                {gestorSeleccionado.cerradosSinPagar.length === 0 ? (
+                  <p className="text-sm text-slate-500">
+                    No tiene casos cerrados pendientes de pago de honorarios.
+                  </p>
+                ) : (
+                  <div className="divide-y divide-slate-100">
+                    {gestorSeleccionado.cerradosSinPagar.map((c) => (
+                      <div key={c.id} className="py-2 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <Link
+                            href={`/casos/${c.id}`}
+                            className="text-brand-700 font-medium hover:underline text-sm"
+                          >
+                            {c.numero_siniestro}
+                          </Link>
+                          <p className="text-xs text-slate-500">{c.asegurado?.nombre}</p>
+                        </div>
+                        <span className="badge shrink-0 bg-amber-100 text-amber-800">
+                          Sin pagar
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </section>
