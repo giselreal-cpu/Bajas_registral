@@ -33,8 +33,14 @@ const EVENTO_EN_PROGRESO_A_ESTADO: Record<string, Estado> = {
 
 // Eventos que solo empujan el estado una vez COMPLETADOS — representan un
 // hito ya conseguido (autorización obtenida, desarmadero asignado, unidad
-// trasladada, etc.), no algo que esté en curso. Completar "Baja de
-// Patentes" cierra directamente el caso.
+// trasladada, etc.), no algo que esté en curso. Solo "Cierre de Caso"
+// puede llevar el estado a "cerrado" — ese evento sí tiene gating real
+// (motivoBloqueo en eventosBitacora.ts exige que estén completados
+// Petición de Informes, Autorización de traslado, Traslado, Formulario
+// de Baja, Presentación de Baja y Envío de documentación Cía). "Baja de
+// Patentes" NO debe cerrar el caso por sí sola: es un trámite aparte
+// (patentes municipales) que puede completarse sin que el resto del
+// proceso de baja registral haya terminado.
 const EVENTO_COMPLETADO_A_ESTADO: Record<string, Estado> = {
   "Autorización de traslado": "autorizacion_traslado",
   "Asignación de desarmadero": "desarmadero_asignado",
@@ -42,8 +48,7 @@ const EVENTO_COMPLETADO_A_ESTADO: Record<string, Estado> = {
   "Formulario de Baja": "baja_en_tramite",
   "Presentación de Baja": "presentado_en_registro",
   "Envío de documentación Cía": "documentacion_enviada",
-  "Cierre de Caso": "cerrado",
-  "Baja de Patentes": "cerrado"
+  "Cierre de Caso": "cerrado"
 };
 
 // Se llama después de cualquier alta/edición de un evento de bitácora.
