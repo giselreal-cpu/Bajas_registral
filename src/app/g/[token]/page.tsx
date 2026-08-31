@@ -1,5 +1,6 @@
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
+import InstallBanner from "@/components/InstallBanner";
 import UploadForm from "./UploadForm";
 import ObservacionForm from "./ObservacionForm";
 
@@ -83,6 +84,8 @@ export default async function EnlaceGestorPage({
           Hola {caso.gestor?.nombre ?? ""}, acá tenés los datos para gestionar este caso.
         </p>
       </div>
+
+      <InstallBanner />
 
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Datos del caso</h2>

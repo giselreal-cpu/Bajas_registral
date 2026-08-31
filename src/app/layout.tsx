@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import HeaderNav from "@/components/HeaderNav";
 import LogoutButton from "@/components/LogoutButton";
+import MobileNav from "@/components/MobileNav";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import "./globals.css";
@@ -17,12 +18,23 @@ const poppins = Poppins({
 
 export const metadata: Metadata = {
   title: "Bajas Registrales por Siniestro",
-  description: "Gestión de bajas registrales de vehículos siniestrados"
+  description: "Gestión de bajas registrales de vehículos siniestrados",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Oltra Bajas"
+  },
+  icons: {
+    icon: "/icons/icon-512.png",
+    apple: "/icons/icon-192.png"
+  }
 };
 
 export const viewport: Viewport = {
   width: "device-width",
-  initialScale: 1
+  initialScale: 1,
+  themeColor: "#b85717"
 };
 
 const NAV_LINKS = [
@@ -94,7 +106,7 @@ export default async function RootLayout({
             </div>
             <div className="h-0.5 bg-gradient-to-r from-accent-600 via-accent-400 to-silver-300" />
           </header>
-          <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6">
+          <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 pb-24 md:pb-6">
             {pendienteDeAprobacion ? (
               <div className="max-w-md mx-auto text-center py-16">
                 <h1 className="text-lg font-semibold text-slate-900 mb-2">
@@ -110,6 +122,7 @@ export default async function RootLayout({
               children
             )}
           </main>
+          {user && !pendienteDeAprobacion && <MobileNav />}
         </div>
       </body>
     </html>
