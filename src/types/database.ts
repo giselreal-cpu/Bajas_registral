@@ -117,6 +117,9 @@ export interface Gestor {
   id: string;
   nombre: string;
   contacto: string | null;
+  direccion: string | null;
+  email: string | null;
+  zona_cobertura: string | null;
 }
 
 export type RolUsuario = "operador" | "administrador" | "compania";
