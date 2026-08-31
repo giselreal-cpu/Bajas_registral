@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="stylesheet" href="_ds/classical-cc4849c6-89e7-4560-a8b7-9f7dc2c4615f/styles.css"><script src="_ds/classical-cc4849c6-89e7-4560-a8b7-9f7dc2c4615f/_ds_bundle.js"></script><style>body{margin:0;background:#f3f2f2}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid var(--color-divider);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:var(--color-text);color:#f3f2f2;border-radius:4px;text-decoration:none}.dv-tname{font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--color-text)}.dv-opts{display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:color-mix(in srgb,var(--color-text) 8%,transparent);color:var(--color-text);border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font-family:var(--font-body);font-size:11.5px;color:color-mix(in srgb,var(--color-text) 60%,transparent)}.dv-opt:target .dv-oid{background:var(--color-accent);color:#fff}.dv-next{margin:22px 0 0;font-family:var(--font-body);font-size:12px;color:color-mix(in srgb,var(--color-text) 55%,transparent)}.ph *{scrollbar-width:none}.ph *::-webkit-scrollbar{width:0;height:0;display:none}.ph{width:390px;height:800px;border-radius:34px;background:var(--color-bg);border:1px solid var(--color-divider);box-shadow:var(--shadow-md);overflow:hidden;position:relative;display:flex;flex-direction:column;font-family:var(--font-body)}</style></helmet>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">Sin login — el enlace se agrega a la pantalla de inicio</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a">
+<div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Interactiva — abrí el enlace, agregalo al inicio y quedan sus casos guardados</div>
+<div class="ph" style="height:800px">
+  <div style="background:var(--color-text);padding:14px 18px 12px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div style="min-width:0">
+      <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">{{ pKicker }}</div>
+      <div style="font-family:var(--font-body);font-weight:600;font-size:17px;letter-spacing:.01em;font-variant-numeric:tabular-nums;color:#f3f2f2;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pTitulo }}</div>
+    </div>
+    <sc-if value="{{ pInstalada }}" hint-placeholder-val="{{ false }}">
+      <span style="flex:none;font-size:10.5px;color:var(--color-accent-300);border:1px solid color-mix(in srgb,var(--color-accent) 55%,transparent);border-radius:99px;padding:4px 9px">En el inicio</span>
+    </sc-if>
+  </div>
+  <div style="height:2px;background:linear-gradient(90deg,var(--color-accent) 0%,var(--color-accent-300) 55%,var(--color-neutral-400) 100%);flex:none"></div>
+
+  <div style="flex:1;overflow:auto;padding:18px 16px 24px">
+    <sc-if value="{{ pasoEnlace }}" hint-placeholder-val="{{ true }}">
+      <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:16px">
+        <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Recibiste por WhatsApp</div>
+        <p style="margin:10px 0 0;font-size:13.5px;color:var(--color-neutral-800);text-wrap:pretty">Damián, te asignamos el caso <strong>AF412KQ</strong>. Entrá acá para ver los datos y cargar lo que gestiones:</p>
+        <div style="margin-top:12px;padding:11px 13px;border:1px solid var(--color-divider);border-radius:var(--radius-sm);background:var(--color-surface);font:12px ui-monospace,Menlo,monospace;color:var(--color-accent-700);word-break:break-all">bajas.oltra.com.ar/g/8f3c-a91d-42b7</div>
+      </div>
+      <p style="margin:16px 0 0;font-size:13px;color:var(--color-neutral-700);text-wrap:pretty">El enlace abre directo, sin usuario ni contraseña. El token identifica al gestor y al caso.</p>
+      <button onClick="{{ pAbrir }}" class="btn btn-primary btn-block" style="min-height:50px;font-size:15px">Abrir el enlace</button>
+    </sc-if>
+
+    <sc-if value="{{ pasoBanner }}" hint-placeholder-val="{{ false }}">
+      <h4 style="margin:0 0 2px;font-size:21px">Hola, Damián Sosa</h4>
+      <p style="margin:0 0 16px;font-size:13px;color:var(--color-neutral-700)">Tenés 1 caso asignado.</p>
+      <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:14px">
+        <div style="font-family:var(--font-body);font-weight:600;font-size:21px;letter-spacing:.01em;font-variant-numeric:tabular-nums">AF412KQ</div>
+        <div style="font-size:12.5px;color:var(--color-neutral-700);margin-top:3px">Toyota Hilux SRV 2019 · Sancor Seguros</div>
+        <div style="height:1px;background:var(--color-divider);margin:12px 0 10px"></div>
+        <div style="font-size:12.5px;color:var(--color-neutral-800)">Turno en el Registro 1042 — La Matanza</div>
+      </div>
+
+      <div style="margin-top:18px;border:1px solid var(--color-accent);border-radius:var(--radius-md);padding:16px">
+        <div style="display:flex;align-items:flex-start;gap:11px">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M12 6v8"></path><path d="m8.5 10.5 3.5-4 3.5 4"></path></svg>
+          <div style="min-width:0">
+            <div style="font-family:var(--font-heading);font-weight:600;font-size:16px">Tenelo siempre a mano</div>
+            <p style="margin:5px 0 0;font-size:12.5px;color:var(--color-neutral-700);text-wrap:pretty">Agregalo a la pantalla de inicio y entrás con un toque, sin buscar el mensaje. Funciona sin señal.</p>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <button onClick="{{ pInstrucciones }}" class="btn btn-primary" style="flex:1;min-height:46px">Agregar al inicio</button>
+          <button onClick="{{ pAhoraNo }}" class="btn btn-ghost" style="flex:none;min-height:46px;padding:0 14px">Ahora no</button>
+        </div>
+      </div>
+
+      <hr class="hr">
+      <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Cargar un archivo</div>
+      <div style="border:1px dashed var(--color-neutral-400);border-radius:var(--radius-md);height:96px;display:flex;align-items:center;justify-content:center;gap:9px;color:var(--color-neutral-600);font-size:13px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"></path><circle cx="12" cy="13" r="3"></circle></svg>Sacar foto o elegir PDF</div>
+    </sc-if>
+
+    <sc-if value="{{ pasoInstalada }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid var(--color-accent);border-radius:var(--radius-md);padding:16px;display:flex;align-items:flex-start;gap:11px">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M20 6 9 17l-5-5"></path></svg>
+        <div>
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:16px;color:var(--color-accent-700)">Listo, ya está en tu pantalla de inicio</div>
+          <p style="margin:5px 0 0;font-size:12.5px;color:var(--color-neutral-700);text-wrap:pretty">Abre a pantalla completa, sin barra del navegador. Tus casos quedan guardados en el teléfono.</p>
+        </div>
+      </div>
+      <div style="margin-top:18px;border:1px solid var(--color-divider);border-radius:var(--radius-md);background:var(--color-neutral-900);padding:22px 18px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px 12px">
+          <sc-for list="{{ pIconos }}" as="i" hint-placeholder-count="8">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <span style="width:50px;height:50px;border-radius:12px;background:{{ i.fondo }};opacity:{{ i.opacidad }};display:block"></span>
+              <span style="font-size:9.5px;color:#f3f2f2;opacity:.72;text-align:center;line-height:1.2">{{ i.label }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+            <span style="width:50px;height:50px;border-radius:12px;background:var(--color-text);border:1px solid var(--color-accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-size:22px;color:var(--color-accent-300);line-height:1">O</span>
+            <span style="font-size:9.5px;color:#f3f2f2;text-align:center;line-height:1.2">Oltra Bajas</span>
+          </div>
+        </div>
+      </div>
+      <p style="margin:16px 0 0;font-size:12.5px;color:var(--color-neutral-700);text-wrap:pretty">El acceso sigue atado al token del enlace: si se revoca, el ícono deja de abrir el caso.</p>
+      <button onClick="{{ pReiniciar }}" class="btn btn-secondary btn-block" style="min-height:46px">Ver el flujo de nuevo</button>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ pSheet }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ pCerrar }}" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 45%,transparent);z-index:5"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--color-bg);border-top:1px solid var(--color-divider);border-radius:16px 16px 0 0;padding:14px 16px 22px;box-shadow:var(--shadow-lg)">
+      <div style="width:38px;height:3px;border-radius:99px;background:var(--color-neutral-400);margin:0 auto 14px"></div>
+      <h4 style="margin:0 0 12px;font-size:19px">Agregar a pantalla de inicio</h4>
+      <div class="seg" style="display:flex;margin-bottom:16px">
+        <sc-for list="{{ pPlataformas }}" as="p" hint-placeholder-count="2">
+          <sc-if value="{{ p.activo }}" hint-placeholder-val="{{ true }}">
+            <button onClick="{{ p.set }}" style="flex:1;min-height:40px;border:1px solid var(--color-accent);background:color-mix(in srgb,var(--color-accent) 14%,transparent);color:var(--color-accent-700);font-family:var(--font-heading);font-weight:600;font-size:13.5px;cursor:pointer;border-radius:var(--radius-sm)">{{ p.label }}</button>
+          </sc-if>
+          <sc-if value="{{ p.inactivo }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ p.set }}" style="flex:1;min-height:40px;border:1px solid var(--color-divider);background:transparent;color:var(--color-neutral-700);font-family:var(--font-heading);font-weight:600;font-size:13.5px;cursor:pointer;border-radius:var(--radius-sm)" style-hover="background:color-mix(in srgb,var(--color-accent) 10%,transparent)">{{ p.label }}</button>
+          </sc-if>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <sc-for list="{{ pPasos }}" as="p" hint-placeholder-count="3">
+          <div style="display:flex;align-items:flex-start;gap:12px">
+            <span style="flex:none;width:24px;height:24px;border-radius:99px;border:1px solid var(--color-accent);color:var(--color-accent-700);display:flex;align-items:center;justify-content:center;font-size:12px;font-variant-numeric:tabular-nums">{{ p.n }}</span>
+            <span style="font-size:13.5px;color:var(--color-neutral-800);text-wrap:pretty;padding-top:2px">{{ p.texto }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <button onClick="{{ pListo }}" class="btn btn-primary btn-block" style="min-height:48px;font-size:14.5px">Ya lo agregué</button>
+    </div>
+  </sc-if>
+</div>
+</div>
+
+<div class="dv-opt" id="4b">
+<div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Vuelta al día siguiente — el ícono abre a pantalla completa, ya identificado</div>
+<div class="ph" style="height:560px">
+  <div style="background:var(--color-text);padding:14px 18px 12px;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div>
+      <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">Damián Sosa · gestor</div>
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;color:#f3f2f2;margin-top:3px">Tus casos</div>
+    </div>
+    <span style="flex:none;font-size:10.5px;color:var(--color-accent-300);border:1px solid color-mix(in srgb,var(--color-accent) 55%,transparent);border-radius:99px;padding:4px 9px">2 sin sincr.</span>
+  </div>
+  <div style="height:2px;background:var(--color-accent);flex:none"></div>
+  <div style="flex:1;overflow:auto;padding:18px 16px">
+    <p style="margin:0 0 14px;font-size:13px;color:var(--color-neutral-700);text-wrap:pretty">Sin contraseña: el teléfono ya guarda tus enlaces. Cada caso que te asignen aparece acá.</p>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+          <span style="font-family:var(--font-body);font-weight:600;font-size:20px;letter-spacing:.01em;font-variant-numeric:tabular-nums">AF412KQ</span>
+          <span style="font-size:11px;color:var(--color-accent-700)">Turno en Registro</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--color-neutral-700);margin-top:3px">Registro 1042 — La Matanza</div>
+      </div>
+      <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:14px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px">
+          <span style="font-family:var(--font-body);font-weight:600;font-size:20px;letter-spacing:.01em;font-variant-numeric:tabular-nums">KQP214</span>
+          <span style="font-size:11px;color:var(--color-accent-700)">Recibos</span>
+        </div>
+        <div style="font-size:12.5px;color:var(--color-neutral-700);margin-top:3px">Registro 3308 — Córdoba</div>
+      </div>
+    </div>
+    <hr class="hr">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      <p style="margin:0;font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">Si perdés el teléfono, el tramitador revoca el enlace desde el caso y el ícono deja de funcionar.</p>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Probá: "sumá el aviso de token revocado" · "que el desarmadero use el mismo flujo de <a class="dv-oid" href="#4a">4a</a>" · "el tramitador interno sí entra con usuario y clave"</p>
+</section>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Vista acotada del desarmadero — enlace /fb/&lt;token&gt;: seguimiento + carga del 04D</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a">
+<div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Interactiva — seguimiento en formato <a class="dv-oid" href="#1c">1c</a> y un único pedido: subir el Formulario/04D</div>
+<div class="ph" style="height:800px">
+  <div style="background:var(--color-text);padding:14px 18px 12px;flex:none">
+    <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">Enlace de desarmadero · sin cuenta</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:17px;letter-spacing:.01em;font-variant-numeric:tabular-nums;color:#f3f2f2;margin-top:3px">AF412KQ · SIN-2026-4471</div>
+  </div>
+  <div style="height:2px;background:linear-gradient(90deg,var(--color-accent) 0%,var(--color-accent-300) 55%,var(--color-neutral-400) 100%);flex:none"></div>
+  <div style="flex:1;overflow:auto;padding:18px 16px 24px">
+    <h4 style="margin:0 0 2px;font-size:21px">Hola, Desarmadero Sur SRL</h4>
+    <p style="margin:0 0 16px;font-size:13px;color:var(--color-neutral-700);text-wrap:pretty">Acá podés seguir el caso y cargar el formulario/04D completado.</p>
+    <sc-if value="{{ dA2i }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:flex-start;gap:11px;border:1px solid var(--color-accent);border-radius:var(--radius-md);background:color-mix(in srgb,var(--color-accent) 7%,transparent);padding:13px 12px 13px 14px;margin-bottom:18px">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M12 8v6"></path><path d="M9 11h6"></path></svg>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:14.5px;color:var(--color-accent-700)">Tenelo a mano: agregalo a tu pantalla de inicio</div>
+          <p style="margin:4px 0 0;font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">Tocá <strong style="font-weight:600">Compartir</strong> (o el menú ⋮) y elegí <strong style="font-weight:600">Agregar a pantalla de inicio</strong>. Queda como un ícono y entrás sin buscar el enlace.</p>
+        </div>
+        <button onClick="{{ dCerrarA2i }}" aria-label="Descartar" style="flex:none;width:30px;height:30px;margin:-4px -4px 0 0;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer;color:var(--color-neutral-600)" style-hover="color:var(--color-accent-700)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+      </div>
+    </sc-if>
+
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">Estado del trámite</div>
+    <div style="font-family:var(--font-heading);font-size:30px;font-weight:400;letter-spacing:-.02em;line-height:1.08;text-wrap:pretty">{{ dEstado }}</div>
+    <p style="margin:7px 0 0;font-size:12.5px;color:var(--color-neutral-700)">{{ dProgresoTexto }}</p>
+    <div style="display:flex;gap:3px;margin:16px 0 6px">
+      <sc-for list="{{ dPasos }}" as="p" hint-placeholder-count="10">
+        <sc-if value="{{ p.hecho }}" hint-placeholder-val="{{ true }}"><span style="flex:1;height:6px;background:var(--color-accent)"></span></sc-if>
+        <sc-if value="{{ p.falta }}" hint-placeholder-val="{{ false }}"><span style="flex:1;height:6px;background:var(--color-neutral-300)"></span></sc-if>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)"><span>Ingreso</span><span>Cierre</span></div>
+
+    <div style="margin-top:16px;border-left:2px solid var(--color-accent);padding:2px 0 2px 14px">
+      <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Lo que sigue</div>
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;margin-top:3px">{{ dSigue }}</div>
+      <p style="margin:4px 0 0;font-size:12.5px;color:var(--color-neutral-700);text-wrap:pretty">{{ dSigueNota }}</p>
+    </div>
+
+    <hr class="hr">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Datos del caso</div>
+    <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:4px 14px">
+      <sc-for list="{{ dCampos }}" as="k" hint-placeholder-count="2">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--color-divider)">
+          <span style="flex:none;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">{{ k.label }}</span>
+          <span style="text-align:right;font-size:13.5px">{{ k.valor }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <hr class="hr">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Documentación del caso</div>
+    <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:2px 14px">
+      <sc-for list="{{ dDocs }}" as="d" hint-placeholder-count="2">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-divider)">
+          <span style="min-width:0;font-size:13.5px;color:var(--color-accent-700);text-decoration:underline;text-underline-offset:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.nombre }}</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-600)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        </div>
+      </sc-for>
+    </div>
+
+    <hr class="hr">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Cargar el formulario/04D completado</div>
+    <sc-if value="{{ dPendiente }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;gap:10px">
+        <button onClick="{{ dSubir }}" style="flex:1;border:1px dashed var(--color-neutral-400);border-radius:var(--radius-md);height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:transparent;cursor:pointer;font-family:var(--font-body)" style-hover="border-color:var(--color-accent)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"></path><circle cx="12" cy="13" r="3"></circle></svg><span style="font-size:12.5px;font-family:var(--font-heading);font-weight:600">Sacar foto del 04D</span></button>
+        <button onClick="{{ dSubir }}" style="flex:1;border:1px dashed var(--color-neutral-400);border-radius:var(--radius-md);height:100px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:transparent;cursor:pointer;font-family:var(--font-body)" style-hover="border-color:var(--color-accent)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v5h5"></path></svg><span style="font-size:12.5px;font-family:var(--font-heading);font-weight:600">Elegir PDF</span></button>
+      </div>
+      <p style="margin:8px 0 0;font-size:11px;color:var(--color-neutral-600)">JPG, PNG, WEBP, HEIC o PDF · lo recibe el tramitador del caso</p>
+    </sc-if>
+    <sc-if value="{{ dCargado }}" hint-placeholder-val="{{ false }}">
+      <div style="border:1px solid var(--color-accent);border-radius:var(--radius-md);padding:14px;display:flex;align-items:flex-start;gap:10px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><path d="M20 6 9 17l-5-5"></path></svg>
+        <div>
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:15px;color:var(--color-accent-700)">04D cargado correctamente</div>
+          <div style="font-size:12.5px;color:var(--color-neutral-700);margin-top:3px">formulario-04d-AF412KQ.pdf · hoy</div>
+          <button onClick="{{ dOtro }}" style="margin-top:8px;background:transparent;border:0;padding:0;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;color:var(--color-accent-700);text-decoration:underline;text-underline-offset:3px">Subir otro archivo</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <p style="margin:18px 0 0;font-size:11px;color:var(--color-neutral-600);text-wrap:pretty">Este enlace muestra solo el seguimiento y la documentación del caso. No incluye datos comerciales ni del asegurado.</p>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Probá: "que el desarmadero también vea la orden de cobro" · "sumá el Panel del administrador en móvil" · "avisá al desarmadero por WhatsApp cuando cambia el estado"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Vista acotada del gestor de campo — enlace público /g/&lt;token&gt;</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Interactiva — sin login, solo lectura del caso + carga. Elegí categoría y subí</div>
+<div class="ph" style="height:800px">
+  <div style="background:var(--color-text);padding:14px 18px 12px;flex:none">
+    <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">Enlace de gestor · sin cuenta</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:17px;letter-spacing:.01em;font-variant-numeric:tabular-nums;color:#f3f2f2;margin-top:3px">SIN-2026-4471</div>
+  </div>
+  <div style="height:2px;background:linear-gradient(90deg,var(--color-accent) 0%,var(--color-accent-300) 55%,var(--color-neutral-400) 100%);flex:none"></div>
+  <div style="flex:1;overflow:auto;padding:18px 16px 24px">
+    <h4 style="margin:0 0 2px;font-size:21px">Hola, Damián Sosa</h4>
+    <p style="margin:0 0 16px;font-size:13px;color:var(--color-neutral-700)">Acá tenés los datos para gestionar este caso.</p>
+    <sc-if value="{{ gA2i }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;align-items:flex-start;gap:11px;border:1px solid var(--color-accent);border-radius:var(--radius-md);background:color-mix(in srgb,var(--color-accent) 7%,transparent);padding:13px 12px 13px 14px;margin-bottom:18px">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px"><rect x="5" y="2" width="14" height="20" rx="2"></rect><path d="M12 8v6"></path><path d="M9 11h6"></path></svg>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:14.5px;color:var(--color-accent-700)">Tenelo a mano: agregalo a tu pantalla de inicio</div>
+          <p style="margin:4px 0 0;font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">Tocá <strong style="font-weight:600">Compartir</strong> (o el menú ⋮) y elegí <strong style="font-weight:600">Agregar a pantalla de inicio</strong>. Queda como un ícono y entrás sin buscar el enlace.</p>
+        </div>
+        <button onClick="{{ gCerrarA2i }}" aria-label="Descartar" style="flex:none;width:30px;height:30px;margin:-4px -4px 0 0;display:flex;align-items:center;justify-content:center;background:transparent;border:0;cursor:pointer;color:var(--color-neutral-600)" style-hover="color:var(--color-accent-700)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+      </div>
+    </sc-if>
+
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Datos del caso</div>
+    <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:4px 14px">
+      <sc-for list="{{ gCampos }}" as="k" hint-placeholder-count="7">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--color-divider)">
+          <span style="flex:none;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">{{ k.label }}</span>
+          <span style="text-align:right;font-size:13.5px">{{ k.valor }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <a class="btn btn-primary" style="flex:1;min-height:46px" href="#2a">Llamar</a>
+      <a class="btn btn-secondary" style="flex:1;min-height:46px" href="#2a">Cómo llegar</a>
+    </div>
+
+    <hr class="hr">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Documentación adjunta</div>
+    <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:2px 14px">
+      <sc-for list="{{ gDocs }}" as="d" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--color-divider)">
+          <span style="min-width:0;font-size:13.5px;color:var(--color-accent-700);text-decoration:underline;text-underline-offset:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ d.nombre }}</span>
+          <span style="flex:none;font-size:11px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">{{ d.meta }}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <hr class="hr">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Cargar un archivo</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+      <sc-for list="{{ gCategorias }}" as="c" hint-placeholder-count="4">
+        <sc-if value="{{ c.activo }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ c.set }}" style="min-height:38px;padding:8px 13px;border-radius:99px;border:1px solid var(--color-accent);background:color-mix(in srgb,var(--color-accent) 14%,transparent);color:var(--color-accent-700);font-family:var(--font-heading);font-weight:600;font-size:13px;cursor:pointer">{{ c.label }}</button>
+        </sc-if>
+        <sc-if value="{{ c.inactivo }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ c.set }}" style="min-height:38px;padding:8px 13px;border-radius:99px;border:1px solid var(--color-divider);background:transparent;color:var(--color-neutral-700);font-family:var(--font-heading);font-weight:600;font-size:13px;cursor:pointer" style-hover="background:color-mix(in srgb,var(--color-accent) 10%,transparent)">{{ c.label }}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button onClick="{{ gSubir }}" style="flex:1;border:1px dashed var(--color-neutral-400);border-radius:var(--radius-md);height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:transparent;cursor:pointer;font-family:var(--font-body)" style-hover="border-color:var(--color-accent)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"></path><circle cx="12" cy="13" r="3"></circle></svg><span style="font-size:12.5px;font-family:var(--font-heading);font-weight:600">Sacar foto</span></button>
+      <button onClick="{{ gSubir }}" style="flex:1;border:1px dashed var(--color-neutral-400);border-radius:var(--radius-md);height:96px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:transparent;cursor:pointer;font-family:var(--font-body)" style-hover="border-color:var(--color-accent)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"></path><path d="M14 2v5h5"></path></svg><span style="font-size:12.5px;font-family:var(--font-heading);font-weight:600">Elegir PDF</span></button>
+    </div>
+    <p style="margin:8px 0 0;font-size:11px;color:var(--color-neutral-600)">JPG, PNG, WEBP, HEIC o PDF · se adjunta en «{{ gCatActual }}»</p>
+    <sc-if value="{{ gOk }}" hint-placeholder-val="{{ false }}">
+      <div style="margin-top:12px;border:1px solid var(--color-accent);border-radius:var(--radius-md);padding:11px 13px;display:flex;align-items:center;gap:9px">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M20 6 9 17l-5-5"></path></svg>
+        <span style="font-size:13px;color:var(--color-accent-700)">Archivo cargado correctamente.</span>
+      </div>
+    </sc-if>
+
+    <hr class="hr">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Agregar una observación</div>
+    <textarea placeholder="Ej.: turno en el registro para el 04/09 a las 10:30" style="width:100%;min-height:88px;border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:12px 13px;font-family:var(--font-body);font-size:13.5px;color:var(--color-text);resize:none"></textarea>
+    <button class="btn btn-primary btn-block" style="min-height:48px;font-size:14.5px">Agregar observación</button>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Variante «tarea del día» — el pedido arriba de todo, los datos abajo</div>
+<div class="ph" style="height:560px">
+  <div style="background:var(--color-text);padding:14px 18px 12px;flex:none">
+    <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500)">Damián Sosa · gestor de campo</div>
+    <div style="font-family:var(--font-body);font-weight:600;font-size:17px;letter-spacing:.01em;font-variant-numeric:tabular-nums;color:#f3f2f2;margin-top:3px">AF412KQ · SIN-2026-4471</div>
+  </div>
+  <div style="height:2px;background:var(--color-accent);flex:none"></div>
+  <div style="flex:1;overflow:auto;padding:20px 18px">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Lo que necesitamos</div>
+    <div style="font-family:var(--font-heading);font-size:30px;font-weight:400;letter-spacing:-.02em;line-height:1.08;margin-top:6px;text-wrap:pretty">Sacar turno en el Registro 1042</div>
+    <p style="margin:10px 0 0;font-size:13px;color:var(--color-neutral-700);text-wrap:pretty">La Matanza, Bs. As. Subí el comprobante del turno apenas lo tengas.</p>
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-primary" style="flex:1;min-height:50px;font-size:14.5px">Subir turno</button>
+      <button class="btn btn-secondary" style="flex:none;min-height:50px;width:50px;padding:0"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92Z"></path></svg></button>
+    </div>
+    <hr class="hr">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 12px">
+      <div><div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Vehículo</div><div style="font-size:13.5px;margin-top:2px">Toyota Hilux SRV 2019</div></div>
+      <div><div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Tipo de baja</div><div style="font-size:13.5px;margin-top:2px">04D</div></div>
+      <div><div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Asegurado</div><div style="font-size:13.5px;margin-top:2px">Mariana Ferreyra</div></div>
+      <div><div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">Compañía</div><div style="font-size:13.5px;margin-top:2px">Sancor Seguros</div></div>
+    </div>
+    <hr class="hr">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Ya cargaste</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--color-accent-700)">recibo-grua-4471.jpg</span><span style="color:var(--color-neutral-600);font-variant-numeric:tabular-nums">26 ago</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px"><span style="color:var(--color-accent-700)">obs-playa-desarmadero.pdf</span><span style="color:var(--color-neutral-600);font-variant-numeric:tabular-nums">27 ago</span></div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Probá: "sumá el Panel del administrador en móvil" · "en <a class="dv-oid" href="#2a">2a</a> el gestor debería poder marcar el turno como hecho" · "unificá <a class="dv-oid" href="#2b">2b</a> con la carga rápida de <a class="dv-oid" href="#1d">1d</a>"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">App móvil de campo — Bajas Registrales</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Prototipo interactivo — tocá casos, pestañas, eventos y el botón de carga rápida</div>
+<div class="ph">
+  <div style="background:var(--color-text);padding:12px 18px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0">
+      <sc-if value="{{ enDetalle }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ volver }}" aria-label="Volver" style="width:44px;height:44px;margin:-10px 0 -10px -12px;display:flex;align-items:center;justify-content:center;background:transparent;border:0;color:#f3f2f2;cursor:pointer;font-size:20px;line-height:1">←</button>
+      </sc-if>
+      <div style="min-width:0">
+        <div style="font-family:var(--font-body);font-weight:600;font-size:16px;color:#f3f2f2;letter-spacing:.005em;font-variant-numeric:tabular-nums;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ tituloHeader }}</div>
+        <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">{{ subtituloHeader }}</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;flex:none;border:1px solid color-mix(in srgb,var(--color-accent) 55%,transparent);border-radius:99px;padding:5px 9px">
+      <span style="width:6px;height:6px;border-radius:99px;background:var(--color-accent-400);display:block"></span>
+      <span style="font-size:10.5px;color:var(--color-accent-300);font-variant-numeric:tabular-nums">{{ sinSync }} sin sincr.</span>
+    </div>
+  </div>
+  <div style="height:2px;background:linear-gradient(90deg,var(--color-accent) 0%,var(--color-accent-300) 55%,var(--color-neutral-400) 100%);flex:none"></div>
+
+  <sc-if value="{{ enLista }}" hint-placeholder-val="{{ true }}">
+  <div style="flex:1;overflow:auto;padding:16px 16px 90px">
+    <div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:0 12px;height:46px;margin-bottom:12px">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-neutral-500)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;display:block"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>
+      <input placeholder="Dominio, N° de siniestro o asegurado" style="flex:1;border:0;outline:none;background:transparent;font-family:var(--font-body);font-size:14px;color:var(--color-text)">
+    </div>
+    <div style="display:flex;gap:8px;overflow:auto;padding-bottom:4px;margin-bottom:16px">
+      <sc-for list="{{ filtros }}" as="f" hint-placeholder-count="3">
+        <sc-if value="{{ f.activo }}" hint-placeholder-val="{{ false }}">
+          <span style="flex:none;display:inline-flex;align-items:center;min-height:36px;border-radius:99px;background:color-mix(in srgb,var(--color-accent) 14%,transparent);border:1px solid var(--color-accent);color:var(--color-accent-700)">
+            <button onClick="{{ f.abrir }}" style="display:inline-flex;align-items:center;gap:7px;min-height:34px;padding:7px 4px 7px 13px;background:transparent;border:0;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:13px;color:inherit">{{ f.texto }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+            <button onClick="{{ f.limpiar }}" aria-label="Quitar filtro" style="display:inline-flex;align-items:center;justify-content:center;width:32px;min-height:34px;padding:0 10px 0 4px;background:transparent;border:0;cursor:pointer;color:inherit" style-hover="color:var(--color-accent-900)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg></button>
+          </span>
+        </sc-if>
+        <sc-if value="{{ f.inactivo }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ f.abrir }}" style="flex:none;display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:7px 13px;border-radius:99px;font-family:var(--font-heading);font-weight:600;font-size:13px;cursor:pointer;background:transparent;border:1px solid var(--color-divider);color:var(--color-neutral-700)" style-hover="background:color-mix(in srgb,var(--color-accent) 10%,transparent)">{{ f.texto }}<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg></button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px">
+      <h5 style="margin:0;font-size:15px;letter-spacing:-.01em">{{ tituloLista }}</h5>
+      <span style="font-size:11.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">{{ conteoLista }}</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <sc-for list="{{ casos }}" as="c" hint-placeholder-count="4">
+        <button onClick="{{ c.abrir }}" style="display:block;width:100%;text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:14px;cursor:pointer;font-family:var(--font-body)" style-hover="border-color:var(--color-accent)">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+            <div style="min-width:0">
+              <div style="font-family:var(--font-body);font-weight:600;font-size:21px;letter-spacing:.01em;font-variant-numeric:tabular-nums;line-height:1.15">{{ c.dominio }}</div>
+              <div style="font-size:12.5px;color:var(--color-neutral-700);margin-top:3px">{{ c.vehiculo }}</div>
+            </div>
+            <div style="text-align:right;flex:none">
+              <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">{{ c.numero }}</div>
+              <div style="font-size:12px;color:var(--color-neutral-700);font-variant-numeric:tabular-nums;margin-top:2px">{{ c.siniestro }}</div>
+            </div>
+          </div>
+          <div style="height:1px;background:var(--color-divider);margin:12px 0 10px"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+            <div style="min-width:0;font-size:12.5px;color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.asegurado }} · {{ c.aseguradora }}</div>
+            <sc-if value="{{ c.alerta }}" hint-placeholder-val="{{ false }}">
+              <span style="flex:none;font-size:11px;color:var(--color-accent-700);border-bottom:1px solid var(--color-accent);padding-bottom:1px;font-variant-numeric:tabular-nums">{{ c.diasTexto }}</span>
+            </sc-if>
+          </div>
+          <div style="margin-top:11px;display:flex;align-items:center;gap:8px">
+            <sc-if value="{{ c.cerrado }}" hint-placeholder-val="{{ false }}">
+              <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--color-neutral-400);color:var(--color-neutral-700)">{{ c.estado }}</span>
+            </sc-if>
+            <sc-if value="{{ c.abierto }}" hint-placeholder-val="{{ true }}">
+              <span style="font-family:var(--font-heading);font-weight:600;font-size:12px;padding:4px 10px;border-radius:99px;border:1px solid var(--color-accent);color:var(--color-accent-700)">{{ c.estado }}</span>
+            </sc-if>
+            <span style="flex:1;height:1px;background:var(--color-divider)"></span>
+            <span style="font-size:11px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">{{ c.paso }}</span>
+          </div>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ enDetalle }}" hint-placeholder-val="{{ false }}">
+  <div style="flex:1;overflow:auto;padding:0 0 90px">
+    <div style="padding:16px 16px 12px;background:#fff;border-bottom:1px solid var(--color-divider)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+        <div style="min-width:0">
+          <div style="font-family:var(--font-body);font-weight:600;font-size:27px;letter-spacing:.01em;font-variant-numeric:tabular-nums;line-height:1.1;white-space:nowrap">{{ det.dominio }}</div>
+          <div style="font-size:13px;color:var(--color-neutral-700);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ det.vehiculo }}</div>
+        </div>
+        <div style="text-align:right;flex:none">
+          <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);white-space:nowrap">{{ det.numero }}</div>
+          <div style="font-size:13px;font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap">{{ det.siniestro }}</div>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;align-items:center;gap:8px">
+        <span style="font-family:var(--font-heading);font-weight:600;font-size:12.5px;padding:5px 11px;border-radius:99px;border:1px solid var(--color-accent);color:var(--color-accent-700)">{{ det.estado }}</span>
+        <span style="font-size:11.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">{{ det.progreso }}</span>
+      </div>
+    </div>
+
+    <div style="display:flex;background:#fff;border-bottom:1px solid var(--color-divider);padding:0 8px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+        <sc-if value="{{ t.activo }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ t.set }}" style="flex:1;min-height:46px;background:transparent;border:0;border-bottom:2px solid var(--color-accent);cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--color-text);padding:12px 4px 10px">{{ t.label }}</button>
+        </sc-if>
+        <sc-if value="{{ t.inactivo }}" hint-placeholder-val="{{ false }}">
+          <button onClick="{{ t.set }}" style="flex:1;min-height:46px;background:transparent;border:0;border-bottom:2px solid transparent;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:14px;color:var(--color-neutral-600);padding:12px 4px 10px" style-hover="color:var(--color-accent-700)">{{ t.label }}</button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <div style="padding:16px">
+      <sc-if value="{{ esResumen }}" hint-placeholder-val="{{ true }}">
+        <div style="border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:4px 14px">
+          <sc-for list="{{ campos }}" as="k" hint-placeholder-count="8">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid var(--color-divider)">
+              <span style="flex:none;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)">{{ k.label }}</span>
+              <span style="text-align:right;font-size:13.5px;color:var(--color-text)">{{ k.valor }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <a class="btn btn-primary" style="flex:1;min-height:46px" href="#1a">Llamar al asegurado</a>
+          <a class="btn btn-secondary" style="flex:1;min-height:46px" href="#1a">Autorización .pdf</a>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ esBitacora }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ eventos }}" as="e" hint-placeholder-count="6">
+            <div style="display:flex;gap:14px">
+              <div style="flex:none;width:18px;display:flex;flex-direction:column;align-items:center">
+                <sc-if value="{{ e.hecho }}" hint-placeholder-val="{{ true }}">
+                  <span style="width:13px;height:13px;border-radius:99px;background:var(--color-accent);margin-top:5px;flex:none"></span>
+                </sc-if>
+                <sc-if value="{{ e.pendiente }}" hint-placeholder-val="{{ false }}">
+                  <span style="width:13px;height:13px;border-radius:99px;border:1px solid var(--color-neutral-400);background:var(--color-bg);margin-top:5px;flex:none"></span>
+                </sc-if>
+                <span style="flex:1;width:1px;background:var(--color-divider);margin:4px 0"></span>
+              </div>
+              <div style="flex:1;padding-bottom:18px;min-width:0">
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-family:var(--font-heading);font-weight:600;font-size:15px;letter-spacing:-.01em">{{ e.label }}</span>
+                  <span style="flex:none;font-size:11.5px;color:var(--color-neutral-600);font-variant-numeric:tabular-nums">{{ e.fecha }}</span>
+                </div>
+                <sc-if value="{{ e.tieneNota }}" hint-placeholder-val="{{ true }}">
+                  <p style="margin:5px 0 0;font-size:12.5px;color:var(--color-neutral-700);text-wrap:pretty">{{ e.nota }}</p>
+                </sc-if>
+                <sc-if value="{{ e.pendiente }}" hint-placeholder-val="{{ false }}">
+                  <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
+                    <button onClick="{{ e.completar }}" style="min-height:38px;padding:8px 14px;border-radius:var(--radius-md);border:1px solid var(--color-accent);background:transparent;color:var(--color-accent-700);font-family:var(--font-heading);font-weight:600;font-size:13px;cursor:pointer" style-hover="background:color-mix(in srgb,var(--color-accent) 12%,transparent)">Marcar completado</button>
+                    <sc-if value="{{ e.bloqueado }}" hint-placeholder-val="{{ false }}">
+                      <span style="font-size:11px;color:var(--color-neutral-600);text-wrap:pretty">{{ e.motivo }}</span>
+                    </sc-if>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ esDocs }}" hint-placeholder-val="{{ false }}">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <sc-for list="{{ categorias }}" as="d" hint-placeholder-count="6">
+            <button onClick="{{ abrirSheet }}" style="text-align:left;border:1px solid var(--color-divider);border-radius:var(--radius-md);background:#fff;padding:14px;min-height:104px;cursor:pointer;font-family:var(--font-body);display:flex;flex-direction:column;justify-content:space-between" style-hover="border-color:var(--color-accent)">
+              <span style="font-family:var(--font-heading);font-weight:600;font-size:14.5px;line-height:1.2;text-wrap:pretty">{{ d.label }}</span>
+              <span style="display:flex;align-items:baseline;gap:6px"><span style="font-family:var(--font-heading);font-size:26px;font-variant-numeric:tabular-nums;color:var(--color-accent-700);line-height:1">{{ d.n }}</span><span style="font-size:11px;color:var(--color-neutral-600)">archivos</span></span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="margin-top:14px;border:1px dashed var(--color-neutral-400);border-radius:var(--radius-md);padding:18px;text-align:center;background:color-mix(in srgb,var(--color-surface) 60%,transparent)">
+          <div style="font-family:var(--font-heading);font-weight:600;font-size:15px">Últimas 3 fotos del dominio</div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <span style="flex:1;height:76px;border-radius:var(--radius-sm);background:repeating-linear-gradient(45deg,var(--color-neutral-200) 0 6px,var(--color-neutral-300) 6px 12px);border:4px solid var(--color-surface);outline:1px solid var(--color-divider)"></span>
+            <span style="flex:1;height:76px;border-radius:var(--radius-sm);background:repeating-linear-gradient(45deg,var(--color-neutral-200) 0 6px,var(--color-neutral-300) 6px 12px);border:4px solid var(--color-surface);outline:1px solid var(--color-divider)"></span>
+            <span style="flex:1;height:76px;border-radius:var(--radius-sm);background:repeating-linear-gradient(45deg,var(--color-neutral-200) 0 6px,var(--color-neutral-300) 6px 12px);border:4px solid var(--color-surface);outline:1px solid var(--color-divider)"></span>
+          </div>
+          <div style="font:11px ui-monospace,Menlo,monospace;color:var(--color-neutral-600);margin-top:10px">fotos del dominio — cargadas en campo</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ pickerAbierto }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ cerrarPicker }}" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 45%,transparent);z-index:7"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:8;background:var(--color-bg);border-top:1px solid var(--color-divider);border-radius:16px 16px 0 0;padding:14px 16px 22px;box-shadow:var(--shadow-lg);max-height:78%;overflow:auto">
+      <div style="width:38px;height:3px;border-radius:99px;background:var(--color-neutral-400);margin:0 auto 14px"></div>
+      <h4 style="margin:0 0 12px;font-size:19px">{{ pickerTitulo }}</h4>
+      <div style="display:flex;flex-direction:column">
+        <sc-for list="{{ pickerOpciones }}" as="o" hint-placeholder-count="5">
+          <button onClick="{{ o.elegir }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:48px;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--color-divider);padding:12px 2px;cursor:pointer;font-family:var(--font-body);font-size:14.5px;color:var(--color-text)" style-hover="color:var(--color-accent-700)">
+            {{ o.label }}
+            <sc-if value="{{ o.elegido }}" hint-placeholder-val="{{ false }}">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none"><path d="M20 6 9 17l-5-5"></path></svg>
+            </sc-if>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ sheetAbierto }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ cerrarSheet }}" style="position:absolute;inset:0;background:color-mix(in srgb,var(--color-text) 45%,transparent);z-index:5"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;z-index:6;background:var(--color-bg);border-top:1px solid var(--color-divider);border-radius:16px 16px 0 0;padding:14px 16px 22px;box-shadow:var(--shadow-lg)">
+      <div style="width:38px;height:3px;border-radius:99px;background:var(--color-neutral-400);margin:0 auto 14px"></div>
+      <h4 style="margin:0 0 4px;font-size:19px">Carga rápida</h4>
+      <p style="margin:0 0 14px;font-size:12.5px;color:var(--color-neutral-700)">Se guarda en el teléfono y se sincroniza sola cuando vuelve la señal.</p>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <sc-for list="{{ accionesRapidas }}" as="a" hint-placeholder-count="4">
+          <button onClick="{{ cerrarSheet }}" style="display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:56px;text-align:left;background:#fff;border:1px solid var(--color-divider);border-radius:var(--radius-md);padding:12px 14px;cursor:pointer;font-family:var(--font-body)" style-hover="border-color:var(--color-accent)">
+            <span>
+              <span style="display:block;font-family:var(--font-heading);font-weight:600;font-size:15px">{{ a.label }}</span>
+              <span style="display:block;font-size:11.5px;color:var(--color-neutral-600);margin-top:1px">{{ a.hint }}</span>
+            </span>
+            <span style="flex:none;color:var(--color-accent);font-size:17px">→</span>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <div style="position:absolute;left:0;right:0;bottom:0;z-index:4;background:var(--color-bg);border-top:1px solid var(--color-divider);display:flex;align-items:center;justify-content:space-between;padding:8px 18px 16px">
+    <button onClick="{{ irCasos }}" style="min-width:64px;min-height:46px;background:transparent;border:0;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;color:var(--color-accent-700);display:flex;flex-direction:column;align-items:center;gap:4px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>Casos
+    </button>
+    <button onClick="{{ irCasos }}" style="min-width:64px;min-height:46px;background:transparent;border:0;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;color:var(--color-neutral-600);display:flex;flex-direction:column;align-items:center;gap:4px" style-hover="color:var(--color-accent-700)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>Agenda
+    </button>
+    <button onClick="{{ abrirSheet }}" aria-label="Carga rápida" style="width:60px;height:60px;margin-top:-26px;border-radius:99px;border:1px solid var(--color-accent);background:var(--color-bg);color:var(--color-accent);cursor:pointer;box-shadow:var(--shadow-sm);display:flex;align-items:center;justify-content:center" style-hover="background:color-mix(in srgb,var(--color-accent) 12%,transparent)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+    <button onClick="{{ irCasos }}" style="min-width:64px;min-height:46px;background:transparent;border:0;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;color:var(--color-neutral-600);display:flex;flex-direction:column;align-items:center;gap:4px" style-hover="color:var(--color-accent-700)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M9 3v18"></path><path d="M14 9h4"></path><path d="M14 14h4"></path></svg>Panel
+    </button>
+    <button onClick="{{ irCasos }}" style="min-width:64px;min-height:46px;background:transparent;border:0;cursor:pointer;font-family:var(--font-heading);font-weight:600;font-size:12.5px;color:var(--color-neutral-600);display:flex;flex-direction:column;align-items:center;gap:4px" style-hover="color:var(--color-accent-700)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 13v8"></path><path d="M4 14.9A5 5 0 0 1 6 5h1.3A8 8 0 0 1 21 10a4.5 4.5 0 0 1-1 8.9"></path><path d="m8 17 4-4 4 4"></path></svg>Cola
+    </button>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Lista densa — 9 casos por pantalla, dominio como ancla</div>
+<div class="ph" style="height:520px">
+  <div style="background:var(--color-text);padding:12px 18px 10px;flex:none">
+    <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;color:#f3f2f2">Casos</div>
+    <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">32 abiertos · 4 sin movimiento</div>
+  </div>
+  <div style="height:2px;background:var(--color-accent);flex:none"></div>
+  <div style="flex:1;overflow:hidden;background:#fff">
+    <sc-for list="{{ casosDensos }}" as="c" hint-placeholder-count="9">
+      <div style="display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--color-divider)">
+        <span style="flex:none;width:86px;font-family:var(--font-body);font-weight:600;font-size:14px;letter-spacing:.01em;font-variant-numeric:tabular-nums">{{ c.dominio }}</span>
+        <span style="flex:1;min-width:0;font-size:12.5px;color:var(--color-neutral-800);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.asegurado }}</span>
+        <span style="flex:none;font-size:11px;color:var(--color-accent-700);text-align:right;max-width:104px;line-height:1.25;text-wrap:pretty">{{ c.estado }}</span>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Estado como regla de avance, no como chip</div>
+<div class="ph" style="height:520px">
+  <div style="background:var(--color-text);padding:12px 18px 10px;flex:none">
+    <div style="font-family:var(--font-body);font-weight:600;font-size:16px;letter-spacing:.01em;font-variant-numeric:tabular-nums;color:#f3f2f2">AF412KQ</div>
+    <div style="font-size:10.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--color-neutral-500);margin-top:2px">Caso 128 · SIN-2026-4471</div>
+  </div>
+  <div style="height:2px;background:var(--color-accent);flex:none"></div>
+  <div style="flex:1;overflow:auto;padding:20px 18px">
+    <div style="font-family:var(--font-heading);font-size:34px;font-weight:400;letter-spacing:-.02em;line-height:1.05;text-wrap:pretty">Traslado realizado</div>
+    <p style="margin:8px 0 0;font-size:13px;color:var(--color-neutral-700)">Paso 6 de 10 · lleva 22 días abierto</p>
+    <div style="display:flex;gap:3px;margin:18px 0 6px">
+      <sc-for list="{{ pasos }}" as="p" hint-placeholder-count="10">
+        <sc-if value="{{ p.hecho }}" hint-placeholder-val="{{ true }}"><span style="flex:1;height:6px;background:var(--color-accent)"></span></sc-if>
+        <sc-if value="{{ p.falta }}" hint-placeholder-val="{{ false }}"><span style="flex:1;height:6px;background:var(--color-neutral-300)"></span></sc-if>
+      </sc-for>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600)"><span>Ingreso</span><span>Cierre</span></div>
+    <hr class="hr">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:8px">Lo que sigue</div>
+    <div style="border-left:2px solid var(--color-accent);padding:2px 0 2px 14px">
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:17px">Formulario de Baja</div>
+      <p style="margin:4px 0 0;font-size:12.5px;color:var(--color-neutral-700)">04D a firmar por el asegurado. Sin bloqueos pendientes.</p>
+    </div>
+    <div style="margin-top:14px;padding-left:16px;opacity:.55">
+      <div style="font-family:var(--font-heading);font-weight:600;font-size:15px">Presentación de Baja</div>
+      <p style="margin:3px 0 0;font-size:12px;color:var(--color-neutral-700)">Requiere Asignación de desarmadero ✓</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Carga rápida offline — una pantalla, cero navegación</div>
+<div class="ph" style="height:520px">
+  <div style="background:var(--color-text);padding:12px 18px 10px;flex:none;display:flex;justify-content:space-between;align-items:center">
+    <div style="font-family:var(--font-heading);font-weight:600;font-size:17px;color:#f3f2f2">Cargar avance</div>
+    <span style="font-size:10.5px;color:var(--color-accent-300);border:1px solid color-mix(in srgb,var(--color-accent) 55%,transparent);border-radius:99px;padding:4px 9px">Sin señal</span>
+  </div>
+  <div style="height:2px;background:var(--color-accent);flex:none"></div>
+  <div style="flex:1;overflow:auto;padding:18px">
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin-bottom:6px">Caso</div>
+    <div style="border:1px solid var(--color-divider);background:#fff;border-radius:var(--radius-md);padding:12px 14px;display:flex;justify-content:space-between;align-items:center;min-height:52px">
+      <span style="font-family:var(--font-body);font-weight:600;font-size:17px;letter-spacing:.01em;font-variant-numeric:tabular-nums">AF412KQ</span>
+      <span style="font-size:12px;color:var(--color-accent-700)">Cambiar</span>
+    </div>
+    <div style="font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--color-neutral-600);margin:16px 0 6px">Qué hiciste</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <span style="min-height:38px;display:inline-flex;align-items:center;padding:8px 13px;border-radius:99px;border:1px solid var(--color-accent);color:var(--color-accent-700);font-family:var(--font-heading);font-weight:600;font-size:13px">Turno en Registro</span>
+      <span style="min-height:38px;display:inline-flex;align-items:center;padding:8px 13px;border-radius:99px;border:1px solid var(--color-divider);color:var(--color-neutral-700);font-family:var(--font-heading);font-weight:600;font-size:13px">Recibos</span>
+      <span style="min-height:38px;display:inline-flex;align-items:center;padding:8px 13px;border-radius:99px;border:1px solid var(--color-divider);color:var(--color-neutral-700);font-family:var(--font-heading);font-weight:600;font-size:13px">Observaciones</span>
+      <span style="min-height:38px;display:inline-flex;align-items:center;padding:8px 13px;border-radius:99px;border:1px solid var(--color-divider);color:var(--color-neutral-700);font-family:var(--font-heading);font-weight:600;font-size:13px">Otros</span>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:18px">
+      <div style="flex:1;border:1px dashed var(--color-neutral-400);border-radius:var(--radius-md);height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3Z"></path><circle cx="12" cy="13" r="3"></circle></svg><span style="font-size:12px;font-family:var(--font-heading);font-weight:600">Cámara</span></div>
+      <div style="flex:1;border:1px dashed var(--color-neutral-400);border-radius:var(--radius-md);height:92px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="12" rx="3"></rect><path d="M19 10a7 7 0 0 1-14 0"></path><line x1="12" y1="17" x2="12" y2="22"></line></svg><span style="font-size:12px;font-family:var(--font-heading);font-weight:600">Nota de voz</span></div>
+    </div>
+    <div style="margin-top:14px;border:1px solid var(--color-divider);background:#fff;border-radius:var(--radius-md);padding:12px 14px;font-size:13px;color:var(--color-neutral-600);min-height:70px">Observación (se transcribe sola)…</div>
+    <button class="btn btn-primary btn-block" style="min-height:50px;font-size:15px">Guardar en el teléfono</button>
+    <p style="margin:10px 0 0;font-size:11.5px;color:var(--color-neutral-600);text-align:center">3 cargas en cola · se suben al recuperar señal</p>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Probá: "sumá el panel del administrador en móvil" · "llevá <a class="dv-oid" href="#1c">1c</a> al detalle de <a class="dv-oid" href="#1a">1a</a>" · "quiero la vista acotada del gestor de campo (link /g/token)"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1400,&quot;height&quot;:1000}}">
+const CASOS = [
+  { numero: "Caso 128", siniestro: "SIN-2026-4471", dominio: "AF412KQ", vehiculo: "Toyota Hilux SRV 2019", asegurado: "Mariana Ferreyra", telefono: "11 5423-8890", domicilio: "Av. Mitre 2140, San Justo, Bs. As.", aseguradora: "Sancor Seguros", estado: "Traslado realizado", paso: "Paso 6 de 10", pasoN: 6, tipoBaja: "04D", desarmadero: "Desarmadero Sur SRL", registro: "Nº 1042 — La Matanza (Bs. As.)", responsable: "Gisel Real", gestor: "Damián Sosa", deuda: "$ 184.300", ingreso: "04/08/2026", dias: 2, cerrado: false },
+  { numero: "Caso 127", siniestro: "SIN-2026-4468", dominio: "MJT903", vehiculo: "VW Gol Trend 2013", asegurado: "Héctor Domínguez", telefono: "11 6288-4417", domicilio: "Belgrano 812, Morón, Bs. As.", aseguradora: "La Segunda", estado: "Autorización de traslado", paso: "Paso 4 de 10", pasoN: 4, tipoBaja: "04D", desarmadero: "Sin asignar", registro: "Nº 0871 — Morón (Bs. As.)", responsable: "Gisel Real", gestor: "Sin asignar", deuda: "$ 62.900", ingreso: "22/07/2026", dias: 9, cerrado: false },
+  { numero: "Caso 126", siniestro: "SIN-2026-4460", dominio: "AD776LP", vehiculo: "Fiat Cronos Drive 2021", asegurado: "Silvina Roldán", telefono: "341 512-7734", domicilio: "Sarmiento 455, Rosario, Santa Fe", aseguradora: "Federación Patronal", estado: "Gestor Asignado", paso: "Paso 8 de 10", pasoN: 8, tipoBaja: "04 Digital", desarmadero: "Recuperadora Litoral SA", registro: "Nº 2015 — Rosario (Santa Fe)", responsable: "Pablo Vera", gestor: "Nadia Quiroga", deuda: "$ 0", ingreso: "18/07/2026", dias: 1, cerrado: false },
+  { numero: "Caso 125", siniestro: "SIN-2026-4455", dominio: "KQP214", vehiculo: "Chevrolet Onix LT 2016", asegurado: "Rubén Paz", telefono: "351 447-2210", domicilio: "Colón 1180, Córdoba", aseguradora: "Sancor Seguros", estado: "Presentado en el registro", paso: "Paso 9 de 10", pasoN: 9, tipoBaja: "04C", desarmadero: "Desarmadero Centro SRL", registro: "Nº 3308 — Córdoba", responsable: "Pablo Vera", gestor: "Damián Sosa", deuda: "$ 341.750", ingreso: "09/07/2026", dias: 4, cerrado: false },
+  { numero: "Caso 124", siniestro: "SIN-2026-4441", dominio: "AC118TR", vehiculo: "Ford Ranger XLS 2020", asegurado: "Claudia Benítez", telefono: "11 4390-6652", domicilio: "Rivadavia 3320, Lanús, Bs. As.", aseguradora: "Rivadavia Seguros", estado: "Cerrado", paso: "Paso 10 de 10", pasoN: 10, tipoBaja: "Baja por robo", desarmadero: "Desarmadero Sur SRL", registro: "Nº 1109 — Lanús (Bs. As.)", responsable: "Gisel Real", gestor: "Nadia Quiroga", deuda: "$ 0", ingreso: "12/06/2026", dias: 31, cerrado: true }
+];
+
+const EVENTOS = [
+  { label: "Ingreso de caso", dia: 0, nota: (c) => "Pedido por mail de " + c.aseguradora + " — pérdida total." },
+  { label: "Petición de Informes", dia: 1, nota: () => "Informe de dominio e histórico solicitados." },
+  { label: "Contacto con el asegurado", dia: 3, nota: (c) => c.asegurado.split(" ").slice(-1)[0] + " confirma tenencia. Sin prenda." },
+  { label: "Autorización de traslado", dia: 8, nota: () => "Firmada y subida al caso." },
+  { label: "Asignación de desarmadero", dia: 14, nota: (c) => (c.desarmadero === "Sin asignar" ? "Desarmadero a confirmar." : c.desarmadero + " recibe la unidad.") },
+  { label: "Traslado", dia: 22, nota: () => "Unidad retirada y en playa del desarmadero." },
+  { label: "Formulario de Baja", dia: 26, nota: (c) => "04D firmado por " + c.asegurado + "." },
+  { label: "Presentación de Baja", dia: 31, nota: (c) => "Presentado en " + c.registro + "." },
+  { label: "Envío de documentación Cía", dia: 36, nota: (c) => "Documentación original enviada a " + c.aseguradora + "." },
+  { label: "Cierre de Caso", dia: 40, nota: () => "Caso cerrado.", motivo: "Faltan eventos clave por completar" }
+];
+
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function fechaEvento(ingreso, dias) {
+  const [d, m, a] = ingreso.split("/").map(Number);
+  const f = new Date(a, m - 1, d + dias);
+  return String(f.getDate()).padStart(2, "0") + " " + MESES[f.getMonth()];
+}
+
+const OPCIONES = {
+  tipo: ["Todos", "04D", "04C", "04 Digital", "Baja por robo"],
+  compania: ["Todas", "Sancor Seguros", "La Segunda", "Federación Patronal", "Rivadavia Seguros"],
+  estado: [
+    "Todos", "Iniciado", "Informes solicitados", "En verificación", "Autorización de traslado",
+    "Desarmadero asignado", "Traslado realizado", "Formulario de baja presentado",
+    "Gestor Asignado", "Presentado en el registro", "Documentación enviada a la Cía",
+    "Baja de Patentes Pendiente", "Cerrado"
+  ]
+};
+
+class Component extends DCLogic {
+  state = { screen: "lista", sel: 0, tab: "resumen", tipo: "Todos", compania: "Todas", estado: "Todos", picker: null, sheet: false, hechos: {}, sync: 3, gCat: "Turno en Registro", gOk: false, dOk: false, gA2i: true, dA2i: true, pPaso: "enlace", pSheet: false, pPlat: "iPhone (Safari)" };
+
+  renderVals() {
+    const s = this.state;
+    const enDetalle = s.screen === "detalle";
+    const defs = [
+      { key: "tipo", label: "Tipo de baja", opciones: OPCIONES.tipo },
+      { key: "compania", label: "Compañía", opciones: OPCIONES.compania },
+      { key: "estado", label: "Estado", opciones: OPCIONES.estado }
+    ];
+    const filtros = defs.map((d) => {
+      const val = s[d.key];
+      return {
+        texto: val === "Todos" || val === "Todas" ? d.label : val,
+        activo: !(val === "Todos" || val === "Todas"),
+        inactivo: val === "Todos" || val === "Todas",
+        abrir: () => this.setState({ picker: d.key }),
+        limpiar: () => this.setState({ [d.key]: d.key === "compania" ? "Todas" : "Todos" })
+      };
+    });
+    const pickerDef = defs.find((d) => d.key === s.picker);
+
+    let lista = CASOS.filter(
+      (c) =>
+        (s.tipo === "Todos" || c.tipoBaja === s.tipo) &&
+        (s.compania === "Todas" || c.aseguradora === s.compania) &&
+        (s.estado === "Todos" || c.estado === s.estado)
+    );
+
+    const tabsDef = [
+      { key: "resumen", label: "Resumen" },
+      { key: "bitacora", label: "Bitácora" },
+      { key: "docs", label: "Documentos" }
+    ];
+    const idx = tabsDef.findIndex((t) => t.key === s.tab);
+
+    const sel = CASOS[s.sel] || CASOS[0];
+    const eventos = EVENTOS.map((e, i) => {
+      const hecho = s.hechos[i] ?? i < sel.pasoN;
+      const nota = hecho ? e.nota(sel) : "";
+      return {
+        label: e.label,
+        fecha: hecho ? (s.hechos[i] ? "hoy" : fechaEvento(sel.ingreso, e.dia)) : "—",
+        hecho,
+        pendiente: !hecho,
+        nota,
+        tieneNota: !!nota,
+        bloqueado: !!e.motivo && !hecho,
+        motivo: e.motivo || "",
+        completar: () =>
+          this.setState((p) => ({ hechos: { ...p.hechos, [i]: true }, sync: p.sync + 1 }))
+      };
+    });
+    const hechosN = eventos.filter((e) => e.hecho).length;
+
+    return {
+      enLista: !enDetalle,
+      enDetalle,
+      sinSync: s.sync,
+      tituloHeader: enDetalle ? sel.dominio : "Casos",
+      subtituloHeader: enDetalle ? sel.numero + " · " + sel.aseguradora : "Bajas registrales por siniestro",
+      volver: () => this.setState({ screen: "lista", tab: "resumen" }),
+      filtros,
+      tituloLista: "Casos",
+      pickerAbierto: !!pickerDef,
+      pickerTitulo: pickerDef ? pickerDef.label : "",
+      pickerOpciones: pickerDef
+        ? pickerDef.opciones.map((label) => ({
+            label,
+            elegido: label === s[pickerDef.key],
+            elegir: () => this.setState({ [pickerDef.key]: label, picker: null })
+          }))
+        : [],
+      cerrarPicker: () => this.setState({ picker: null }),
+      conteoLista: lista.length === 1 ? "1 caso" : lista.length + " casos",
+      casos: lista.map((c) => ({
+        ...c,
+        _i: CASOS.indexOf(c),
+        abierto: !c.cerrado,
+        alerta: c.dias >= 7 && !c.cerrado,
+        diasTexto: c.dias + " días sin movimiento",
+        abrir: () => this.setState({ screen: "detalle", tab: "resumen", sel: CASOS.indexOf(c), hechos: {} })
+      })),
+      det: {
+        dominio: sel.dominio,
+        vehiculo: sel.vehiculo,
+        numero: sel.numero,
+        siniestro: sel.siniestro,
+        estado: sel.estado,
+        progreso: hechosN + " de 10 eventos completados"
+      },
+      tabs: tabsDef.map((t) => ({
+        label: t.label,
+        activo: t.key === s.tab,
+        inactivo: t.key !== s.tab,
+        set: () => this.setState({ tab: t.key })
+      })),
+      esResumen: s.tab === "resumen",
+      esBitacora: s.tab === "bitacora",
+      esDocs: s.tab === "docs",
+      campos: [
+        { label: "Aseguradora", valor: sel.aseguradora },
+        { label: "Tipo de baja", valor: sel.tipoBaja },
+        { label: "Asegurado", valor: sel.asegurado + " · " + sel.telefono },
+        { label: "Domicilio", valor: sel.domicilio },
+        { label: "Desarmadero", valor: sel.desarmadero },
+        { label: "Registro", valor: sel.registro },
+        { label: "Responsable", valor: sel.responsable },
+        { label: "Gestor de campo", valor: sel.gestor },
+        { label: "Deuda patentes", valor: sel.deuda },
+        { label: "Ingreso", valor: sel.ingreso }
+      ],
+      eventos,
+      categorias: [
+        { label: "Turno en Registro", n: 2 },
+        { label: "Observaciones", n: 1 },
+        { label: "Recibos", n: 0 },
+        { label: "Otros", n: 3 },
+        { label: "Imágenes del dominio", n: 6 },
+        { label: "Documentos para la Cía", n: 2 }
+      ],
+      sheetAbierto: s.sheet,
+      abrirSheet: () => this.setState({ sheet: true }),
+      cerrarSheet: () => this.setState({ sheet: false }),
+      accionesRapidas: [
+        { label: "Sacar foto del dominio", hint: "Se adjunta al caso abierto" },
+        { label: "Completar un evento", hint: "Bitácora — con fecha de hoy" },
+        { label: "Cargar recibo o turno", hint: "Categorías del gestor de campo" },
+        { label: "Observación por voz", hint: "Se transcribe al volver la señal" }
+      ],
+      irCasos: () => this.setState({ screen: "lista" }),
+      gCampos: [
+        { label: "Aseguradora", valor: "Sancor Seguros" },
+        { label: "Tipo de Baja", valor: "04D" },
+        { label: "Vehículo", valor: "AF412KQ · Toyota Hilux" },
+        { label: "Asegurado", valor: "Mariana Ferreyra" },
+        { label: "Contacto", valor: "11 5423-8890" },
+        { label: "Dirección", valor: "Av. Mitre 2140, San Justo, Bs. As." },
+        { label: "Registro de radicación", valor: "1042 (La Matanza) - Bs. As." }
+      ],
+      gDocs: [
+        { nombre: "autorizacion-retiro-4471.pdf", meta: "12 ago" },
+        { nombre: "cedula-verde-AF412KQ.jpg", meta: "07 ago" },
+        { nombre: "informe-dominio-4471.pdf", meta: "05 ago" }
+      ],
+      gCategorias: ["Turno en Registro", "Observaciones", "Recibos", "Otros"].map((label) => ({
+        label,
+        activo: label === s.gCat,
+        inactivo: label !== s.gCat,
+        set: () => this.setState({ gCat: label, gOk: false })
+      })),
+      gCatActual: s.gCat,
+      gOk: s.gOk,
+      gSubir: () => this.setState({ gOk: true }),
+      gA2i: s.gA2i,
+      gCerrarA2i: () => this.setState({ gA2i: false }),
+      dA2i: s.dA2i,
+      dCerrarA2i: () => this.setState({ dA2i: false }),
+      dEstado: s.dOk ? "Formulario de baja presentado" : "Traslado realizado",
+      dProgresoTexto: s.dOk ? "Paso 7 de 10 · unidad en playa" : "Paso 6 de 10 · unidad en playa",
+      dPasos: Array.from({ length: 10 }, (_, i) => ({
+        hecho: i < (s.dOk ? 7 : 6),
+        falta: i >= (s.dOk ? 7 : 6)
+      })),
+      dSigue: s.dOk ? "Presentación de Baja" : "Formulario de Baja",
+      dSigueNota: s.dOk
+        ? "El tramitador presenta la baja en el registro. Te avisamos cuando esté."
+        : "Falta el 04D firmado. Es lo único que necesitamos de tu parte.",
+      dCampos: [
+        { label: "Vehículo", valor: "AF412KQ · Toyota Hilux SRV 2019" },
+        { label: "Tipo de baja", valor: "04D" }
+      ],
+      dDocs: [
+        { nombre: "informe-dominio-4471.pdf" },
+        { nombre: "fotos-dominio-AF412KQ.zip" }
+      ],
+      dPendiente: !s.dOk,
+      dCargado: s.dOk,
+      dSubir: () => this.setState({ dOk: true }),
+      dOtro: () => this.setState({ dOk: false }),
+      pKicker: s.pPaso === "enlace" ? "WhatsApp" : "Enlace de gestor · sin cuenta",
+      pTitulo: s.pPaso === "enlace" ? "Oltra Bajas" : "AF412KQ · SIN-2026-4471",
+      pInstalada: s.pPaso === "instalada",
+      pasoEnlace: s.pPaso === "enlace",
+      pasoBanner: s.pPaso === "banner",
+      pasoInstalada: s.pPaso === "instalada",
+      pAbrir: () => this.setState({ pPaso: "banner" }),
+      pInstrucciones: () => this.setState({ pSheet: true }),
+      pAhoraNo: () => this.setState({ pPaso: "enlace" }),
+      pCerrar: () => this.setState({ pSheet: false }),
+      pListo: () => this.setState({ pSheet: false, pPaso: "instalada" }),
+      pReiniciar: () => this.setState({ pPaso: "enlace" }),
+      pSheet: s.pSheet,
+      pPlataformas: ["iPhone (Safari)", "Android (Chrome)"].map((label) => ({
+        label,
+        activo: label === s.pPlat,
+        inactivo: label !== s.pPlat,
+        set: () => this.setState({ pPlat: label })
+      })),
+      pPasos:
+        s.pPlat === "iPhone (Safari)"
+          ? [
+              { n: 1, texto: "Tocá el botón Compartir, abajo en la barra de Safari." },
+              { n: 2, texto: "Deslizá y elegí «Agregar a pantalla de inicio»." },
+              { n: 3, texto: "Confirmá con «Agregar». Queda como Oltra Bajas." }
+            ]
+          : [
+              { n: 1, texto: "Tocá los tres puntos, arriba a la derecha de Chrome." },
+              { n: 2, texto: "Elegí «Agregar a pantalla principal» o «Instalar app»." },
+              { n: 3, texto: "Confirmá con «Instalar». Queda como Oltra Bajas." }
+            ],
+      pIconos: [
+        { label: "Teléfono", fondo: "var(--color-neutral-700)", opacidad: ".38" },
+        { label: "Mensajes", fondo: "var(--color-neutral-700)", opacidad: ".38" },
+        { label: "Cámara", fondo: "var(--color-neutral-700)", opacidad: ".38" },
+        { label: "Mapas", fondo: "var(--color-neutral-700)", opacidad: ".38" },
+        { label: "WhatsApp", fondo: "var(--color-neutral-700)", opacidad: ".38" },
+        { label: "Fotos", fondo: "var(--color-neutral-700)", opacidad: ".38" },
+        { label: "Notas", fondo: "var(--color-neutral-700)", opacidad: ".38" }
+      ],
+      casosDensos: CASOS.concat(CASOS.slice(0, 4)).map((c, i) => ({
+        dominio: c.dominio,
+        asegurado: c.asegurado,
+        estado: c.estado
+      })),
+      pasos: Array.from({ length: 10 }, (_, i) => ({ hecho: i < 6, falta: i >= 6 }))
+    };
+  }
+}
+</script>
+</body>
+</html>
