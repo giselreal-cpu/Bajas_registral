@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import { toCsv, csvResponse } from "@/lib/csv";
 
 const PAGO_COMPANIA = "Pago a la compañía";
+// Este reporte es específico del trámite 04D/04 Digital (a pedido del
+// usuario) — otros tipos de baja no pasan por el mismo circuito de
+// "pago a la compañía" y no corresponde incluirlos acá.
+const TIPOS_BAJA_PAGO_COMPANIA = ["04D", "04 Digital"];
 
 interface CasoCerradoExport {
   numero_siniestro: string;
@@ -9,6 +13,7 @@ interface CasoCerradoExport {
   tramitador_nombre: string | null;
   aseguradora: { nombre: string } | null;
   desarmadero: { nombre: string } | null;
+  tipo_baja: { nombre: string } | null;
   vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
   movimientos_caso: { monto: number; pagado: boolean; concepto: { nombre: string } | null }[];
 }
@@ -26,6 +31,7 @@ export async function GET() {
       numero_siniestro, fecha_cierre, tramitador_nombre,
       aseguradora:aseguradoras(nombre),
       desarmadero:desarmaderos(nombre),
+      tipo_baja:tipos_baja(nombre),
       vehiculo:vehiculos(dominio, marca, modelo, anio),
       movimientos_caso(monto, pagado, concepto:conceptos_movimiento(nombre))
     `
@@ -38,6 +44,7 @@ export async function GET() {
   }
 
   const filas = ((casos as unknown as CasoCerradoExport[] | null) ?? [])
+    .filter((c) => c.tipo_baja?.nombre && TIPOS_BAJA_PAGO_COMPANIA.includes(c.tipo_baja.nombre))
     .map((c) => ({
       ...c,
       movPago: c.movimientos_caso.find((m) => m.concepto?.nombre === PAGO_COMPANIA) ?? null
@@ -46,6 +53,7 @@ export async function GET() {
     .map((c) => ({
       numero_siniestro: c.numero_siniestro,
       compania: c.aseguradora?.nombre ?? "",
+      tipo_baja: c.tipo_baja?.nombre ?? "",
       dominio: c.vehiculo?.dominio ?? "",
       vehiculo: [c.vehiculo?.marca, c.vehiculo?.modelo, c.vehiculo?.anio].filter(Boolean).join(" "),
       desarmadero: c.desarmadero?.nombre ?? "",
@@ -58,6 +66,7 @@ export async function GET() {
   const csv = toCsv(filas, [
     { key: "numero_siniestro", label: "N° Siniestro" },
     { key: "compania", label: "Compañía" },
+    { key: "tipo_baja", label: "Tipo de Baja" },
     { key: "dominio", label: "Dominio" },
     { key: "vehiculo", label: "Marca/Modelo/Año" },
     { key: "desarmadero", label: "Desarmadero" },

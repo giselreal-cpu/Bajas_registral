@@ -23,6 +23,11 @@ function estadoFacturaBadgeClass(estado: string) {
 
 const PAGO_COMPANIA = "Pago a la compañía";
 
+// Este reporte es específico del trámite 04D/04 Digital (a pedido del
+// usuario) — otros tipos de baja no pasan por el mismo circuito de
+// "pago a la compañía" y no corresponde incluirlos acá.
+const TIPOS_BAJA_PAGO_COMPANIA = ["04D", "04 Digital"];
+
 interface CasoCerradoReporte {
   id: string;
   numero_siniestro: string;
@@ -30,6 +35,7 @@ interface CasoCerradoReporte {
   tramitador_nombre: string | null;
   aseguradora: { nombre: string } | null;
   desarmadero: { nombre: string } | null;
+  tipo_baja: { nombre: string } | null;
   vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
   movimientos_caso: { monto: number; pagado: boolean; concepto: { nombre: string } | null }[];
 }
@@ -95,6 +101,7 @@ export default async function SeguimientoFinancieroPage() {
         id, numero_siniestro, fecha_cierre, tramitador_nombre,
         aseguradora:aseguradoras(nombre),
         desarmadero:desarmaderos(nombre),
+        tipo_baja:tipos_baja(nombre),
         vehiculo:vehiculos(dominio, marca, modelo, anio),
         movimientos_caso(monto, pagado, concepto:conceptos_movimiento(nombre))
       `
@@ -116,6 +123,7 @@ export default async function SeguimientoFinancieroPage() {
   const casosPendientesPagoCompania = (
     (errorCerrados ? [] : (casosCerrados as unknown as CasoCerradoReporte[] | null)) ?? []
   )
+    .filter((c) => c.tipo_baja?.nombre && TIPOS_BAJA_PAGO_COMPANIA.includes(c.tipo_baja.nombre))
     .map((c) => ({
       ...c,
       movPago: c.movimientos_caso.find((m) => m.concepto?.nombre === PAGO_COMPANIA) ?? null
@@ -230,8 +238,9 @@ export default async function SeguimientoFinancieroPage() {
           )}
         </div>
         <p className="text-xs text-slate-400 mb-3">
-          Casos cerrados donde todavía no se cargó el movimiento de &quot;Pago a la compañía&quot;,
-          o se cargó pero no está marcado como pagado. Agrupados por compañía y mes de cierre.
+          Solo casos 04D / 04 Digital donde todavía no se cargó el movimiento de &quot;Pago a la
+          compañía&quot;, o se cargó pero no está marcado como pagado. Agrupados por compañía y
+          mes de cierre.
         </p>
 
         {companiasPendientes.length === 0 ? (
