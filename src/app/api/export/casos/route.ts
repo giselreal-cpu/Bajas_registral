@@ -9,7 +9,7 @@ export async function GET() {
     .from("casos")
     .select(
       `
-      numero_siniestro, estado, rama, tipo_tramite,
+      numero_siniestro, estado, rama, tipo_tramite, tramitador_nombre,
       fecha_ingreso, fecha_cierre, deuda_patentes, deuda_multas, observaciones,
       aseguradora:aseguradoras(nombre),
       asegurado:asegurados(nombre, dni, telefono, email),
@@ -41,6 +41,7 @@ export async function GET() {
     registro: c.registro?.numero ?? "",
     tipo_baja: c.tipo_baja?.nombre ?? "",
     responsable: c.responsable?.nombre ?? "",
+    tramitador: c.tramitador_nombre ?? "",
     estado: ESTADOS.find((e) => e.value === c.estado)?.label ?? c.estado,
     rama: RAMAS.find((r) => r.value === c.rama)?.label ?? c.rama ?? "",
     tipo_tramite: c.tipo_tramite ?? "",
@@ -66,6 +67,7 @@ export async function GET() {
     { key: "registro", label: "Registro Automotor" },
     { key: "tipo_baja", label: "Tipo de Baja" },
     { key: "responsable", label: "Responsable" },
+    { key: "tramitador", label: "Trámitador de la Compañía" },
     { key: "estado", label: "Estado" },
     { key: "rama", label: "Rama" },
     { key: "tipo_tramite", label: "Tipo de Trámite" },
