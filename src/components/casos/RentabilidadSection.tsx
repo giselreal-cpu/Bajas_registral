@@ -68,6 +68,8 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
   const [showFacturaForm, setShowFacturaForm] = useState(false);
   const [tipoReceptor, setTipoReceptor] = useState<TipoReceptor>("compania");
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
+  const [facturaFechaVencimiento, setFacturaFechaVencimiento] = useState("");
+  const [facturaFormaPago, setFacturaFormaPago] = useState("");
   const [savingFactura, setSavingFactura] = useState(false);
 
   const [cobroFacturaId, setCobroFacturaId] = useState<string | null>(null);
@@ -267,7 +269,9 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
         body: JSON.stringify({
           tipo_receptor: tipoReceptor,
           receptor_id: receptorId,
-          movimiento_ids: seleccionados
+          movimiento_ids: seleccionados,
+          fecha_vencimiento: facturaFechaVencimiento || null,
+          forma_pago: facturaFormaPago || null
         })
       });
       const json = await res.json();
@@ -276,6 +280,8 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
         return;
       }
       setSeleccionados([]);
+      setFacturaFechaVencimiento("");
+      setFacturaFormaPago("");
       setShowFacturaForm(false);
       loadFacturas();
       loadMovimientos();
@@ -309,6 +315,20 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     } finally {
       setSavingCobro(false);
     }
+  }
+
+  async function handleEliminarCobro(facturaId: string, cobroId: string) {
+    if (!confirm("¿Eliminar este cobro? (por ejemplo, si se cargó por error). Si venía de un anticipo, se le devuelve el saldo.")) {
+      return;
+    }
+    setError(null);
+    const res = await fetch(`/api/facturas/${facturaId}/cobros/${cobroId}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok) {
+      setError(json.error);
+      return;
+    }
+    loadFacturas();
   }
 
   async function handleEliminarFactura(facturaId: string) {
@@ -675,6 +695,26 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                 ))}
               </div>
             </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="label">Fecha de vencimiento</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={facturaFechaVencimiento}
+                  onChange={(e) => setFacturaFechaVencimiento(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">Forma de pago</label>
+                <input
+                  className="input"
+                  placeholder="Efectivo, transferencia..."
+                  value={facturaFormaPago}
+                  onChange={(e) => setFacturaFormaPago(e.target.value)}
+                />
+              </div>
+            </div>
             <button className="btn-primary text-sm" disabled={savingFactura} type="submit">
               {savingFactura ? "Generando..." : "Generar factura"}
             </button>
@@ -704,6 +744,14 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                     <span className={`badge ${estadoFacturaBadgeClass(f.estado)}`}>
                       {ESTADOS_FACTURA.find((e) => e.value === f.estado)?.label ?? f.estado}
                     </span>
+                    {f.tipo_receptor === "desarmadero" && (
+                      <a
+                        href={`/api/facturas/${f.id}/orden-cobro`}
+                        className="text-xs text-brand-600 hover:underline"
+                      >
+                        Descargar detalle
+                      </a>
+                    )}
                     {cobrado === 0 && acreditadoPorNotas === 0 && (
                       <button
                         className="text-xs text-slate-400 hover:text-red-600"
@@ -721,6 +769,25 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                   )}{" "}
                   · Saldo: {formatCurrency(saldo)}
                 </div>
+                {(f.cobros ?? []).length > 0 && (
+                  <ul className="mt-1 text-xs text-slate-500 space-y-0.5">
+                    {f.cobros?.map((c) => (
+                      <li key={c.id} className="flex items-center gap-2">
+                        <span>
+                          Cobro {formatCurrency(c.monto)}
+                          {c.medio_pago && ` — ${c.medio_pago}`} —{" "}
+                          {new Date(c.fecha + "T00:00:00").toLocaleDateString("es-AR")}
+                        </span>
+                        <button
+                          className="text-slate-400 hover:text-red-600"
+                          onClick={() => handleEliminarCobro(f.id, c.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {(f.notas_credito ?? []).length > 0 && (
                   <ul className="mt-1 text-xs text-slate-500 space-y-0.5">
                     {f.notas_credito?.map((n) => (

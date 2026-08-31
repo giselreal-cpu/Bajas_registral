@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
   Aseguradora,
   CasoConRelaciones,
-  Desarmadero,
   ESTADOS,
   Gestor,
   RAMAS,
@@ -13,11 +12,11 @@ import {
   TipoBaja,
   Usuario
 } from "@/types/database";
+import SelectorNotificacion from "./SelectorNotificacion";
 
 interface Props {
   caso: CasoConRelaciones;
   aseguradoras: Aseguradora[];
-  desarmaderos: Desarmadero[];
   registros: RegistroAutomotor[];
   tiposBaja: TipoBaja[];
   usuarios: Usuario[];
@@ -29,7 +28,6 @@ interface Props {
 export default function CasoCabecera({
   caso,
   aseguradoras,
-  desarmaderos,
   registros,
   tiposBaja,
   usuarios,
@@ -45,6 +43,10 @@ export default function CasoCabecera({
   const [origin, setOrigin] = useState("");
   const [copiado, setCopiado] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
+  // Caso recién asignado a un gestor nuevo, para ofrecer notificar por
+  // mail — se guarda el objeto ya fresco que devuelve el PUT (con
+  // relaciones), no el prop `caso` viejo.
+  const [notificarGestor, setNotificarGestor] = useState<CasoConRelaciones | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -58,10 +60,8 @@ export default function CasoCabecera({
     vehiculo_anio: caso.vehiculo?.anio ?? "",
     numero_poliza: caso.numero_poliza ?? "",
     aseguradora_id: caso.aseguradora_id,
-    item_poliza: caso.item_poliza ?? "",
     rama: caso.rama ?? "",
     tipo_tramite: caso.tipo_tramite ?? "",
-    desarmadero_id: caso.desarmadero_id ?? "",
     registro_id: caso.registro_id ?? "",
     tipo_baja_id: caso.tipo_baja_id ?? "",
     responsable_id: caso.responsable_id ?? "",
@@ -72,13 +72,10 @@ export default function CasoCabecera({
     valor_infoauto: caso.valor_infoauto ?? 0,
     fecha_cierre: caso.fecha_cierre ?? "",
     observaciones: caso.observaciones ?? "",
-    tercero_nombre: caso.tercero_nombre ?? "",
     productor_nombre: caso.productor_nombre ?? "",
     productor_contacto: caso.productor_contacto ?? "",
     tramitador_nombre: caso.tramitador_nombre ?? "",
     tramitador_email: caso.tramitador_email ?? "",
-    tercero_dni: caso.tercero_dni ?? "",
-    tercero_contacto: caso.tercero_contacto ?? "",
     asegurado_nombre: caso.asegurado?.nombre ?? "",
     asegurado_dni: caso.asegurado?.dni ?? "",
     asegurado_telefono: caso.asegurado?.telefono ?? "",
@@ -106,15 +103,11 @@ export default function CasoCabecera({
           ...form,
           rama: form.rama || null,
           tipo_tramite: form.tipo_tramite || null,
-          desarmadero_id: form.desarmadero_id || null,
           registro_id: form.registro_id || null,
           tipo_baja_id: form.tipo_baja_id || null,
           responsable_id: form.responsable_id || null,
           gestor_id: form.gestor_id || null,
-          fecha_cierre: form.fecha_cierre || null,
-          tercero_nombre: form.tercero_nombre || null,
-          tercero_dni: form.tercero_dni || null,
-          tercero_contacto: form.tercero_contacto || null
+          fecha_cierre: form.fecha_cierre || null
         })
       }),
       fetch(`/api/vehiculos/${caso.vehiculo_id}`, {
@@ -160,6 +153,11 @@ export default function CasoCabecera({
       return;
     }
 
+    const gestorNuevo = form.gestor_id && form.gestor_id !== (caso.gestor_id ?? "");
+    if (gestorNuevo) {
+      setNotificarGestor(jsonCaso.data as CasoConRelaciones);
+    }
+
     setEditing(false);
     router.refresh();
   }
@@ -196,6 +194,8 @@ export default function CasoCabecera({
       : "sin asignar todavía";
     const mensaje = [
       `Se te asignó un nuevo caso: siniestro ${caso.numero_siniestro}.`,
+      `Tipo de Baja: ${caso.tipo_baja?.nombre ?? "—"}`,
+      `Dominio: ${caso.vehiculo?.dominio ?? "—"}`,
       `Asegurado: ${caso.asegurado?.nombre ?? "—"} - Contacto: ${caso.asegurado?.telefono ?? "—"}`,
       `Registro de radicación: ${registroTexto}`,
       `Entrá a este enlace para ver los datos y cargar la documentación: ${enlaceGestor}`
@@ -324,18 +324,6 @@ export default function CasoCabecera({
               />
             ) : (
               caso.numero_poliza || "—"
-            )}
-          </Field>
-
-          <Field label="Ítem">
-            {editing ? (
-              <input
-                className="input"
-                value={form.item_poliza}
-                onChange={(e) => update("item_poliza", e.target.value)}
-              />
-            ) : (
-              caso.item_poliza || "—"
             )}
           </Field>
 
@@ -697,22 +685,7 @@ export default function CasoCabecera({
           </Field>
 
           <Field label="Desarmadero">
-            {editing ? (
-              <select
-                className="input"
-                value={form.desarmadero_id}
-                onChange={(e) => update("desarmadero_id", e.target.value)}
-              >
-                <option value="">Sin asignar</option>
-                {desarmaderos.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.nombre}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              caso.desarmadero?.nombre ?? "—"
-            )}
+            {caso.desarmadero?.nombre ?? "—"}
           </Field>
         </div>
       </Section>
@@ -764,6 +737,15 @@ export default function CasoCabecera({
               </button>
             </div>
           </div>
+        )}
+
+        {notificarGestor && (
+          <SelectorNotificacion
+            casoId={caso.id}
+            caso={notificarGestor}
+            tipo="gestor_asignado"
+            onClose={() => setNotificarGestor(null)}
+          />
         )}
       </Section>
       </div>
@@ -830,44 +812,6 @@ export default function CasoCabecera({
       </Section>
       </div>
       </div>
-
-      <Section title="Tercero autorizado a entregar la unidad (si no es el asegurado)">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-          <Field label="Nombre y apellido">
-            {editing ? (
-              <input
-                className="input"
-                value={form.tercero_nombre}
-                onChange={(e) => update("tercero_nombre", e.target.value)}
-              />
-            ) : (
-              caso.tercero_nombre || "—"
-            )}
-          </Field>
-          <Field label="DNI">
-            {editing ? (
-              <input
-                className="input"
-                value={form.tercero_dni}
-                onChange={(e) => update("tercero_dni", e.target.value)}
-              />
-            ) : (
-              caso.tercero_dni || "—"
-            )}
-          </Field>
-          <Field label="Contacto">
-            {editing ? (
-              <input
-                className="input"
-                value={form.tercero_contacto}
-                onChange={(e) => update("tercero_contacto", e.target.value)}
-              />
-            ) : (
-              caso.tercero_contacto || "—"
-            )}
-          </Field>
-        </div>
-      </Section>
     </div>
   );
 }

@@ -10,7 +10,10 @@ export default function GestoresPage() {
       endpoint="/api/gestores"
       columns={[
         { key: "nombre", label: "Nombre", required: true },
-        { key: "contacto", label: "Contacto" }
+        { key: "contacto", label: "Contacto" },
+        { key: "direccion", label: "Dirección" },
+        { key: "email", label: "Email" },
+        { key: "zona_cobertura", label: "Zona de cobertura" }
       ]}
     />
   );

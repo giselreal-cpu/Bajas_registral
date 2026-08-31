@@ -84,7 +84,6 @@ export default async function CasoDetallePage({
       <CasoCabecera
         caso={caso as CasoConRelaciones}
         aseguradoras={aseguradoras ?? []}
-        desarmaderos={desarmaderos ?? []}
         registros={registros ?? []}
         tiposBaja={tiposBaja ?? []}
         usuarios={usuarios ?? []}
@@ -100,15 +99,24 @@ export default async function CasoDetallePage({
             Autorización de retiro y traslado, con los datos del caso ya completados.
           </p>
         </div>
-        <a href={`/api/casos/${caso.id}/autorizacion-retiro`} className="btn-secondary">
-          Descargar autorización (.docx)
-        </a>
+        <div className="flex gap-2">
+          <a href={`/api/casos/${caso.id}/autorizacion-retiro`} className="btn-secondary">
+            Descargar (.docx)
+          </a>
+          <a
+            href={`/api/casos/${caso.id}/autorizacion-retiro?formato=pdf`}
+            className="btn-secondary"
+          >
+            Descargar (PDF)
+          </a>
+        </div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
         <BitacoraSection
           casoId={caso.id}
           caso={caso as CasoConRelaciones}
+          desarmaderos={desarmaderos ?? []}
           soloLectura={soloLectura}
           casoSaldado={casoSaldado}
           esAdministrador={esAdministrador}

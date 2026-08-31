@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Aseguradora, TipoBaja, Usuario } from "@/types/database";
+import { DESTINATARIOS, Destinatario } from "@/lib/email/notificacionesCaso";
 
 interface Catalogos {
   aseguradoras: Aseguradora[];
@@ -15,16 +16,20 @@ export default function CasoForm() {
   const [catalogos, setCatalogos] = useState<Catalogos | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notificar, setNotificar] = useState<Set<Destinatario>>(new Set());
 
   const [form, setForm] = useState({
     numero_siniestro: "",
     numero_poliza: "",
-    item_poliza: "",
     suma_asegurada: "",
     aseguradora_id: "",
     tipo_baja_id: "",
     responsable_id: "",
     observaciones: "",
+    tramitador_nombre: "",
+    tramitador_email: "",
+    productor_nombre: "",
+    productor_contacto: "",
     asegurado_nombre: "",
     asegurado_dni: "",
     asegurado_telefono: "",
@@ -51,6 +56,21 @@ export default function CasoForm() {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
+  function emailDe(d: Destinatario): string {
+    if (d === "tramitador") return form.tramitador_email;
+    if (d === "productor") return form.productor_contacto;
+    return form.asegurado_email;
+  }
+
+  function toggleNotificar(d: Destinatario) {
+    setNotificar((s) => {
+      const next = new Set(s);
+      if (next.has(d)) next.delete(d);
+      else next.add(d);
+      return next;
+    });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -59,12 +79,16 @@ export default function CasoForm() {
     const payload = {
       numero_siniestro: form.numero_siniestro,
       numero_poliza: form.numero_poliza || null,
-      item_poliza: form.item_poliza || null,
       suma_asegurada: form.suma_asegurada ? Number(form.suma_asegurada) : null,
       aseguradora_id: form.aseguradora_id,
       tipo_baja_id: form.tipo_baja_id || null,
       responsable_id: form.responsable_id || null,
       observaciones: form.observaciones || null,
+      tramitador_nombre: form.tramitador_nombre || null,
+      tramitador_email: form.tramitador_email || null,
+      productor_nombre: form.productor_nombre || null,
+      productor_contacto: form.productor_contacto || null,
+      notificar: Array.from(notificar).filter((d) => !!emailDe(d)),
       asegurado: {
         nombre: form.asegurado_nombre,
         dni: form.asegurado_dni || null,
@@ -127,14 +151,6 @@ export default function CasoForm() {
               className="input"
               value={form.numero_poliza}
               onChange={(e) => update("numero_poliza", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="label">Ítem</label>
-            <input
-              className="input"
-              value={form.item_poliza}
-              onChange={(e) => update("item_poliza", e.target.value)}
             />
           </div>
           <div>
@@ -202,6 +218,45 @@ export default function CasoForm() {
             value={form.observaciones}
             onChange={(e) => update("observaciones", e.target.value)}
           />
+        </div>
+      </section>
+
+      <section className="card p-4 space-y-4">
+        <h2 className="font-medium text-slate-800">Trámitador / Productor</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label">Trámitador de la compañía</label>
+            <input
+              className="input"
+              value={form.tramitador_nombre}
+              onChange={(e) => update("tramitador_nombre", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label">Email del trámitador</label>
+            <input
+              type="email"
+              className="input"
+              value={form.tramitador_email}
+              onChange={(e) => update("tramitador_email", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label">Nombre de productor</label>
+            <input
+              className="input"
+              value={form.productor_nombre}
+              onChange={(e) => update("productor_nombre", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="label">Contacto de productor</label>
+            <input
+              className="input"
+              value={form.productor_contacto}
+              onChange={(e) => update("productor_contacto", e.target.value)}
+            />
+          </div>
         </div>
       </section>
 
@@ -324,6 +379,30 @@ export default function CasoForm() {
           </div>
         </div>
       </section>
+
+      <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-2">
+        <p className="text-slate-500">Notificar por mail el inicio del trámite a:</p>
+        <div className="flex flex-wrap gap-4">
+          {DESTINATARIOS.map((d) => {
+            const email = emailDe(d.value);
+            return (
+              <label
+                key={d.value}
+                className={`flex items-center gap-2 ${email ? "text-slate-700" : "text-slate-400"}`}
+              >
+                <input
+                  type="checkbox"
+                  disabled={!email}
+                  checked={notificar.has(d.value)}
+                  onChange={() => toggleNotificar(d.value)}
+                />
+                {d.label}
+                {!email && " (sin mail cargado)"}
+              </label>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="flex justify-end gap-3">
         <button type="submit" disabled={loading} className="btn-primary">

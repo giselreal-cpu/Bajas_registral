@@ -2,6 +2,7 @@
 
 import CatalogTable from "@/components/catalogos/CatalogTable";
 import ComercialAseguradoraSection from "@/components/catalogos/ComercialAseguradoraSection";
+import LogoAseguradoraSection from "@/components/catalogos/LogoAseguradoraSection";
 
 export default function AseguradorasPage() {
   return (
@@ -19,6 +20,7 @@ export default function AseguradorasPage() {
         ]}
       />
       <ComercialAseguradoraSection />
+      <LogoAseguradoraSection />
     </div>
   );
 }

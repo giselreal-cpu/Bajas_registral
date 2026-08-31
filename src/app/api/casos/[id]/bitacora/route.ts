@@ -7,6 +7,7 @@ import { motivoBloqueo } from "@/lib/eventosBitacora";
 import { casoEstaSaldado } from "@/lib/estadoFinanciero";
 
 const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
+const EVENTO_ASIGNACION_DESARMADERO = "Asignación de desarmadero";
 
 export async function GET(
   _request: NextRequest,
@@ -62,6 +63,9 @@ export async function POST(
     fecha_fin,
     gruero_nombre,
     gruero_contacto,
+    formulario_baja_nombre,
+    formulario_baja_contacto,
+    desarmadero_id,
     excepcion_financiera,
     motivo_excepcion
   } = body;
@@ -156,6 +160,9 @@ export async function POST(
       fecha_fin: fecha_fin ?? null,
       gruero_nombre: gruero_nombre || null,
       gruero_contacto: gruero_contacto || null,
+      formulario_baja_nombre: formulario_baja_nombre || null,
+      formulario_baja_contacto: formulario_baja_contacto || null,
+      desarmadero_id: desarmadero_id || null,
       creado_por: usuarioActualId,
       excepcion_financiera: excepcionFinancieraFinal,
       motivo_excepcion: excepcionFinancieraFinal ? motivo_excepcion : null
@@ -165,6 +172,12 @@ export async function POST(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // El desarmadero elegido dentro del evento se replica en el caso
+  // (la cabecera del caso ya no lo edita por separado, solo lo muestra).
+  if (tipo_evento === EVENTO_ASIGNACION_DESARMADERO && desarmadero_id) {
+    await supabase.from("casos").update({ desarmadero_id }).eq("id", params.id);
   }
 
   const estadoDebug = await recalcularEstado(params.id);

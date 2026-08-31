@@ -1,11 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BitacoraEvento, CasoConRelaciones } from "@/types/database";
+import { BitacoraEvento, CasoConRelaciones, Desarmadero, EncuestaSatisfaccion } from "@/types/database";
 import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
+import { TipoNotificacion } from "@/lib/email/notificacionesCaso";
+import { linkWhatsapp, mensajeEncuesta } from "@/lib/whatsapp";
+import SelectorNotificacion from "./SelectorNotificacion";
 
 const GESTORIA_NOMBRE = "Oltra Gestión Integral";
 const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
+
+// Eventos cuya finalización dispara la opción de notificar por mail a
+// Tramitador/Productor/Asegurado (elegible cada vez, no es una
+// configuración fija — ver SelectorNotificacion).
+const EVENTO_A_NOTIFICACION: Record<string, TipoNotificacion> = {
+  "Ingreso de caso": "ingreso_caso",
+  "Contacto con el asegurado": "contacto_asegurado",
+  Traslado: "traslado",
+  "Presentación de Baja": "presentacion_baja"
+};
 
 function mensajeContacto(caso: CasoConRelaciones): string {
   const nombreTitular = caso.asegurado?.nombre ?? "";
@@ -13,17 +26,6 @@ function mensajeContacto(caso: CasoConRelaciones): string {
   const aseguradora = caso.aseguradora?.nombre ?? "";
   const dominio = caso.vehiculo?.dominio ?? "";
   return `Hola ${nombreTitular}, buenas tardes. Te saluda ${responsable} de parte de la gestoría ${GESTORIA_NOMBRE} y su compañía de seguros ${aseguradora} por el siniestro N° ${caso.numero_siniestro} sobre el dominio ${dominio}. Quisiera contactar con vos dentro del horario en que se encuentre disponible y así poder brindarle la información de cómo se va a estar gestionando la baja de su unidad y el asesoramiento dentro del proceso en sí.`;
-}
-
-// wa.me necesita el número en formato internacional sin signos. Es un
-// mejor esfuerzo (no siempre acierta el prefijo "9" de celulares
-// argentinos) — por eso también se ofrece "Copiar mensaje" como respaldo.
-function linkWhatsapp(telefono: string | null | undefined, mensaje: string): string | null {
-  if (!telefono) return null;
-  let digitos = telefono.replace(/\D/g, "");
-  if (!digitos) return null;
-  if (!digitos.startsWith("54")) digitos = `54${digitos}`;
-  return `https://wa.me/${digitos}?text=${encodeURIComponent(mensaje)}`;
 }
 
 function MensajeContactoBox({ caso }: { caso: CasoConRelaciones }) {
@@ -142,9 +144,139 @@ function GrueroBox({
   );
 }
 
+function mensajeFormularioBaja(
+  caso: CasoConRelaciones,
+  nombre: string,
+  enlace?: string | null
+): string {
+  const dominio = caso.vehiculo?.dominio ?? "";
+  const responsable = caso.responsable?.nombre ?? "";
+  const base = `Hola ${
+    nombre || ""
+  }, ya se encuentra disponible en la carpeta del dominio toda la documentación necesaria para completar el formulario/carga 04D del siniestro N° ${caso.numero_siniestro} (dominio ${dominio}). Por favor completalo y cargalo en el sistema. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
+  return enlace ? `${base}\nLo podés cargar acá: ${enlace}` : base;
+}
+
+function FormularioBajaBox({
+  caso,
+  nombre,
+  contacto,
+  onNombreChange,
+  onContactoChange,
+  enlace
+}: {
+  caso: CasoConRelaciones;
+  nombre: string;
+  contacto: string;
+  onNombreChange: (v: string) => void;
+  onContactoChange: (v: string) => void;
+  enlace?: string | null;
+}) {
+  const [copiado, setCopiado] = useState(false);
+  const mensaje = mensajeFormularioBaja(caso, nombre, enlace);
+  const link = linkWhatsapp(contacto, mensaje);
+
+  async function copiar() {
+    await navigator.clipboard.writeText(mensaje);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  return (
+    <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="label">Nombre de quien completa el 04D</label>
+          <input
+            className="input"
+            value={nombre}
+            onChange={(e) => onNombreChange(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">Contacto</label>
+          <input
+            className="input"
+            value={contacto}
+            placeholder="Teléfono"
+            onChange={(e) => onContactoChange(e.target.value)}
+          />
+        </div>
+      </div>
+      <div className="space-y-2">
+        <p className="text-slate-500">
+          Mensaje sugerido para avisarle que ya puede completar y cargar el formulario/04D
+          {!enlace && " (el enlace de carga se agrega automáticamente después de guardar)"}:
+        </p>
+        <p className="text-slate-700 whitespace-pre-wrap">{mensaje}</p>
+        <div className="flex gap-2 flex-wrap">
+          <button type="button" className="btn-secondary text-xs" onClick={copiar}>
+            {copiado ? "¡Copiado!" : "Copiar mensaje"}
+          </button>
+          {link && (
+            <a href={link} target="_blank" rel="noreferrer" className="btn-secondary text-xs">
+              Abrir WhatsApp
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EncuestaBox({ casoId, caso }: { casoId: string; caso: CasoConRelaciones }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [copiado, setCopiado] = useState(false);
+  const [origin, setOrigin] = useState("");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    fetch(`/api/casos/${casoId}/encuesta`, { method: "POST" })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.data) setToken(json.data.token);
+      });
+  }, [casoId]);
+
+  const enlace = token && origin ? `${origin}/encuesta/${token}` : null;
+  const mensaje = mensajeEncuesta(
+    {
+      asegurado: caso.asegurado?.nombre ?? "",
+      dominio: caso.vehiculo?.dominio ?? "",
+      numeroSiniestro: caso.numero_siniestro
+    },
+    enlace ?? "(el enlace se genera al guardar)"
+  );
+  const link = linkWhatsapp(caso.asegurado?.telefono, mensaje);
+
+  async function copiar() {
+    await navigator.clipboard.writeText(mensaje);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  }
+
+  return (
+    <div className="mt-3 bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-2">
+      <p className="text-slate-500">Encuesta de satisfacción para enviarle por WhatsApp:</p>
+      <p className="text-slate-700 whitespace-pre-wrap">{mensaje}</p>
+      <div className="flex gap-2 flex-wrap">
+        <button type="button" className="btn-secondary text-xs" onClick={copiar} disabled={!enlace}>
+          {copiado ? "¡Copiado!" : "Copiar mensaje"}
+        </button>
+        {link && enlace && (
+          <a href={link} target="_blank" rel="noreferrer" className="btn-secondary text-xs">
+            Abrir WhatsApp
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface Props {
   casoId: string;
   caso: CasoConRelaciones;
+  desarmaderos?: Desarmadero[];
   soloLectura?: boolean;
   casoSaldado?: boolean;
   esAdministrador?: boolean;
@@ -159,6 +291,9 @@ interface FormEvento {
   fecha_fin: string;
   gruero_nombre: string;
   gruero_contacto: string;
+  formulario_baja_nombre: string;
+  formulario_baja_contacto: string;
+  desarmadero_id: string;
 }
 
 function formVacio(): FormEvento {
@@ -170,13 +305,19 @@ function formVacio(): FormEvento {
     fecha_inicio: new Date().toISOString().slice(0, 10),
     fecha_fin: "",
     gruero_nombre: "",
-    gruero_contacto: ""
+    gruero_contacto: "",
+    formulario_baja_nombre: "",
+    formulario_baja_contacto: "",
+    desarmadero_id: ""
   };
 }
+
+const EVENTO_ASIGNACION_DESARMADERO = "Asignación de desarmadero";
 
 export default function BitacoraSection({
   casoId,
   caso,
+  desarmaderos = [],
   soloLectura,
   casoSaldado = true,
   esAdministrador = false
@@ -192,9 +333,26 @@ export default function BitacoraSection({
   function necesitaExcepcionFinanciera(tipoEvento: string) {
     return tipoEvento === EVENTO_LIBERACION_DOCUMENTAL && !casoSaldado;
   }
+
+  // "Formulario de Baja" ya no exige "Traslado" completado (el 04D a
+  // veces se completa antes de que la unidad termine de trasladarse),
+  // pero se avisa igual — no bloquea, solo informa. El bloqueo real
+  // sigue estando en "Cierre de Caso".
+  function faltaTrasladoParaFormularioBaja(tipoEvento: string) {
+    return (
+      tipoEvento === "Formulario de Baja" &&
+      !(eventos ?? []).some((ev) => ev.tipo_evento === "Traslado" && ev.completado)
+    );
+  }
   const [excepcionEventoId, setExcepcionEventoId] = useState<string | null>(null);
   const [excepcionMotivo, setExcepcionMotivo] = useState("");
   const [guardandoExcepcion, setGuardandoExcepcion] = useState(false);
+
+  // Evento que se acaba de completar y para el que se puede ofrecer
+  // notificar por mail (no bloquea nada — el evento ya quedó completado
+  // igual, esto es un paso aparte y opcional).
+  const [notificarEventoId, setNotificarEventoId] = useState<string | null>(null);
+  const [encuesta, setEncuesta] = useState<EncuestaSatisfaccion | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -210,6 +368,10 @@ export default function BitacoraSection({
     const json = await res.json();
     if (res.ok) setEventos(json.data);
     else setError(json.error);
+
+    const resEncuesta = await fetch(`/api/casos/${casoId}/encuesta`);
+    const jsonEncuesta = await resEncuesta.json();
+    if (resEncuesta.ok) setEncuesta(jsonEncuesta.data);
   }
 
   useEffect(() => {
@@ -261,6 +423,13 @@ export default function BitacoraSection({
           gruero_nombre: form.gruero_nombre || null,
           gruero_contacto: form.gruero_contacto || null
         }),
+        ...(form.tipo_evento === "Formulario de Baja" && {
+          formulario_baja_nombre: form.formulario_baja_nombre || null,
+          formulario_baja_contacto: form.formulario_baja_contacto || null
+        }),
+        ...(form.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && {
+          desarmadero_id: form.desarmadero_id || null
+        }),
         ...(form.completado &&
           necesitaExcepcionFinanciera(form.tipo_evento) && {
             excepcion_financiera: true,
@@ -274,6 +443,10 @@ export default function BitacoraSection({
     if (!res.ok) {
       setError(json.error);
       return;
+    }
+
+    if (form.completado && EVENTO_A_NOTIFICACION[form.tipo_evento]) {
+      setNotificarEventoId(json.data.id);
     }
 
     setForm(formVacio());
@@ -293,7 +466,10 @@ export default function BitacoraSection({
       fecha_inicio: ev.fecha_inicio,
       fecha_fin: ev.fecha_fin ?? "",
       gruero_nombre: ev.gruero_nombre ?? "",
-      gruero_contacto: ev.gruero_contacto ?? ""
+      gruero_contacto: ev.gruero_contacto ?? "",
+      formulario_baja_nombre: ev.formulario_baja_nombre ?? "",
+      formulario_baja_contacto: ev.formulario_baja_contacto ?? "",
+      desarmadero_id: ev.desarmadero_id ?? ""
     });
   }
 
@@ -338,6 +514,13 @@ export default function BitacoraSection({
           gruero_nombre: editForm.gruero_nombre || null,
           gruero_contacto: editForm.gruero_contacto || null
         }),
+        ...(editForm.tipo_evento === "Formulario de Baja" && {
+          formulario_baja_nombre: editForm.formulario_baja_nombre || null,
+          formulario_baja_contacto: editForm.formulario_baja_contacto || null
+        }),
+        ...(editForm.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && {
+          desarmadero_id: editForm.desarmadero_id || null
+        }),
         ...(vaACompletarAhora &&
           necesitaExcepcionFinanciera(editForm.tipo_evento) && {
             excepcion_financiera: true,
@@ -351,6 +534,10 @@ export default function BitacoraSection({
     if (!res.ok) {
       setError(json.error);
       return;
+    }
+
+    if (vaACompletarAhora && EVENTO_A_NOTIFICACION[editForm.tipo_evento]) {
+      setNotificarEventoId(id);
     }
 
     setExcepcionMotivo("");
@@ -382,6 +569,14 @@ export default function BitacoraSection({
         setError(bloqueo);
         return;
       }
+      if (
+        faltaTrasladoParaFormularioBaja(evento.tipo_evento) &&
+        !confirm(
+          'Todavía no se completó el evento "Traslado" para este caso. ¿Completar "Formulario de Baja" igual?'
+        )
+      ) {
+        return;
+      }
       if (necesitaExcepcionFinanciera(evento.tipo_evento)) {
         if (!esAdministrador) {
           setError(
@@ -403,8 +598,14 @@ export default function BitacoraSection({
       body: JSON.stringify({ completado: vaACompletar })
     });
     const json = await res.json();
-    if (res.ok) load();
-    else setError(json.error);
+    if (res.ok) {
+      if (vaACompletar && EVENTO_A_NOTIFICACION[evento.tipo_evento]) {
+        setNotificarEventoId(evento.id);
+      }
+      load();
+    } else {
+      setError(json.error);
+    }
   }
 
   async function confirmarExcepcion(eventoId: string) {
@@ -489,6 +690,32 @@ export default function BitacoraSection({
               onContactoChange={(v) => setForm((f) => ({ ...f, gruero_contacto: v }))}
             />
           )}
+          {form.tipo_evento === "Formulario de Baja" && (
+            <FormularioBajaBox
+              caso={caso}
+              nombre={form.formulario_baja_nombre}
+              contacto={form.formulario_baja_contacto}
+              onNombreChange={(v) => setForm((f) => ({ ...f, formulario_baja_nombre: v }))}
+              onContactoChange={(v) => setForm((f) => ({ ...f, formulario_baja_contacto: v }))}
+            />
+          )}
+          {form.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && (
+            <div>
+              <label className="label">Desarmadero</label>
+              <select
+                className="input"
+                value={form.desarmadero_id}
+                onChange={(e) => setForm((f) => ({ ...f, desarmadero_id: e.target.value }))}
+              >
+                <option value="">Seleccionar...</option>
+                {desarmaderos.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="label">Observación</label>
             <textarea
@@ -560,6 +787,14 @@ export default function BitacoraSection({
               )}
             </div>
           )}
+          {form.completado && faltaTrasladoParaFormularioBaja(form.tipo_evento) && (
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm">
+              <p className="text-amber-800">
+                ⚠ Todavía no se completó el evento &quot;Traslado&quot; para este caso — se puede
+                completar igual, es solo un aviso.
+              </p>
+            </div>
+          )}
           <button className="btn-primary" disabled={saving} type="submit">
             {saving ? "Guardando..." : "Guardar evento"}
           </button>
@@ -603,6 +838,35 @@ export default function BitacoraSection({
                     onContactoChange={(v) => setEditForm((f) => ({ ...f, gruero_contacto: v }))}
                     enlace={origin ? `${origin}/gr/${ev.token_gruero}` : null}
                   />
+                )}
+                {editForm.tipo_evento === "Formulario de Baja" && (
+                  <FormularioBajaBox
+                    caso={caso}
+                    nombre={editForm.formulario_baja_nombre}
+                    contacto={editForm.formulario_baja_contacto}
+                    onNombreChange={(v) => setEditForm((f) => ({ ...f, formulario_baja_nombre: v }))}
+                    onContactoChange={(v) =>
+                      setEditForm((f) => ({ ...f, formulario_baja_contacto: v }))
+                    }
+                    enlace={origin ? `${origin}/fb/${ev.token_formulario_baja}` : null}
+                  />
+                )}
+                {editForm.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && (
+                  <div>
+                    <label className="label">Desarmadero</label>
+                    <select
+                      className="input"
+                      value={editForm.desarmadero_id}
+                      onChange={(e) => setEditForm((f) => ({ ...f, desarmadero_id: e.target.value }))}
+                    >
+                      <option value="">Seleccionar...</option>
+                      {desarmaderos.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 )}
                 <div>
                   <label className="label">Observación</label>
@@ -677,6 +941,14 @@ export default function BitacoraSection({
                       )}
                     </div>
                   )}
+                {editForm.completado && faltaTrasladoParaFormularioBaja(editForm.tipo_evento) && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm">
+                    <p className="text-amber-800">
+                      ⚠ Todavía no se completó el evento &quot;Traslado&quot; para este caso — se
+                      puede completar igual, es solo un aviso.
+                    </p>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button
                     className="btn-primary text-xs"
@@ -730,6 +1002,30 @@ export default function BitacoraSection({
                       🚚 Gruero: {ev.gruero_nombre}
                       {ev.gruero_contacto && ` · ${ev.gruero_contacto}`}
                     </p>
+                  )}
+                  {ev.tipo_evento === "Formulario de Baja" && ev.formulario_baja_nombre && (
+                    <p className="text-slate-500">
+                      📄 Formulario de Baja: {ev.formulario_baja_nombre}
+                      {ev.formulario_baja_contacto && ` · ${ev.formulario_baja_contacto}`}
+                    </p>
+                  )}
+                  {ev.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && ev.desarmadero_id && (
+                    <p className="text-slate-500">
+                      🔧 Desarmadero:{" "}
+                      {desarmaderos.find((d) => d.id === ev.desarmadero_id)?.nombre ?? "—"}
+                    </p>
+                  )}
+                  {ev.tipo_evento === "Presentación de Baja" && encuesta?.respondida && (
+                    <div className="text-slate-500">
+                      <p>
+                        ⭐ Encuesta: Contacto {encuesta.calificacion_contacto}/5 · Traslado{" "}
+                        {encuesta.calificacion_traslado}/5 · Gestoría {encuesta.calificacion_gestoria}
+                        /5
+                      </p>
+                      {encuesta.comentario && (
+                        <p className="italic">&quot;{encuesta.comentario}&quot;</p>
+                      )}
+                    </div>
                   )}
                   <p className="text-xs text-slate-400 mt-1">
                     {new Date(ev.fecha_inicio + "T00:00:00").toLocaleDateString("es-AR")}
@@ -810,6 +1106,17 @@ export default function BitacoraSection({
                     </button>
                   </div>
                 </div>
+              )}
+              {notificarEventoId === ev.id && EVENTO_A_NOTIFICACION[ev.tipo_evento] && (
+                <SelectorNotificacion
+                  casoId={casoId}
+                  caso={caso}
+                  tipo={EVENTO_A_NOTIFICACION[ev.tipo_evento]}
+                  onClose={() => setNotificarEventoId(null)}
+                />
+              )}
+              {notificarEventoId === ev.id && ev.tipo_evento === "Presentación de Baja" && (
+                <EncuestaBox casoId={casoId} caso={caso} />
               )}
             </li>
           );

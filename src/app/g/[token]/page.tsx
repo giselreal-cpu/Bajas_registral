@@ -1,6 +1,7 @@
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import UploadForm from "./UploadForm";
+import ObservacionForm from "./ObservacionForm";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ interface CasoResumenGestor {
   } | null;
   vehiculo: { dominio: string; marca: string | null; modelo: string | null } | null;
   registro: { numero: string; seccional: string | null; provincia: string | null } | null;
+  tipo_baja: { nombre: string } | null;
   gestor: { nombre: string } | null;
 }
 
@@ -39,6 +41,7 @@ export default async function EnlaceGestorPage({
       asegurado:asegurados(nombre, telefono, direccion, localidad, provincia),
       vehiculo:vehiculos(dominio, marca, modelo),
       registro:registros_automotores(numero, seccional, provincia),
+      tipo_baja:tipos_baja(nombre),
       gestor:gestores(nombre)
     `
     )
@@ -85,6 +88,7 @@ export default async function EnlaceGestorPage({
         <h2 className="font-medium text-slate-800 mb-3">Datos del caso</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <Campo label="Aseguradora">{caso.aseguradora?.nombre ?? "—"}</Campo>
+          <Campo label="Tipo de Baja">{caso.tipo_baja?.nombre ?? "—"}</Campo>
           <Campo label="Vehículo">
             {caso.vehiculo?.dominio ?? "—"}
             {caso.vehiculo?.marca ? ` · ${caso.vehiculo.marca}` : ""}
@@ -130,6 +134,11 @@ export default async function EnlaceGestorPage({
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Cargar un archivo</h2>
         <UploadForm token={params.token} />
+      </section>
+
+      <section className="card p-4">
+        <h2 className="font-medium text-slate-800 mb-3">Agregar una observación</h2>
+        <ObservacionForm token={params.token} />
       </section>
     </div>
   );

@@ -55,6 +55,7 @@ export interface Aseguradora {
   contacto: string | null;
   email: string | null;
   telefono: string | null;
+  logo_path: string | null;
 }
 
 export type BaseCalculoCompania = "valor_infoauto" | "suma_asegurada";
@@ -116,6 +117,9 @@ export interface Gestor {
   id: string;
   nombre: string;
   contacto: string | null;
+  direccion: string | null;
+  email: string | null;
+  zona_cobertura: string | null;
 }
 
 export type RolUsuario = "operador" | "administrador" | "compania";
@@ -195,6 +199,10 @@ export interface BitacoraEvento {
   gruero_nombre: string | null;
   gruero_contacto: string | null;
   token_gruero: string;
+  formulario_baja_nombre: string | null;
+  formulario_baja_contacto: string | null;
+  token_formulario_baja: string;
+  desarmadero_id: string | null;
   creado_por: string | null;
   excepcion_financiera: boolean;
   motivo_excepcion: string | null;
@@ -207,7 +215,8 @@ export type CategoriaDocumento =
   | "turno_registro"
   | "observaciones_gestor"
   | "recibos_gestor"
-  | "otros_gestor";
+  | "otros_gestor"
+  | "formulario_baja";
 
 export const CATEGORIAS_GESTOR: { value: CategoriaDocumento; label: string }[] = [
   { value: "turno_registro", label: "Turno en Registro" },
@@ -280,6 +289,8 @@ export interface Factura {
   monto_total: number;
   estado: EstadoFactura;
   fecha_emision: string;
+  fecha_vencimiento: string | null;
+  forma_pago: string | null;
   created_at: string;
   receptor_nombre?: string;
   cobros?: Cobro[];
@@ -316,5 +327,19 @@ export interface Anticipo {
   fecha: string;
   observacion: string | null;
   creado_por: string | null;
+  created_at: string;
+}
+
+export interface EncuestaSatisfaccion {
+  id: string;
+  caso_id: string;
+  token: string;
+  calificacion_contacto: number | null;
+  calificacion_traslado: number | null;
+  calificacion_gestoria: number | null;
+  comentario: string | null;
+  respondida: boolean;
+  respondida_at: string | null;
+  ultimo_contacto_at: string;
   created_at: string;
 }

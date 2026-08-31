@@ -29,7 +29,7 @@ export async function POST(
 ) {
   const supabase = createClient();
   const body = await request.json();
-  const { tipo_receptor, receptor_id, movimiento_ids } = body;
+  const { tipo_receptor, receptor_id, movimiento_ids, fecha_vencimiento, forma_pago } = body;
 
   if (!tipo_receptor || !receptor_id || !Array.isArray(movimiento_ids) || movimiento_ids.length === 0) {
     return NextResponse.json(
@@ -71,7 +71,9 @@ export async function POST(
       caso_id: params.id,
       tipo_receptor,
       receptor_id,
-      monto_total: montoTotal
+      monto_total: montoTotal,
+      fecha_vencimiento: fecha_vencimiento || null,
+      forma_pago: forma_pago || null
     })
     .select()
     .single();

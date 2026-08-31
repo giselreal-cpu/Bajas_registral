@@ -156,6 +156,14 @@ export default async function CuentaCorrientePage() {
               </summary>
 
               <div className="border-t border-slate-100 px-4 py-3 space-y-3">
+                <div className="flex justify-end">
+                  <a
+                    href={`/api/cuenta-corriente/export?tipo=${t.tipo}&id=${t.id}`}
+                    className="btn-secondary text-xs"
+                  >
+                    Descargar reporte (CSV)
+                  </a>
+                </div>
                 <AnticipoForm
                   tipo={t.tipo as "compania" | "desarmadero"}
                   receptorId={t.id}
