@@ -5,6 +5,7 @@ import Link from "next/link";
 import HeaderNav from "@/components/HeaderNav";
 import LogoutButton from "@/components/LogoutButton";
 import MobileNav from "@/components/MobileNav";
+import InstallBanner from "@/components/InstallBanner";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import "./globals.css";
@@ -119,7 +120,12 @@ export default async function RootLayout({
                 </p>
               </div>
             ) : (
-              children
+              <>
+                <div className="md:hidden mb-4">
+                  <InstallBanner />
+                </div>
+                {children}
+              </>
             )}
           </main>
           {user && !pendienteDeAprobacion && <MobileNav />}
