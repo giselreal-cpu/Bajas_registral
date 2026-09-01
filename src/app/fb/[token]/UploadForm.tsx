@@ -14,14 +14,21 @@ export default function UploadForm({ token }: { token: string }) {
     setMensaje(null);
 
     const formData = new FormData(e.currentTarget);
-    const resultado = await subirDocumentoFormularioBaja(token, formData);
-    setSaving(false);
-
-    if (resultado.error) {
-      setMensaje({ tipo: "error", texto: resultado.error });
-    } else {
-      setMensaje({ tipo: "ok", texto: "Archivo cargado correctamente." });
-      formRef.current?.reset();
+    try {
+      const resultado = await subirDocumentoFormularioBaja(token, formData);
+      if (resultado.error) {
+        setMensaje({ tipo: "error", texto: resultado.error });
+      } else {
+        setMensaje({ tipo: "ok", texto: "Archivo cargado correctamente." });
+        formRef.current?.reset();
+      }
+    } catch {
+      setMensaje({
+        tipo: "error",
+        texto: "No se pudo subir el archivo. Probá con uno más liviano o revisá tu conexión."
+      });
+    } finally {
+      setSaving(false);
     }
   }
 
