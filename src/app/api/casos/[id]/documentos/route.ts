@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
-import { eliminarArchivoStorage, esArchivo, obtenerUrlFirmada, subirArchivoDocumento } from "@/lib/documentosStorage";
+import { eliminarArchivoStorage, obtenerUrlFirmada } from "@/lib/documentosStorage";
 
 export async function GET(
   _request: NextRequest,
@@ -25,22 +25,24 @@ export async function GET(
   return NextResponse.json({ data: documentos });
 }
 
-// POST /api/casos/[id]/documentos -> recibe multipart/form-data (categoria +
-// nombre opcional, y O BIEN un archivo real O BIEN un link ya alojado en
-// otro lado, por ejemplo una carpeta de Drive). El equipo interno suele
-// seguir usando el link (así es como se organiza hoy); el archivo real es
-// para quien prefiera subirlo directo. El enlace del gestor, en cambio,
-// siempre sube archivo real (ver src/app/g/[token]/actions.ts).
+// POST /api/casos/[id]/documentos -> recibe JSON (categoria + nombre
+// opcional, y O BIEN `path` de un archivo ya subido directo a Storage con
+// una URL firmada de /subida-firmada, O BIEN `url` de un link ya alojado
+// en otro lado, por ejemplo una carpeta de Drive). El archivo en sí nunca
+// pasa por acá — por eso el archivo real sube en dos pasos, no uno solo:
+// Vercel limita a 4.5MB el body de cualquier función serverless.
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const supabase = createClient();
-  const formData = await request.formData();
-  const file = formData.get("file");
-  const url = formData.get("url");
-  const categoria = formData.get("categoria");
-  const nombre = formData.get("nombre");
+  const body = await request.json();
+  const { categoria, nombre, path: pathSubido, url } = body as {
+    categoria?: string;
+    nombre?: string;
+    path?: string;
+    url?: string;
+  };
 
   if (!categoria) {
     return NextResponse.json({ error: "La categoría es obligatoria." }, { status: 400 });
@@ -48,20 +50,16 @@ export async function POST(
 
   let path: string;
   let nombreFinal: string;
+  let esArchivoReal: boolean;
 
-  if (esArchivo(file) && file.size > 0) {
-    try {
-      path = await subirArchivoDocumento(params.id, categoria as string, file);
-    } catch (e) {
-      return NextResponse.json(
-        { error: e instanceof Error ? e.message : "No se pudo subir el archivo." },
-        { status: 400 }
-      );
-    }
-    nombreFinal = (nombre as string) || file.name;
+  if (pathSubido) {
+    path = pathSubido;
+    nombreFinal = nombre || pathSubido;
+    esArchivoReal = true;
   } else if (typeof url === "string" && url.trim()) {
     path = url.trim();
-    nombreFinal = (nombre as string) || path;
+    nombreFinal = nombre || path;
+    esArchivoReal = false;
   } else {
     return NextResponse.json(
       { error: "Adjuntá un archivo o pegá un link." },
@@ -71,16 +69,16 @@ export async function POST(
 
   const { data, error } = await supabase
     .from("documentos")
-    .insert({ caso_id: params.id, categoria: categoria as string, nombre: nombreFinal, url: path })
+    .insert({ caso_id: params.id, categoria, nombre: nombreFinal, url: path })
     .select()
     .single();
 
   if (error) {
-    if (esArchivo(file)) await eliminarArchivoStorage(path);
+    if (esArchivoReal) await eliminarArchivoStorage(path);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  await registrarCambio(params.id, `Agregó documento: ${nombreFinal}`, categoria as string);
+  await registrarCambio(params.id, `Agregó documento: ${nombreFinal}`, categoria);
 
   const url_firmada = await obtenerUrlFirmada(path);
   return NextResponse.json({ data: { ...data, url_firmada } }, { status: 201 });

@@ -2,47 +2,70 @@
 
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
-import { esArchivo, subirArchivoDocumento } from "@/lib/documentosStorage";
+import { crearSubidaFirmada, validarMetadatosArchivo } from "@/lib/documentosStorage";
 import { CATEGORIAS_GESTOR, CategoriaDocumento } from "@/types/database";
 
-// Server Action que usa el gestor externo desde /g/[token], sin sesión. Se
-// valida el token contra `casos` y se escribe con el service client (no hay
-// auth.uid() para pasar las políticas RLS normales).
-export async function subirDocumentoGestor(
-  token: string,
-  formData: FormData
-): Promise<{ ok?: true; error?: string }> {
+async function casoDeGestor(token: string) {
   const supabase = createServiceClient();
-
   const { data: caso } = await supabase
     .from("casos")
     .select("id, gestor_id, gestor:gestores(nombre)")
     .eq("token_gestor", token)
     .maybeSingle();
 
-  if (!caso || !caso.gestor_id) {
+  if (!caso || !caso.gestor_id) return null;
+  return caso;
+}
+
+// Primer paso de la carga de un documento desde /g/[token]: valida el
+// token y los metadatos del archivo (el archivo en sí todavía no viajó) y
+// devuelve una URL de subida firmada para que el navegador suba directo a
+// Supabase Storage — Vercel limita a 4.5MB el body de cualquier Server
+// Action, así que el archivo no puede pasar por acá.
+export async function iniciarSubidaGestor(
+  token: string,
+  categoria: CategoriaDocumento,
+  nombreArchivo: string,
+  size: number,
+  type: string
+): Promise<{ path?: string; uploadToken?: string; error?: string }> {
+  const caso = await casoDeGestor(token);
+  if (!caso) {
     return { error: "Este enlace ya no es válido." };
   }
 
-  const file = formData.get("file");
-  const categoria = formData.get("categoria") as CategoriaDocumento | null;
   const categoriasValidas = CATEGORIAS_GESTOR.map((c) => c.value);
-
-  if (!esArchivo(file) || file.size === 0 || !categoria || !categoriasValidas.includes(categoria)) {
-    return { error: "Elegí una categoría y un archivo." };
+  if (!categoria || !categoriasValidas.includes(categoria)) {
+    return { error: "Elegí una categoría." };
   }
 
-  let path: string;
   try {
-    path = await subirArchivoDocumento(caso.id, categoria, file);
+    validarMetadatosArchivo({ size, type });
+    const subida = await crearSubidaFirmada(caso.id, categoria, nombreArchivo);
+    return { path: subida.path, uploadToken: subida.token };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : "No se pudo subir el archivo." };
+    return { error: e instanceof Error ? e.message : "No se pudo iniciar la subida." };
+  }
+}
+
+// Segundo paso: el archivo ya se subió directo a Storage con el token de
+// arriba; acá se registra el documento en la base.
+export async function confirmarSubidaGestor(
+  token: string,
+  categoria: CategoriaDocumento,
+  nombreArchivo: string,
+  path: string
+): Promise<{ ok?: true; error?: string }> {
+  const supabase = createServiceClient();
+  const caso = await casoDeGestor(token);
+  if (!caso) {
+    return { error: "Este enlace ya no es válido." };
   }
 
   const { error } = await supabase.from("documentos").insert({
     caso_id: caso.id,
     categoria,
-    nombre: file.name,
+    nombre: nombreArchivo,
     url: path
   });
 
@@ -54,7 +77,7 @@ export async function subirDocumentoGestor(
   await supabase.from("historial_cambios").insert({
     caso_id: caso.id,
     usuario_id: null,
-    tipo_cambio: `Agregó documento: ${file.name}`,
+    tipo_cambio: `Agregó documento: ${nombreArchivo}`,
     detalle: `Cargado por ${gestorNombre} vía enlace público, categoría: ${categoria}`
   });
 
@@ -71,14 +94,8 @@ export async function agregarObservacionGestor(
   texto: string
 ): Promise<{ ok?: true; error?: string }> {
   const supabase = createServiceClient();
-
-  const { data: caso } = await supabase
-    .from("casos")
-    .select("id, gestor_id, gestor:gestores(nombre)")
-    .eq("token_gestor", token)
-    .maybeSingle();
-
-  if (!caso || !caso.gestor_id) {
+  const caso = await casoDeGestor(token);
+  if (!caso) {
     return { error: "Este enlace ya no es válido." };
   }
 

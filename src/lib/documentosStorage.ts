@@ -18,38 +18,42 @@ export function esArchivo(value: unknown): value is File {
   );
 }
 
-function validarArchivo(file: File) {
-  if (file.size > TAMANIO_MAXIMO) {
+export function validarMetadatosArchivo(meta: { size: number; type: string }) {
+  if (meta.size > TAMANIO_MAXIMO) {
     throw new Error("El archivo no puede superar los 10MB.");
   }
-  if (file.type && !TIPOS_PERMITIDOS.includes(file.type)) {
+  if (meta.type && !TIPOS_PERMITIDOS.includes(meta.type)) {
     throw new Error("Solo se aceptan fotos (JPG, PNG, WEBP, HEIC) o PDF.");
   }
 }
 
-// Sube un archivo al bucket privado de documentos y devuelve la ruta interna
-// (se guarda en documentos.url; para mostrarla hay que pedir una URL firmada
-// con obtenerUrlFirmada).
-export async function subirArchivoDocumento(
+export interface SubidaFirmada {
+  path: string;
+  token: string;
+}
+
+// Genera una URL de subida firmada para que el navegador suba el archivo
+// DIRECTO a Supabase Storage, sin pasar por una función serverless de
+// Vercel. Vercel limita a 4.5MB el body de cualquier función (Server
+// Action o Route Handler) sin excepción — muy por debajo de los 10MB que
+// la app permite — así que un archivo real nunca puede viajar por ahí;
+// tiene que subirse directo desde el cliente con este token.
+export async function crearSubidaFirmada(
   casoId: string,
   categoria: string,
-  file: File
-): Promise<string> {
-  validarArchivo(file);
-
-  const nombreSanitizado = file.name.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+  nombreArchivo: string
+): Promise<SubidaFirmada> {
+  const nombreSanitizado = nombreArchivo.replace(/[^a-zA-Z0-9.\-_]/g, "_");
   const path = `casos/${casoId}/${categoria}/${Date.now()}-${nombreSanitizado}`;
 
   const supabase = createServiceClient();
-  const { error } = await supabase.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type || undefined
-  });
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(path);
 
   if (error) {
-    throw new Error(`No se pudo subir el archivo: ${error.message}`);
+    throw new Error(`No se pudo generar la subida: ${error.message}`);
   }
 
-  return path;
+  return { path, token: data.token };
 }
 
 // Documentos cargados antes de este bucket (o pegados a mano por fuera del
