@@ -120,6 +120,7 @@ export interface Gestor {
   direccion: string | null;
   email: string | null;
   zona_cobertura: string | null;
+  token_acceso: string;
 }
 
 export type RolUsuario = "operador" | "administrador" | "compania";
