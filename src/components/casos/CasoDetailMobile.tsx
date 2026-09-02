@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Aseguradora,
   CasoConRelaciones,
@@ -37,6 +38,15 @@ function tabDesdeHash(): Tab {
 export default function CasoDetailMobile(props: Props) {
   const { caso, soloLectura } = props;
   const [tab, setTab] = useState<Tab>("resumen");
+  const router = useRouter();
+
+  function volver() {
+    if (window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/casos");
+    }
+  }
 
   useEffect(() => {
     setTab(tabDesdeHash());
@@ -61,6 +71,18 @@ export default function CasoDetailMobile(props: Props) {
         className="sticky top-0 z-10 -mx-4 px-4 pt-3"
         style={{ background: "var(--mv-bg)" }}
       >
+        <button
+          type="button"
+          onClick={volver}
+          className="flex items-center gap-1 -ml-1 mb-1.5 py-1 pr-2 text-sm"
+          style={{ color: "var(--mv-accent-700)" }}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Volver
+        </button>
+
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div
