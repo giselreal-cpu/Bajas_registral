@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import InstallBanner from "@/components/InstallBanner";
@@ -5,6 +6,13 @@ import UploadForm from "./UploadForm";
 import ObservacionForm from "./ObservacionForm";
 
 export const dynamic = "force-dynamic";
+
+// El ícono instalado desde este enlace en Android tiene que volver siempre
+// a ESTE caso (no al manifest general, cuyo start_url "/" exige sesión que
+// el gestor no tiene) — ver src/lib/pwaManifest.ts.
+export function generateMetadata({ params }: { params: { token: string } }): Metadata {
+  return { manifest: `/api/manifest-gestor/${params.token}` };
+}
 
 interface CasoResumenGestor {
   id: string;
