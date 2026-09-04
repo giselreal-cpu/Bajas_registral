@@ -45,11 +45,17 @@ export async function GET() {
 
   const filas = ((casos as unknown as CasoCerradoExport[] | null) ?? [])
     .filter((c) => c.tipo_baja?.nombre && TIPOS_BAJA_PAGO_COMPANIA.includes(c.tipo_baja.nombre))
-    .map((c) => ({
-      ...c,
-      movPago: c.movimientos_caso.find((m) => m.concepto?.nombre === PAGO_COMPANIA) ?? null
-    }))
-    .filter((c) => !c.movPago || !c.movPago.pagado)
+    .map((c) => {
+      const movimientosPago = c.movimientos_caso.filter((m) => m.concepto?.nombre === PAGO_COMPANIA);
+      const pendientePago = movimientosPago
+        .filter((m) => !m.pagado)
+        .reduce((acc, m) => acc + Number(m.monto), 0);
+      const pagadoPago = movimientosPago
+        .filter((m) => m.pagado)
+        .reduce((acc, m) => acc + Number(m.monto), 0);
+      return { ...c, movimientosPago, pendientePago, pagadoPago };
+    })
+    .filter((c) => c.movimientosPago.length === 0 || c.pendientePago > 0)
     .map((c) => ({
       numero_siniestro: c.numero_siniestro,
       compania: c.aseguradora?.nombre ?? "",
@@ -58,8 +64,14 @@ export async function GET() {
       vehiculo: [c.vehiculo?.marca, c.vehiculo?.modelo, c.vehiculo?.anio].filter(Boolean).join(" "),
       desarmadero: c.desarmadero?.nombre ?? "",
       tramitador: c.tramitador_nombre ?? "",
-      valor_restos: c.movPago ? c.movPago.monto : "",
-      estado_pago: c.movPago ? "Cargado, sin marcar pagado" : "Sin cargar",
+      valor_restos: c.pendientePago,
+      ya_pagado: c.pagadoPago,
+      estado_pago:
+        c.movimientosPago.length === 0
+          ? "Sin cargar"
+          : c.pagadoPago > 0
+            ? "Pagado parcial"
+            : "Cargado, sin marcar pagado",
       fecha_cierre: c.fecha_cierre ?? ""
     }));
 
@@ -71,7 +83,8 @@ export async function GET() {
     { key: "vehiculo", label: "Marca/Modelo/Año" },
     { key: "desarmadero", label: "Desarmadero" },
     { key: "tramitador", label: "Tramitador" },
-    { key: "valor_restos", label: "Valor restos (pago a compañía)" },
+    { key: "valor_restos", label: "Pendiente de pago" },
+    { key: "ya_pagado", label: "Ya pagado" },
     { key: "estado_pago", label: "Estado del pago" },
     { key: "fecha_cierre", label: "Fecha de Cierre" }
   ]);

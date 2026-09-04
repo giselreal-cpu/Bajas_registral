@@ -117,18 +117,26 @@ export default async function SeguimientoFinancieroPage() {
     );
   }
 
-  // Casos cerrados sin el "Pago a la compañía" ya marcado como pagado —
-  // sea porque ni siquiera se cargó ese movimiento, o porque se cargó
-  // pero sigue sin tildar "pagado".
+  // Casos cerrados con saldo pendiente en "Pago a la compañía" — sea
+  // porque ni siquiera se cargó ese movimiento, o porque se cargó pero
+  // queda algo sin tildar "pagado". Puede haber más de un movimiento con
+  // ese concepto (ej. un pago parcial ya hecho y el resto pendiente), por
+  // eso se suman todos en vez de mirar solo el primero.
   const casosPendientesPagoCompania = (
     (errorCerrados ? [] : (casosCerrados as unknown as CasoCerradoReporte[] | null)) ?? []
   )
     .filter((c) => c.tipo_baja?.nombre && TIPOS_BAJA_PAGO_COMPANIA.includes(c.tipo_baja.nombre))
-    .map((c) => ({
-      ...c,
-      movPago: c.movimientos_caso.find((m) => m.concepto?.nombre === PAGO_COMPANIA) ?? null
-    }))
-    .filter((c) => !c.movPago || !c.movPago.pagado);
+    .map((c) => {
+      const movimientosPago = c.movimientos_caso.filter((m) => m.concepto?.nombre === PAGO_COMPANIA);
+      const pendientePago = movimientosPago
+        .filter((m) => !m.pagado)
+        .reduce((acc, m) => acc + Number(m.monto), 0);
+      const pagadoPago = movimientosPago
+        .filter((m) => m.pagado)
+        .reduce((acc, m) => acc + Number(m.monto), 0);
+      return { ...c, movimientosPago, pendientePago, pagadoPago };
+    })
+    .filter((c) => c.movimientosPago.length === 0 || c.pendientePago > 0);
 
   interface GrupoMes {
     mes: string;
@@ -239,8 +247,8 @@ export default async function SeguimientoFinancieroPage() {
         </div>
         <p className="text-xs text-slate-400 mb-3">
           Solo casos 04D / 04 Digital donde todavía no se cargó el movimiento de &quot;Pago a la
-          compañía&quot;, o se cargó pero no está marcado como pagado. Agrupados por compañía y
-          mes de cierre.
+          compañía&quot;, o queda saldo sin tildar como pagado (incluye el caso de un pago parcial
+          ya pagado y otro pendiente). Agrupados por compañía y mes de cierre.
         </p>
 
         {companiasPendientes.length === 0 ? (
@@ -279,7 +287,11 @@ export default async function SeguimientoFinancieroPage() {
                                   )}
                                 </Link>
                                 <span className="text-slate-500">
-                                  {c.movPago ? formatCurrency(c.movPago.monto) : "Sin cargar"}
+                                  {c.movimientosPago.length === 0
+                                    ? "Sin cargar"
+                                    : c.pagadoPago > 0
+                                      ? `Pendiente ${formatCurrency(c.pendientePago)} (ya pagado ${formatCurrency(c.pagadoPago)})`
+                                      : formatCurrency(c.pendientePago)}
                                 </span>
                               </div>
                             ))}
