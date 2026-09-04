@@ -11,6 +11,7 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
   const {
     editing,
     setEditing,
+    iniciarEdicion,
     saving,
     deleting,
     error,
@@ -40,7 +41,7 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
         {!editing ? (
           <div className="flex gap-2">
             {!soloLectura && (
-              <button className="mv-btn mv-btn-secondary text-xs px-3 py-1.5" onClick={() => setEditing(true)}>
+              <button className="mv-btn mv-btn-secondary text-xs px-3 py-1.5" onClick={iniciarEdicion}>
                 Editar
               </button>
             )}

@@ -29,22 +29,8 @@ export function formatCurrency(value: number | null): string {
 // gestor) vive acá para que la vista de escritorio (CasoCabecera) y la de
 // mobile (CasoCabeceraMobile) compartan el mismo comportamiento sin
 // duplicarlo — solo cambia cómo se dibuja.
-export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraProps) {
-  const router = useRouter();
-  const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [origin, setOrigin] = useState("");
-  const [copiado, setCopiado] = useState(false);
-  const [regenerando, setRegenerando] = useState(false);
-  const [notificarGestor, setNotificarGestor] = useState<CasoConRelaciones | null>(null);
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
-
-  const [form, setForm] = useState({
+function formDesdeCaso(caso: CasoConRelaciones) {
+  return {
     numero_siniestro: caso.numero_siniestro,
     vehiculo_dominio: caso.vehiculo?.dominio ?? "",
     vehiculo_marca: caso.vehiculo?.marca ?? "",
@@ -77,10 +63,39 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
     asegurado_provincia: caso.asegurado?.provincia ?? "",
     asegurado_entre_calles: caso.asegurado?.entre_calles ?? "",
     asegurado_partido: caso.asegurado?.partido ?? ""
-  });
+  };
+}
+
+export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraProps) {
+  const router = useRouter();
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [origin, setOrigin] = useState("");
+  const [copiado, setCopiado] = useState(false);
+  const [regenerando, setRegenerando] = useState(false);
+  const [notificarGestor, setNotificarGestor] = useState<CasoConRelaciones | null>(null);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
+
+  const [form, setForm] = useState(() => formDesdeCaso(caso));
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  // Si el caso cambió desde afuera mientras se estaba editando (por
+  // ejemplo, se completó "Cierre de Caso" en la bitácora, que pone
+  // fecha_cierre solo) — el formulario ya estaba abierto con una foto
+  // vieja del caso, y "Guardar" pisaría ese cambio con el valor
+  // desactualizado. Por eso el snapshot del formulario se toma recién al
+  // entrar en modo edición, nunca al montar el componente.
+  function iniciarEdicion() {
+    setForm(formDesdeCaso(caso));
+    setEditing(true);
   }
 
   async function handleSave() {
@@ -223,6 +238,7 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
   return {
     editing,
     setEditing,
+    iniciarEdicion,
     saving,
     deleting,
     error,

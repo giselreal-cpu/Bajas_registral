@@ -266,10 +266,15 @@ export default async function SeguimientoFinancieroPage() {
                   <div className="border-t border-slate-100 divide-y divide-slate-100">
                     {Array.from(g.meses.values())
                       .sort((a, b) => b.mes.localeCompare(a.mes))
-                      .map((m) => (
+                      .map((m) => {
+                        const totalPendienteMes = m.casos.reduce((acc, c) => acc + c.pendientePago, 0);
+                        return (
                         <div key={m.mes} className="px-3 py-2">
-                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">
-                            {nombreMes(m.mes)}
+                          <p className="text-xs font-semibold uppercase tracking-wide mb-1 flex items-center justify-between gap-2">
+                            <span className="text-slate-500">{nombreMes(m.mes)}</span>
+                            <span className="text-red-700 normal-case tracking-normal">
+                              Total pendiente: {formatCurrency(totalPendienteMes)}
+                            </span>
                           </p>
                           <div className="space-y-1">
                             {m.casos.map((c) => (
@@ -297,7 +302,8 @@ export default async function SeguimientoFinancieroPage() {
                             ))}
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                   </div>
                 </details>
               );

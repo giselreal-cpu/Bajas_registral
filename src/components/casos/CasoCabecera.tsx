@@ -11,6 +11,7 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
   const {
     editing,
     setEditing,
+    iniciarEdicion,
     saving,
     deleting,
     error,
@@ -50,7 +51,7 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
         {!editing ? (
           <div className="flex gap-2">
             {!soloLectura && (
-              <button className="btn-secondary" onClick={() => setEditing(true)}>
+              <button className="btn-secondary" onClick={iniciarEdicion}>
                 Editar
               </button>
             )}
