@@ -34,6 +34,18 @@ const CATALOGOS = [
     ocultarParaCompania: true
   },
   {
+    href: "/catalogos/cajas",
+    title: "Cajas",
+    description: "Caja física, cuenta bancaria, billetera virtual, fondo fijo.",
+    ocultarParaCompania: true
+  },
+  {
+    href: "/catalogos/cuentas-contables",
+    title: "Cuentas contables",
+    description: "Catálogo de cuentas para clasificar los movimientos.",
+    ocultarParaCompania: true
+  },
+  {
     href: "/catalogos/usuarios",
     title: "Usuarios",
     description: "Personas del equipo que pueden ser responsables de un caso."

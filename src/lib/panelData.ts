@@ -301,6 +301,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
       ? supabase
           .from("movimientos_caso")
           .select("caso_id, monto, pagado, concepto:conceptos_movimiento(tipo)")
+          .eq("aprobado", true)
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({ data: [] as any[] }),
     casoIds.length > 0
@@ -327,6 +328,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
       ? supabase
           .from("movimientos_caso")
           .select("caso_id, pagado, concepto:conceptos_movimiento(nombre)")
+          .eq("aprobado", true)
           .in("caso_id", casoIdsCerradosConGestor)
       : Promise.resolve({ data: [] as any[] }),
     casoIds.length > 0

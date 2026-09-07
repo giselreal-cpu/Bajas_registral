@@ -70,7 +70,8 @@ export default async function CasoDetallePage({
       supabase
         .from("movimientos_caso")
         .select("monto, concepto:conceptos_movimiento(tipo)")
-        .eq("caso_id", params.id),
+        .eq("caso_id", params.id)
+        .eq("aprobado", true),
       ingresosCobradosPorCasos([params.id])
     ]);
     ingresos = cobrado;

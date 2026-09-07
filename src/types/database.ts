@@ -217,7 +217,8 @@ export type CategoriaDocumento =
   | "observaciones_gestor"
   | "recibos_gestor"
   | "otros_gestor"
-  | "formulario_baja";
+  | "formulario_baja"
+  | "comprobante_gasto";
 
 export const CATEGORIAS_GESTOR: { value: CategoriaDocumento; label: string }[] = [
   { value: "turno_registro", label: "Turno en Registro" },
@@ -252,10 +253,58 @@ export interface HistorialCambio {
 
 export type TipoMovimiento = "ingreso" | "egreso";
 
+// Tipo de cuenta contable: para las cuentas de Resultados (las únicas que
+// se pueden imputar en un movimiento de caso) es "ingreso"/"egreso", igual
+// que TipoMovimiento; "activo"/"pasivo"/"pn" y el nodo raíz "resultado" son
+// del plan de cuentas completo (Activo/Pasivo/Patrimonio Neto), que hoy
+// solo se importa como catálogo de referencia — no se imputan movimientos
+// contra ellas todavía (eso requeriría partida doble, fuera de alcance).
+export type TipoCuentaContable = "activo" | "pasivo" | "pn" | "resultado" | TipoMovimiento;
+
+export type TipoCaja = "efectivo" | "banco" | "billetera" | "fondo_fijo" | "financiera" | "custodia";
+
+export const TIPOS_CAJA: { value: TipoCaja; label: string }[] = [
+  { value: "efectivo", label: "Efectivo" },
+  { value: "banco", label: "Cuenta bancaria" },
+  { value: "billetera", label: "Billetera virtual" },
+  { value: "fondo_fijo", label: "Fondo fijo" },
+  { value: "financiera", label: "Financiera" },
+  { value: "custodia", label: "Caja de seguridad / custodia" }
+];
+
+export type Moneda = "ARS" | "USD";
+
+export const MONEDAS: { value: Moneda; label: string }[] = [
+  { value: "ARS", label: "Pesos (ARS)" },
+  { value: "USD", label: "Dólares (USD)" }
+];
+
+export interface Caja {
+  id: string;
+  nombre: string;
+  tipo: TipoCaja;
+  moneda: Moneda;
+  saldo_inicial: number;
+  activa: boolean;
+  created_at: string;
+}
+
+export interface CuentaContable {
+  id: string;
+  codigo: string;
+  codigo_padre: string | null;
+  nombre: string;
+  tipo: TipoCuentaContable;
+  imputable: boolean;
+  created_at: string;
+}
+
 export interface ConceptoMovimiento {
   id: string;
   nombre: string;
   tipo: TipoMovimiento;
+  cuenta_contable_id: string | null;
+  cuenta_contable?: CuentaContable | null;
 }
 
 export interface MovimientoCaso {
@@ -267,9 +316,33 @@ export interface MovimientoCaso {
   observacion: string | null;
   factura_id: string | null;
   pagado: boolean;
+  caja_id: string | null;
+  cuenta_contable_id: string | null;
+  documento_id: string | null;
+  aprobado: boolean;
   creado_por: string | null;
   created_at: string;
   concepto: ConceptoMovimiento | null;
+  caja?: Caja | null;
+  cuenta_contable?: CuentaContable | null;
+}
+
+// Ingresos/egresos que no son de un caso puntual (sueldos, hosting,
+// alquiler, etc.) — ver 0043_movimientos_generales.sql. Comparte cajas y
+// cuentas_contables con MovimientoCaso, pero no tiene caso_id ni concepto
+// (la clasificación es directamente por cuenta contable).
+export interface MovimientoGeneral {
+  id: string;
+  fecha: string;
+  descripcion: string;
+  tipo: TipoMovimiento;
+  monto: number;
+  caja_id: string | null;
+  cuenta_contable_id: string | null;
+  creado_por: string | null;
+  created_at: string;
+  caja?: Caja | null;
+  cuenta_contable?: CuentaContable | null;
 }
 
 export type TipoReceptor = "compania" | "desarmadero";
@@ -306,6 +379,7 @@ export interface Cobro {
   medio_pago: string | null;
   observacion: string | null;
   anticipo_id: string | null;
+  caja_id: string | null;
   created_at: string;
 }
 

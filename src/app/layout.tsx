@@ -45,6 +45,7 @@ const NAV_LINKS = [
   { href: "/catalogos", label: "Catálogos", ocultarParaCompania: true },
   { href: "/cuenta-corriente", label: "Cta. Corriente", ocultarParaCompania: true },
   { href: "/seguimiento-financiero", label: "Seguimiento", ocultarParaCompania: true },
+  { href: "/administracion", label: "Administración", ocultarParaCompania: true },
   { href: "/exportar", label: "Exportar" }
 ];
 

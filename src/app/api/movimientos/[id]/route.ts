@@ -2,7 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 
-const ALLOWED_FIELDS = ["concepto_id", "monto", "fecha", "observacion", "pagado"];
+const ALLOWED_FIELDS = [
+  "concepto_id",
+  "monto",
+  "fecha",
+  "observacion",
+  "pagado",
+  "caja_id",
+  "cuenta_contable_id",
+  "aprobado"
+];
 
 export async function PUT(
   request: NextRequest,
@@ -33,7 +42,7 @@ export async function PUT(
     .from("movimientos_caso")
     .update(update)
     .eq("id", params.id)
-    .select("*, concepto:conceptos_movimiento(*)")
+    .select("*, concepto:conceptos_movimiento(*), caja:cajas(*), cuenta_contable:cuentas_contables(*)")
     .single();
 
   if (error) {
@@ -41,10 +50,13 @@ export async function PUT(
   }
 
   const soloCambioPagado = Object.keys(update).length === 1 && "pagado" in update;
+  const soloCambioAprobado = Object.keys(update).length === 1 && "aprobado" in update;
   await registrarCambio(
     data.caso_id,
     soloCambioPagado
       ? `Marcó movimiento como ${data.pagado ? "pagado" : "pendiente de pago"}: ${data.concepto?.nombre ?? "—"}`
+      : soloCambioAprobado
+      ? `Aprobó gasto cargado desde la app: ${data.concepto?.nombre ?? "—"}`
       : `Editó movimiento: ${data.concepto?.nombre ?? "—"}`
   );
 

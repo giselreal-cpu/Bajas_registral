@@ -11,7 +11,7 @@ export async function GET(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("movimientos_caso")
-    .select("*, concepto:conceptos_movimiento(*)")
+    .select("*, concepto:conceptos_movimiento(*), caja:cajas(*), cuenta_contable:cuentas_contables(*)")
     .eq("caso_id", params.id)
     .order("fecha", { ascending: false })
     .order("created_at", { ascending: false });
@@ -32,7 +32,17 @@ export async function POST(
   const body = await request.json();
   const usuarioActualId = await getUsuarioActualId();
 
-  const { concepto_id, monto, fecha, observacion, pagado } = body;
+  const {
+    concepto_id,
+    monto,
+    fecha,
+    observacion,
+    pagado,
+    caja_id,
+    cuenta_contable_id,
+    documento_id,
+    aprobado
+  } = body;
 
   if (!concepto_id || monto === undefined || monto === null) {
     return NextResponse.json(
@@ -50,9 +60,17 @@ export async function POST(
       fecha: fecha || new Date().toISOString().slice(0, 10),
       observacion: observacion || null,
       pagado: !!pagado,
+      caja_id: caja_id || null,
+      cuenta_contable_id: cuenta_contable_id || null,
+      documento_id: documento_id || null,
+      // Solo la carga móvil de gastos (Caja → Registrar gasto) manda
+      // aprobado explícitamente en false; la carga de escritorio no
+      // envía este campo y queda aprobado por default, sin cambiar su
+      // comportamiento de siempre.
+      aprobado: aprobado === false ? false : true,
       creado_por: usuarioActualId
     })
-    .select("*, concepto:conceptos_movimiento(*)")
+    .select("*, concepto:conceptos_movimiento(*), caja:cajas(*), cuenta_contable:cuentas_contables(*)")
     .single();
 
   if (error) {
