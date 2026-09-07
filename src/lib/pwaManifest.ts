@@ -15,8 +15,8 @@ export function manifestParaRuta(startUrl: string) {
     start_url: startUrl,
     scope: startUrl,
     display: "standalone",
-    background_color: "#f3f4f6",
-    theme_color: "#b85717",
+    background_color: "#f3f2f2",
+    theme_color: "#b68235",
     icons: [
       { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
       { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },

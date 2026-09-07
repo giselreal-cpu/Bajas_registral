@@ -2,11 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Paleta y tipografía del mockup "App Movil Bajas" (Claude Design), usada
-   únicamente por las vistas móviles nuevas (nav inferior, /casos en mobile,
-   detalle con tabs, banner de instalación) — no reemplaza los tokens del
-   resto de la app (brand/accent/silver de tailwind.config.ts). */
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Lora:wght@400;600&display=swap");
+/* Paleta "Classical" (Claude Design) — desde el rebrand, es el sistema
+   de diseño de TODA la app: brand/accent/silver de tailwind.config.ts
+   calcan estos mismos valores para el escritorio, y .mv-* (abajo) los
+   repite en variables CSS propias para las vistas mobile que ya
+   estaban armadas sobre ellas. --font-heading/--font-body los carga
+   next/font en layout.tsx (Cormorant Garamond / Lora) — .mv los
+   referencia en vez de repetir el nombre de la fuente a mano. */
 
 .mv {
   --mv-bg: #f3f2f2;
@@ -26,8 +28,8 @@
   --mv-accent-300: #facb8d;
   --mv-accent-400: #e1ad66;
   --mv-accent-700: #7d5411;
-  --mv-font-heading: "Cormorant Garamond", serif;
-  --mv-font-body: "Lora", serif;
+  --mv-font-heading: var(--font-heading), serif;
+  --mv-font-body: var(--font-body), serif;
   --mv-radius-sm: 2px;
   --mv-radius-md: 4px;
   --mv-radius-lg: 7px;
@@ -136,11 +138,11 @@ body {
 }
 
 .card {
-  @apply rounded-2xl border border-silver-200 bg-white shadow-[0_1px_2px_rgba(18,20,23,0.04),0_1px_1px_rgba(18,20,23,0.03)];
+  @apply rounded border border-silver-200 bg-white shadow-[0_1px_2px_rgba(45,43,43,0.14)];
 }
 
 .btn {
-  @apply inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply inline-flex items-center justify-center rounded px-3.5 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .btn-primary {
@@ -152,7 +154,7 @@ body {
 }
 
 .input {
-  @apply block w-full rounded-lg border border-silver-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-brand-300 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100;
+  @apply block w-full rounded border border-silver-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-brand-300 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100;
 }
 
 .label {

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Cormorant_Garamond, Lora } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import HeaderNav from "@/components/HeaderNav";
@@ -10,11 +10,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const poppins = Poppins({
+const lora = Lora({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-body" });
+const cormorantGaramond = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["600", "700"],
-  variable: "--font-poppins"
+  weight: ["400", "600"],
+  variable: "--font-heading"
 });
 
 export const metadata: Metadata = {
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#b85717"
+  themeColor: "#b68235"
 };
 
 const NAV_LINKS = [
@@ -70,7 +70,7 @@ export default async function RootLayout({
   );
 
   return (
-    <html lang="es" className={`${inter.variable} ${poppins.variable}`}>
+    <html lang="es" className={`${lora.variable} ${cormorantGaramond.variable}`}>
       <body>
         <div className="min-h-screen flex flex-col">
           <header className="bg-brand-900 relative">

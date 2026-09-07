@@ -8,43 +8,50 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // "brand" = negro carbón: estructura, header, texto de énfasis, links.
+        // "brand" = paleta "Classical" (Claude Design), rampa neutra
+        // sepia: estructura, header, texto de énfasis, links. Los mismos
+        // valores que ya usan las vistas mobile (--mv-neutral-*).
         brand: {
-          50: "#f6f7f8",
-          100: "#eaeced",
-          200: "#d1d5d9",
-          300: "#aab0b8",
-          400: "#7c848f",
-          500: "#565e68",
-          600: "#3f454d",
-          700: "#2c3138",
-          800: "#1c1f24",
-          900: "#121417"
+          50: "#f8f4f4",
+          100: "#eae7e7",
+          200: "#d7d3d3",
+          300: "#bab6b6",
+          400: "#9b9797",
+          500: "#7d7979",
+          600: "#605d5d",
+          700: "#444141",
+          800: "#2d2b2b",
+          900: "#201f1d"
         },
-        // plateado: fondos y bordes sutiles, tono frío entre blanco y carbón.
+        // "silver": fondos y bordes sutiles — Classical no distingue una
+        // familia fría aparte, comparte la misma rampa neutra que brand,
+        // tomando los pasos más claros.
         silver: {
-          50: "#fbfbfc",
-          100: "#f3f4f6",
-          200: "#e6e8eb",
-          300: "#d3d7db",
-          400: "#b7bcc2",
-          500: "#9aa0a8"
+          50: "#f8f4f4",
+          100: "#eae7e7",
+          200: "#d7d3d3",
+          300: "#bab6b6",
+          400: "#9b9797",
+          500: "#7d7979"
         },
-        // "accent" = cobre: color de contraste para acciones principales.
+        // "accent" = cobre de Classical: color de contraste para acciones
+        // principales. accent-600 es el acento "plano" (#b68235), el
+        // mismo que ya usa --mv-accent en mobile — es la clase que arma
+        // todos los botones primarios (.btn-primary → bg-accent-600).
         accent: {
-          50: "#fef6ec",
-          100: "#fce8cf",
-          200: "#f8cd9b",
-          300: "#f3ac66",
-          400: "#ec8a3c",
-          500: "#dd6f21",
-          600: "#b85717",
-          700: "#924313"
+          50: "#fff3e4",
+          100: "#ffe3bf",
+          200: "#facb8d",
+          300: "#e1ad66",
+          400: "#c28d41",
+          500: "#c28d41",
+          600: "#b68235",
+          700: "#7d5411"
         }
       },
       fontFamily: {
-        sans: ["var(--font-inter)", "system-ui", "sans-serif"],
-        heading: ["var(--font-poppins)", "var(--font-inter)", "system-ui", "sans-serif"]
+        sans: ["var(--font-body)", "system-ui", "sans-serif"],
+        heading: ["var(--font-heading)", "var(--font-body)", "system-ui", "sans-serif"]
       }
     }
   },
