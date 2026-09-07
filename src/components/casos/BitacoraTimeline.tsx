@@ -2,31 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BitacoraEvento } from "@/types/database";
-import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
-
-// Los pasos fijos del timeline móvil son el catálogo real menos
-// "Observaciones" (no es un hito de avance sino un registro libre y
-// repetible). El orden de TIPOS_EVENTO no sirve tal cual para mostrarlo
-// como secuencia: ahí "Cierre de Caso" queda antes de "Baja de Patentes"
-// porque el cierre no depende de esa (ver `requiere` en eventosBitacora.ts),
-// pero en la práctica el cierre es siempre el último paso — se reordena acá
-// solo para esta vista, sin tocar el catálogo compartido.
-const ORDEN_TIMELINE = [
-  "ingreso_caso",
-  "peticion_informes",
-  "contacto_asegurado",
-  "autorizacion_traslado",
-  "asignacion_desarmadero",
-  "traslado",
-  "formulario_baja",
-  "presentacion_baja",
-  "envio_documentacion_cia",
-  "baja_patentes",
-  "cierre_caso"
-];
-const PASOS = ORDEN_TIMELINE.map((v) => TIPOS_EVENTO.find((t) => t.value === v)).filter(
-  (t): t is NonNullable<typeof t> => !!t
-);
+import { PASOS_PROGRESO as PASOS, motivoBloqueo } from "@/lib/eventosBitacora";
 
 interface Props {
   casoId: string;

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CasoConRelaciones, ESTADOS } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { estadoBadgeClass } from "@/lib/estadoBadge";
+import FiltrosCasosMobile from "@/components/casos/FiltrosCasosMobile";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export default async function CasosPage({
     estado?: string;
     q?: string;
     dominio?: string;
+    buscar?: string;
     aseguradora_id?: string;
     tipo_baja_id?: string;
   };
@@ -40,6 +42,20 @@ export default async function CasosPage({
 
   if (searchParams.estado) {
     query = query.eq("estado", searchParams.estado);
+  }
+  if (searchParams.buscar) {
+    // Búsqueda unificada del buscador mobile (1a): dominio, N° de
+    // siniestro o asegurado, lo que primero matchee. El filtro por
+    // separado de "q"/"dominio" de abajo sigue siendo el que usa el
+    // formulario de escritorio.
+    // .or() arma un filtro PostgREST crudo (no lo parametriza el cliente
+    // como sí hace .ilike()) — sacamos ',' y '()' para no romper su sintaxis.
+    const texto = searchParams.buscar.replace(/[,()]/g, " ").trim();
+    if (texto) {
+      query = query.or(
+        `numero_siniestro.ilike.%${texto}%,vehiculo.dominio.ilike.%${texto}%,asegurado.nombre.ilike.%${texto}%`
+      );
+    }
   }
   if (searchParams.q) {
     query = query.ilike("numero_siniestro", `%${searchParams.q}%`);
@@ -79,8 +95,11 @@ export default async function CasosPage({
         )}
       </div>
 
-      <form className="card p-4 mb-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end" method="get">
-        <div className="col-span-2 sm:flex-1 sm:min-w-[140px]">
+      <form
+        className="hidden md:flex card p-4 mb-6 flex-wrap items-end gap-3"
+        method="get"
+      >
+        <div className="flex-1 min-w-[140px]">
           <label className="label">N° de siniestro</label>
           <input
             name="q"
@@ -89,7 +108,7 @@ export default async function CasosPage({
             placeholder="Buscar..."
           />
         </div>
-        <div className="col-span-2 sm:flex-1 sm:min-w-[140px]">
+        <div className="flex-1 min-w-[140px]">
           <label className="label">Dominio</label>
           <input
             name="dominio"
@@ -98,7 +117,7 @@ export default async function CasosPage({
             placeholder="Buscar..."
           />
         </div>
-        <div className="sm:flex-1 sm:min-w-[160px]">
+        <div className="flex-1 min-w-[160px]">
           <label className="label">Compañía</label>
           <select
             name="aseguradora_id"
@@ -113,7 +132,7 @@ export default async function CasosPage({
             ))}
           </select>
         </div>
-        <div className="sm:flex-1 sm:min-w-[160px]">
+        <div className="flex-1 min-w-[160px]">
           <label className="label">Tipo de baja</label>
           <select
             name="tipo_baja_id"
@@ -128,7 +147,7 @@ export default async function CasosPage({
             ))}
           </select>
         </div>
-        <div className="sm:flex-1 sm:min-w-[140px]">
+        <div className="flex-1 min-w-[140px]">
           <label className="label">Estado</label>
           <select
             name="estado"
@@ -143,7 +162,7 @@ export default async function CasosPage({
             ))}
           </select>
         </div>
-        <button className="btn-secondary col-span-2 sm:col-span-1" type="submit">
+        <button className="btn-secondary" type="submit">
           Filtrar
         </button>
       </form>
@@ -158,10 +177,26 @@ export default async function CasosPage({
       <div className="mv md:hidden -mx-4 px-4 pb-4" style={{ background: "var(--mv-bg)" }}>
         <div className="pt-1 pb-3">
           <h2 className="mv-heading text-base">Casos</h2>
-          <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-600)" }}>
-            {casos?.length ?? 0} {casos?.length === 1 ? "caso" : "casos"}
-          </p>
         </div>
+
+        <FiltrosCasosMobile
+          aseguradoras={aseguradoras ?? []}
+          tiposBaja={tiposBaja ?? []}
+          buscar={searchParams.buscar ?? ""}
+          aseguradoraId={searchParams.aseguradora_id ?? ""}
+          tipoBajaId={searchParams.tipo_baja_id ?? ""}
+          estado={searchParams.estado ?? ""}
+        />
+
+        <div className="flex items-baseline justify-between mb-2.5">
+          <h5 className="text-[15px]" style={{ letterSpacing: "-0.01em" }}>
+            Casos
+          </h5>
+          <span className="text-[11.5px] tabular-nums" style={{ color: "var(--mv-neutral-600)" }}>
+            {casos?.length === 1 ? "1 caso" : `${casos?.length ?? 0} casos`}
+          </span>
+        </div>
+
         <div className="flex flex-col gap-3">
           {(casos as CasoConRelaciones[] | null)?.map((caso) => {
             const abierto = caso.estado !== "cerrado";

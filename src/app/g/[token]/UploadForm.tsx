@@ -48,8 +48,8 @@ export default function UploadForm({ token }: { token: string }) {
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="label">Categoría</label>
-        <select name="categoria" className="input" defaultValue={CATEGORIAS_GESTOR[0].value}>
+        <label className="mv-label block mb-1.5">Categoría</label>
+        <select name="categoria" className="mv-input" defaultValue={CATEGORIAS_GESTOR[0].value}>
           {CATEGORIAS_GESTOR.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
@@ -58,21 +58,29 @@ export default function UploadForm({ token }: { token: string }) {
         </select>
       </div>
       <div>
-        <label className="label">Archivo *</label>
+        <label className="mv-label block mb-1.5">Archivo *</label>
         <input
           required
           type="file"
           name="file"
           accept="image/jpeg,image/png,image/webp,image/heic,application/pdf"
-          className="input"
+          className="mv-input"
         />
       </div>
       {mensaje && (
-        <p className={`text-sm ${mensaje.tipo === "ok" ? "text-green-600" : "text-red-600"}`}>
+        <p
+          className="text-sm"
+          style={{ color: mensaje.tipo === "ok" ? "var(--mv-accent-700)" : "#b42318" }}
+        >
           {mensaje.texto}
         </p>
       )}
-      <button className="btn-primary" disabled={saving} type="submit">
+      <button
+        className="mv-btn mv-btn-primary w-full disabled:opacity-50"
+        style={{ minHeight: 48 }}
+        disabled={saving}
+        type="submit"
+      >
         {saving ? "Subiendo..." : "Subir archivo"}
       </button>
     </form>

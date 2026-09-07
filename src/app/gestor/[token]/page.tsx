@@ -3,7 +3,6 @@ import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import InstallBanner from "@/components/InstallBanner";
 import { ESTADOS } from "@/types/database";
-import { estadoBadgeClass } from "@/lib/estadoBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -63,42 +62,37 @@ export default async function HubGestorPage({ params }: { params: { token: strin
   const casos = (data ?? []) as unknown as CasoAsignado[];
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Tus asignaciones</h1>
-        <p className="text-sm text-slate-500">
-          Hola {gestor.nombre}, acá está el historial de todos los casos que se te asignaron.
-        </p>
+    <div className="mv max-w-2xl mx-auto" style={{ background: "var(--mv-bg)" }}>
+      <div className="mb-1">
+        <div className="mv-label">{gestor.nombre} · gestor</div>
+        <h1 className="mv-heading text-xl mt-1">Tus casos</h1>
+      </div>
+      <p className="text-sm mt-2" style={{ color: "var(--mv-neutral-700)" }}>
+        Sin contraseña: el teléfono ya guarda tus enlaces. Cada caso que te asignen aparece acá.
+      </p>
+
+      <div className="my-5">
+        <InstallBanner />
       </div>
 
-      <InstallBanner />
-
       {casos.length === 0 ? (
-        <section className="card p-4 text-sm text-slate-500">
+        <div className="mv-card p-6 text-center text-sm" style={{ color: "var(--mv-neutral-600)" }}>
           Todavía no tenés casos asignados.
-        </section>
+        </div>
       ) : (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {casos.map((caso) => (
-            <Link
-              key={caso.id}
-              href={`/g/${caso.token_gestor}`}
-              className="card p-4 block hover:border-brand-400"
-            >
+            <Link key={caso.id} href={`/g/${caso.token_gestor}`} className="mv-card block p-3.5">
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-medium text-slate-900">Caso {caso.numero_siniestro}</div>
-                  <div className="text-sm text-slate-500">
+                  <div className="mv-heading text-[15px]">{caso.numero_siniestro}</div>
+                  <div className="text-xs mt-0.5 truncate" style={{ color: "var(--mv-neutral-700)" }}>
                     {caso.aseguradora?.nombre ?? "—"}
                     {caso.vehiculo?.dominio ? ` · ${caso.vehiculo.dominio}` : ""}
                     {caso.tipo_baja?.nombre ? ` · ${caso.tipo_baja.nombre}` : ""}
                   </div>
                 </div>
-                <span
-                  className={`shrink-0 text-xs font-medium px-2 py-1 rounded-full ${estadoBadgeClass(
-                    caso.estado
-                  )}`}
-                >
+                <span className="mv-badge shrink-0">
                   {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
                 </span>
               </div>
@@ -106,6 +100,9 @@ export default async function HubGestorPage({ params }: { params: { token: strin
           ))}
         </div>
       )}
+      <p className="text-[11.5px] mt-5" style={{ color: "var(--mv-neutral-600)" }}>
+        Si perdés el teléfono, el tramitador puede revocar el enlace desde el caso.
+      </p>
     </div>
   );
 }

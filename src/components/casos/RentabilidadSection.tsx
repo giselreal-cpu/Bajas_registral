@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import {
   Anticipo,
+  Caja,
   CasoConRelaciones,
   ComercialAseguradora,
   ConceptoMovimiento,
+  CuentaContable,
   ESTADOS_FACTURA,
   Factura,
   MovimientoCaso,
@@ -40,6 +42,8 @@ interface FormMovimiento {
   fecha: string;
   observacion: string;
   pagado: boolean;
+  caja_id: string;
+  cuenta_contable_id: string;
 }
 
 function formVacio(): FormMovimiento {
@@ -48,12 +52,16 @@ function formVacio(): FormMovimiento {
     monto: "",
     fecha: new Date().toISOString().slice(0, 10),
     observacion: "",
-    pagado: false
+    pagado: false,
+    caja_id: "",
+    cuenta_contable_id: ""
   };
 }
 
 export default function RentabilidadSection({ casoId, caso }: Props) {
   const [conceptos, setConceptos] = useState<ConceptoMovimiento[]>([]);
+  const [cajas, setCajas] = useState<Caja[]>([]);
+  const [cuentas, setCuentas] = useState<CuentaContable[]>([]);
   const [movimientos, setMovimientos] = useState<MovimientoCaso[] | null>(null);
   const [facturas, setFacturas] = useState<Factura[] | null>(null);
   const [comercial, setComercial] = useState<ComercialAseguradora | null>(null);
@@ -120,6 +128,12 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     fetch("/api/conceptos-movimiento")
       .then((r) => r.json())
       .then((j) => setConceptos(j.data ?? []));
+    fetch("/api/cajas")
+      .then((r) => r.json())
+      .then((j) => setCajas(j.data ?? []));
+    fetch("/api/cuentas-contables")
+      .then((r) => r.json())
+      .then((j) => setCuentas(j.data ?? []));
     loadMovimientos();
     loadFacturas();
     loadAnticipos();
@@ -174,7 +188,9 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
           monto: Number(form.monto),
           fecha: form.fecha,
           observacion: form.observacion,
-          pagado: form.pagado
+          pagado: form.pagado,
+          caja_id: form.caja_id || null,
+          cuenta_contable_id: form.cuenta_contable_id || null
         })
       });
       const json = await res.json();
@@ -198,7 +214,9 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
       monto: String(m.monto),
       fecha: m.fecha,
       observacion: m.observacion ?? "",
-      pagado: m.pagado
+      pagado: m.pagado,
+      caja_id: m.caja_id ?? "",
+      cuenta_contable_id: m.cuenta_contable_id ?? ""
     });
   }
 
@@ -214,7 +232,9 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
           monto: Number(editForm.monto),
           fecha: editForm.fecha,
           observacion: editForm.observacion,
-          pagado: editForm.pagado
+          pagado: editForm.pagado,
+          caja_id: editForm.caja_id || null,
+          cuenta_contable_id: editForm.cuenta_contable_id || null
         })
       });
       const json = await res.json();
@@ -233,6 +253,21 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     if (!confirm("¿Eliminar este movimiento?")) return;
     setError(null);
     const res = await fetch(`/api/movimientos/${id}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok) {
+      setError(json.error);
+      return;
+    }
+    loadMovimientos();
+  }
+
+  async function aprobarMovimiento(id: string) {
+    setError(null);
+    const res = await fetch(`/api/movimientos/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ aprobado: true })
+    });
     const json = await res.json();
     if (!res.ok) {
       setError(json.error);
@@ -475,10 +510,12 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
               value={form.concepto_id}
               onChange={(e) => {
                 const concepto_id = e.target.value;
+                const concepto = conceptos.find((c) => c.id === concepto_id);
                 setForm((f) => ({
                   ...f,
                   concepto_id,
-                  monto: montoSugerido(concepto_id) || f.monto
+                  monto: montoSugerido(concepto_id) || f.monto,
+                  cuenta_contable_id: concepto?.cuenta_contable_id || f.cuenta_contable_id
                 }));
               }}
             >
@@ -517,6 +554,38 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
               value={form.observacion}
               onChange={(e) => setForm((f) => ({ ...f, observacion: e.target.value }))}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Caja</label>
+              <select
+                className="input"
+                value={form.caja_id}
+                onChange={(e) => setForm((f) => ({ ...f, caja_id: e.target.value }))}
+              >
+                <option value="">Sin asignar</option>
+                {cajas.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="label">Cuenta contable</label>
+              <select
+                className="input"
+                value={form.cuenta_contable_id}
+                onChange={(e) => setForm((f) => ({ ...f, cuenta_contable_id: e.target.value }))}
+              >
+                <option value="">Sin asignar</option>
+                {cuentas.map((cc) => (
+                  <option key={cc.id} value={cc.id}>
+                    {cc.codigo} · {cc.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           {conceptos.find((c) => c.id === form.concepto_id)?.tipo === "egreso" && (
             <label className="flex items-center gap-2 text-sm">
@@ -572,6 +641,34 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                   value={editForm.observacion}
                   onChange={(e) => setEditForm((f) => ({ ...f, observacion: e.target.value }))}
                 />
+                <div className="grid grid-cols-2 gap-2">
+                  <select
+                    className="input"
+                    value={editForm.caja_id}
+                    onChange={(e) => setEditForm((f) => ({ ...f, caja_id: e.target.value }))}
+                  >
+                    <option value="">Sin caja</option>
+                    {cajas.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="input"
+                    value={editForm.cuenta_contable_id}
+                    onChange={(e) =>
+                      setEditForm((f) => ({ ...f, cuenta_contable_id: e.target.value }))
+                    }
+                  >
+                    <option value="">Sin cuenta</option>
+                    {cuentas.map((cc) => (
+                      <option key={cc.id} value={cc.id}>
+                        {cc.codigo} · {cc.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {conceptos.find((c) => c.id === editForm.concepto_id)?.tipo === "egreso" && (
                   <label className="flex items-center gap-2">
                     <input
@@ -617,6 +714,11 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                   {m.factura_id && (
                     <span className="badge ml-1 bg-slate-100 text-slate-500">Facturado</span>
                   )}
+                  {!m.aprobado && (
+                    <span className="badge ml-1 bg-amber-100 text-amber-700">
+                      Gasto de campo · pendiente de aprobar
+                    </span>
+                  )}
                   {m.concepto?.tipo === "egreso" && (
                     <span className="ml-1 inline-block">
                       <MovimientoPagadoToggle
@@ -630,12 +732,22 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                 {m.observacion && <p className="text-slate-500">{m.observacion}</p>}
                 <p className="text-xs text-slate-400">
                   {new Date(m.fecha + "T00:00:00").toLocaleDateString("es-AR")}
+                  {m.caja && ` · ${m.caja.nombre}`}
+                  {m.cuenta_contable && ` · ${m.cuenta_contable.codigo}`}
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 <span className="font-medium text-slate-800">{formatCurrency(m.monto)}</span>
                 {!m.factura_id && (
                   <div className="flex flex-col items-end gap-1">
+                    {!m.aprobado && (
+                      <button
+                        className="text-xs text-accent-700 hover:underline"
+                        onClick={() => aprobarMovimiento(m.id)}
+                      >
+                        Aprobar
+                      </button>
+                    )}
                     <button
                       className="text-xs text-slate-400 hover:text-brand-700"
                       onClick={() => empezarEdicion(m)}

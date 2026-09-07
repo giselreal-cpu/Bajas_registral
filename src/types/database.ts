@@ -217,7 +217,8 @@ export type CategoriaDocumento =
   | "observaciones_gestor"
   | "recibos_gestor"
   | "otros_gestor"
-  | "formulario_baja";
+  | "formulario_baja"
+  | "comprobante_gasto";
 
 export const CATEGORIAS_GESTOR: { value: CategoriaDocumento; label: string }[] = [
   { value: "turno_registro", label: "Turno en Registro" },
@@ -252,10 +253,39 @@ export interface HistorialCambio {
 
 export type TipoMovimiento = "ingreso" | "egreso";
 
+export type TipoCaja = "efectivo" | "banco" | "billetera" | "fondo_fijo";
+
+export const TIPOS_CAJA: { value: TipoCaja; label: string }[] = [
+  { value: "efectivo", label: "Efectivo" },
+  { value: "banco", label: "Cuenta bancaria" },
+  { value: "billetera", label: "Billetera virtual" },
+  { value: "fondo_fijo", label: "Fondo fijo" }
+];
+
+export interface Caja {
+  id: string;
+  nombre: string;
+  tipo: TipoCaja;
+  saldo_inicial: number;
+  activa: boolean;
+  created_at: string;
+}
+
+export interface CuentaContable {
+  id: string;
+  codigo: string;
+  nombre: string;
+  tipo: TipoMovimiento;
+  imputable: boolean;
+  created_at: string;
+}
+
 export interface ConceptoMovimiento {
   id: string;
   nombre: string;
   tipo: TipoMovimiento;
+  cuenta_contable_id: string | null;
+  cuenta_contable?: CuentaContable | null;
 }
 
 export interface MovimientoCaso {
@@ -267,9 +297,15 @@ export interface MovimientoCaso {
   observacion: string | null;
   factura_id: string | null;
   pagado: boolean;
+  caja_id: string | null;
+  cuenta_contable_id: string | null;
+  documento_id: string | null;
+  aprobado: boolean;
   creado_por: string | null;
   created_at: string;
   concepto: ConceptoMovimiento | null;
+  caja?: Caja | null;
+  cuenta_contable?: CuentaContable | null;
 }
 
 export type TipoReceptor = "compania" | "desarmadero";
@@ -306,6 +342,7 @@ export interface Cobro {
   medio_pago: string | null;
   observacion: string | null;
   anticipo_id: string | null;
+  caja_id: string | null;
   created_at: string;
 }
 

@@ -2,5 +2,6 @@ import { createCatalogItemHandlers } from "@/lib/api/catalogHandlers";
 
 export const { PUT, DELETE } = createCatalogItemHandlers("conceptos_movimiento", [
   "nombre",
-  "tipo"
+  "tipo",
+  "cuenta_contable_id"
 ]);

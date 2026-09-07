@@ -419,6 +419,20 @@ siguiendo el `CLAUDE.md` del proyecto.
   el gesto de deslizar, no siempre intuitivo) — usa el historial de
   navegación si lo hay, o cae a `/casos` si se entró por un enlace
   directo.
+- **Filtros del listado en mobile** (`FiltrosCasosMobile.tsx`, dentro de
+  `/casos`): reemplaza el formulario de escritorio por un buscador único
+  (dominio, N° de siniestro o asegurado, vía el nuevo parámetro `buscar`)
+  y tres chips — Tipo de baja, Compañía, Estado — que abren una hoja de
+  selección; al elegir, el chip queda marcado en oro con una ✕ para
+  limpiarlo. El formulario de escritorio (`q`/`dominio`/selects) sigue
+  intacto para pantallas grandes.
+- **Vistas públicas de gestor y desarmadero rediseñadas**: `/g/[token]`
+  suma botones **"Llamar"** (`tel:`) y **"Cómo llegar"** (Google Maps con
+  la dirección del asegurado); `/fb/[token]` (formulario de baja) suma
+  una regla de avance visual (paso X de Y sobre `PASOS_PROGRESO` en
+  `src/lib/eventosBitacora.ts`, compartido con `BitacoraTimeline.tsx`) y
+  recorta "Datos del caso" a vehículo y tipo de baja únicamente, sin
+  datos del asegurado ni comerciales.
 
 - **Rentabilidad / módulo financiero (Fases 1 y 2)**: página dedicada
   `/casos/[id]/rentabilidad` (accesible desde un resumen compacto —
@@ -533,6 +547,43 @@ siguiendo el `CLAUDE.md` del proyecto.
     al sistema de roles actual (Fase 3) y notificaciones automáticas
     WhatsApp/Email (Fase 4).
 
+- **Capa contable aditiva — cajas, cuentas contables y `/administracion`**
+  (`0041_cajas_cuentas_contables.sql`): dos catálogos nuevos y columnas
+  100% opcionales sobre lo ya existente — un movimiento sin caja/cuenta
+  asignada sigue sin cambiar su comportamiento de siempre.
+  - **Cajas** (`/catalogos/cajas`): medios de efectivo reales (efectivo,
+    cuenta bancaria, billetera virtual, fondo fijo), con saldo inicial.
+  - **Cuentas contables** (`/catalogos/cuentas-contables`): catálogo
+    código + nombre. Cada **concepto de movimiento**
+    (`/catalogos/conceptos-movimiento`) puede tener una cuenta sugerida
+    por defecto (`cuenta_contable_id`) — se propone sola al cargar un
+    movimiento con ese concepto, y se puede corregir en el momento.
+  - El formulario de movimientos de `RentabilidadSection` (dentro de
+    cada caso) ahora suma selects de caja y cuenta contable, opcionales,
+    además del monto sugerido que ya existía por comisión.
+  - **`/administracion`** (escritorio, oculto para el rol compañía): dos
+    reportes conmutables. **Libro de movimientos** — todos los
+    movimientos con caja o cuenta asignada, filtrables por caja, cuenta,
+    centro de costo (la aseguradora del caso) y rango de fechas, con
+    saldo acumulado por fila. **Liquidez** — saldo actual por caja
+    (saldo inicial + entradas − salidas), con el total disponible y una
+    nota de cuánto queda fuera por no tener caja asignada. *Importante*:
+    este libro muestra lo **cargado** (devengado) con caja/cuenta
+    asignada — para ingresos realmente **cobrados**, la fuente de verdad
+    sigue siendo `/cuenta-corriente` y `/seguimiento-financiero`.
+  - **Gastos de campo con aprobación** (`movimientos_caso.aprobado`,
+    default `true` — no cambia nada de lo ya cargado desde escritorio):
+    la nueva pantalla móvil **Caja** (`/caja`, reemplaza el ícono
+    "Exportar" en la barra inferior) muestra a cobrar (facturas pendientes
+    a compañías), a rendir (gastos de campo sin aprobar) y las
+    rendiciones pendientes, con botón **Aprobar**. **`/caja/nuevo`**
+    ("Registrar gasto") deja elegir el caso, el concepto, el importe, la
+    caja (preseleccionada con la más usada por ese usuario en los
+    últimos 30 días) y la cuenta sugerida, más una foto opcional del
+    comprobante (categoría de documento `comprobante_gasto`); el
+    movimiento queda `aprobado: false` hasta que alguien lo apruebe
+    desde `/caja` o desde la ficha del caso.
+
 No incluido todavía (a propósito, según el `CLAUDE.md`): las fases 3-4 del
 módulo financiero recién descriptas, y roles separados internos
 (gestor/tramitador dentro del equipo propio — distinto de los roles de
@@ -643,6 +694,11 @@ externa sin cuenta en el sistema, no un rol interno del equipo).
    - `supabase/migrations/0040_gestores_token_acceso.sql` (agrega
      `token_acceso`, identidad persistente por gestor para el hub de
      "Ver todas mis asignaciones" en `/gestor/<token>`)
+   - `supabase/migrations/0041_cajas_cuentas_contables.sql` (capa
+     contable aditiva: catálogos `cajas`/`cuentas_contables`, `caja_id`/
+     `cuenta_contable_id` opcionales en `movimientos_caso`, `caja_id`
+     opcional en `cobros`, mapeo por defecto en `conceptos_movimiento`,
+     y la categoría de documento `comprobante_gasto` — ver más abajo)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.

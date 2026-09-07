@@ -98,3 +98,55 @@ export function motivoBloqueo(
   }
   return null;
 }
+
+// Orden de presentación para vistas de "regla de avance" (timeline móvil,
+// vista acotada del desarmadero): el orden de TIPOS_EVENTO arriba no sirve
+// tal cual como secuencia porque "Cierre de Caso" queda antes de "Baja de
+// Patentes" ahí (el cierre no depende de esa, ver `requiere`), pero en la
+// práctica el cierre es siempre el último paso. "Observaciones" queda
+// afuera: no es un hito de avance sino un registro libre y repetible.
+const ORDEN_PROGRESO = [
+  "ingreso_caso",
+  "peticion_informes",
+  "contacto_asegurado",
+  "autorizacion_traslado",
+  "asignacion_desarmadero",
+  "traslado",
+  "formulario_baja",
+  "presentacion_baja",
+  "envio_documentacion_cia",
+  "baja_patentes",
+  "cierre_caso"
+];
+
+export const PASOS_PROGRESO: TipoEventoDef[] = ORDEN_PROGRESO.map((v) =>
+  TIPOS_EVENTO.find((t) => t.value === v)
+).filter((t): t is TipoEventoDef => !!t);
+
+export interface Progreso {
+  completados: number;
+  total: number;
+  pasoActual: TipoEventoDef | null;
+  motivoBloqueoActual: string | null;
+}
+
+// Resume el avance de un caso sobre PASOS_PROGRESO: cuántos hitos ya están
+// completados y cuál es el próximo paso pendiente (con su motivo de
+// bloqueo, si lo tiene). Se usa tanto en BitacoraTimeline (mobile) como en
+// la vista acotada del desarmadero (/fb/[token]).
+export function calcularProgreso(
+  eventos: { tipo_evento: string; completado: boolean }[]
+): Progreso {
+  const completadosSet = new Set(
+    eventos.filter((e) => e.completado).map((e) => e.tipo_evento)
+  );
+  const completados = PASOS_PROGRESO.filter((p) => completadosSet.has(p.label)).length;
+  const pasoActual = PASOS_PROGRESO.find((p) => !completadosSet.has(p.label)) ?? null;
+  const motivoBloqueoActual = pasoActual
+    ? motivoBloqueo(
+        pasoActual.label,
+        eventos.map((e, i) => ({ id: String(i), ...e }))
+      )
+    : null;
+  return { completados, total: PASOS_PROGRESO.length, pasoActual, motivoBloqueoActual };
+}

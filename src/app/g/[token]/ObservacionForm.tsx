@@ -29,15 +29,29 @@ export default function ObservacionForm({ token }: { token: string }) {
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-3">
       <div>
-        <label className="label">Observación *</label>
-        <textarea required name="texto" rows={3} className="input" />
+        <textarea
+          required
+          name="texto"
+          rows={3}
+          placeholder="Ej.: turno en el registro para el 04/09 a las 10:30"
+          className="mv-input"
+          style={{ resize: "none" }}
+        />
       </div>
       {mensaje && (
-        <p className={`text-sm ${mensaje.tipo === "ok" ? "text-green-600" : "text-red-600"}`}>
+        <p
+          className="text-sm"
+          style={{ color: mensaje.tipo === "ok" ? "var(--mv-accent-700)" : "#b42318" }}
+        >
           {mensaje.texto}
         </p>
       )}
-      <button className="btn-primary" disabled={saving} type="submit">
+      <button
+        className="mv-btn mv-btn-primary w-full disabled:opacity-50"
+        style={{ minHeight: 48 }}
+        disabled={saving}
+        type="submit"
+      >
         {saving ? "Guardando..." : "Agregar observación"}
       </button>
     </form>

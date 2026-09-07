@@ -100,90 +100,129 @@ export default async function EnlaceGestorPage({
     }))
   );
 
+  const direccion = [caso.asegurado?.direccion, caso.asegurado?.localidad, caso.asegurado?.provincia]
+    .filter(Boolean)
+    .join(", ");
+  const telefono = caso.asegurado?.telefono?.replace(/[^\d+]/g, "");
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Caso {caso.numero_siniestro}</h1>
-        <p className="text-sm text-slate-500">
-          Hola {caso.gestor?.nombre ?? ""}, acá tenés los datos para gestionar este caso.
-        </p>
-        {caso.gestor?.token_acceso && (
-          <Link
-            href={`/gestor/${caso.gestor.token_acceso}`}
-            className="text-sm text-brand-600 hover:underline"
-          >
-            Ver todas mis asignaciones →
-          </Link>
-        )}
+    <div className="mv max-w-2xl mx-auto" style={{ background: "var(--mv-bg)" }}>
+      <div className="mb-1">
+        <div className="mv-label">Enlace de gestor · sin cuenta</div>
+        <h1 className="mv-heading text-xl mt-1 tabular-nums">{caso.numero_siniestro}</h1>
+      </div>
+      <p className="text-sm mt-2" style={{ color: "var(--mv-neutral-700)" }}>
+        Hola {caso.gestor?.nombre ?? ""}, acá tenés los datos para gestionar este caso.
+      </p>
+      {caso.gestor?.token_acceso && (
+        <Link
+          href={`/gestor/${caso.gestor.token_acceso}`}
+          className="text-sm underline underline-offset-4"
+          style={{ color: "var(--mv-accent-700)" }}
+        >
+          Ver todas mis asignaciones →
+        </Link>
+      )}
+
+      <div className="my-5">
+        <InstallBanner />
       </div>
 
-      <InstallBanner />
+      <div className="mv-label mb-2">Datos del caso</div>
+      <div className="mv-card px-3.5">
+        <Campo label="Aseguradora">{caso.aseguradora?.nombre ?? "—"}</Campo>
+        <Campo label="Tipo de Baja">{caso.tipo_baja?.nombre ?? "—"}</Campo>
+        <Campo label="Vehículo">
+          {caso.vehiculo?.dominio ?? "—"}
+          {caso.vehiculo?.marca ? ` · ${caso.vehiculo.marca}` : ""}
+          {caso.vehiculo?.modelo ? ` ${caso.vehiculo.modelo}` : ""}
+        </Campo>
+        <Campo label="Asegurado">{caso.asegurado?.nombre ?? "—"}</Campo>
+        <Campo label="Contacto">{caso.asegurado?.telefono ?? "—"}</Campo>
+        <Campo label="Dirección">{direccion || "—"}</Campo>
+        <Campo label="Registro de radicación" ultimo>
+          {caso.registro
+            ? `${caso.registro.numero}${caso.registro.seccional ? ` (${caso.registro.seccional})` : ""}${
+                caso.registro.provincia ? ` - ${caso.registro.provincia}` : ""
+              }`
+            : "Sin asignar todavía"}
+        </Campo>
+      </div>
 
-      <section className="card p-4">
-        <h2 className="font-medium text-slate-800 mb-3">Datos del caso</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <Campo label="Aseguradora">{caso.aseguradora?.nombre ?? "—"}</Campo>
-          <Campo label="Tipo de Baja">{caso.tipo_baja?.nombre ?? "—"}</Campo>
-          <Campo label="Vehículo">
-            {caso.vehiculo?.dominio ?? "—"}
-            {caso.vehiculo?.marca ? ` · ${caso.vehiculo.marca}` : ""}
-            {caso.vehiculo?.modelo ? ` ${caso.vehiculo.modelo}` : ""}
-          </Campo>
-          <Campo label="Asegurado">{caso.asegurado?.nombre ?? "—"}</Campo>
-          <Campo label="Contacto">{caso.asegurado?.telefono ?? "—"}</Campo>
-          <Campo label="Dirección">
-            {[caso.asegurado?.direccion, caso.asegurado?.localidad, caso.asegurado?.provincia]
-              .filter(Boolean)
-              .join(", ") || "—"}
-          </Campo>
-          <Campo label="Registro de radicación">
-            {caso.registro
-              ? `${caso.registro.numero}${caso.registro.seccional ? ` (${caso.registro.seccional})` : ""}${
-                  caso.registro.provincia ? ` - ${caso.registro.provincia}` : ""
-                }`
-              : "Sin asignar todavía"}
-          </Campo>
-        </div>
-      </section>
+      <div className="flex gap-2.5 mt-3">
+        <a
+          href={telefono ? `tel:${telefono}` : undefined}
+          aria-disabled={!telefono}
+          className="mv-btn mv-btn-primary flex-1"
+          style={{ minHeight: 46, opacity: telefono ? 1 : 0.5, pointerEvents: telefono ? "auto" : "none" }}
+        >
+          Llamar
+        </a>
+        <a
+          href={direccion ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}` : undefined}
+          target="_blank"
+          rel="noreferrer"
+          aria-disabled={!direccion}
+          className="mv-btn mv-btn-secondary flex-1"
+          style={{ minHeight: 46, opacity: direccion ? 1 : 0.5, pointerEvents: direccion ? "auto" : "none" }}
+        >
+          Cómo llegar
+        </a>
+      </div>
 
       {documentos.length > 0 && (
-        <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Documentación adjunta</h2>
-          <ul className="space-y-1 text-sm">
-            {documentos.map((d) => (
-              <li key={d.id}>
+        <>
+          <div className="h-px my-5" style={{ background: "var(--mv-divider)" }} />
+          <div className="mv-label mb-2">Documentación adjunta</div>
+          <div className="mv-card px-3.5">
+            {documentos.map((d, i) => (
+              <div
+                key={d.id}
+                className="flex items-center justify-between gap-3 py-3"
+                style={i < documentos.length - 1 ? { borderBottom: "1px solid var(--mv-divider)" } : undefined}
+              >
                 <a
                   href={d.url_firmada ?? "#"}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-brand-600 hover:underline"
+                  className="text-[13.5px] truncate underline underline-offset-4"
+                  style={{ color: "var(--mv-accent-700)" }}
                 >
                   {d.nombre}
                 </a>
-              </li>
+              </div>
             ))}
-          </ul>
-        </section>
+          </div>
+        </>
       )}
 
-      <section className="card p-4">
-        <h2 className="font-medium text-slate-800 mb-3">Cargar un archivo</h2>
-        <UploadForm token={params.token} />
-      </section>
+      <div className="h-px my-5" style={{ background: "var(--mv-divider)" }} />
+      <div className="mv-label mb-2">Cargar un archivo</div>
+      <UploadForm token={params.token} />
 
-      <section className="card p-4">
-        <h2 className="font-medium text-slate-800 mb-3">Agregar una observación</h2>
-        <ObservacionForm token={params.token} />
-      </section>
+      <div className="h-px my-5" style={{ background: "var(--mv-divider)" }} />
+      <div className="mv-label mb-2">Agregar una observación</div>
+      <ObservacionForm token={params.token} />
     </div>
   );
 }
 
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+function Campo({
+  label,
+  children,
+  ultimo
+}: {
+  label: string;
+  children: React.ReactNode;
+  ultimo?: boolean;
+}) {
   return (
-    <div>
-      <div className="label">{label}</div>
-      <div className="text-slate-800">{children}</div>
+    <div
+      className="flex items-baseline justify-between gap-3.5 py-3"
+      style={ultimo ? undefined : { borderBottom: "1px solid var(--mv-divider)" }}
+    >
+      <span className="mv-label shrink-0">{label}</span>
+      <span className="text-[13.5px] text-right">{children}</span>
     </div>
   );
 }

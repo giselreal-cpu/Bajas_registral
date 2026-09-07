@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
+import { calcularProgreso } from "@/lib/eventosBitacora";
 import InstallBanner from "@/components/InstallBanner";
 import UploadForm from "./UploadForm";
 
@@ -19,8 +20,8 @@ interface EventoFormularioBaja {
   formulario_baja_nombre: string | null;
   caso: {
     numero_siniestro: string;
-    aseguradora: { nombre: string } | null;
     vehiculo: { dominio: string; marca: string | null; modelo: string | null } | null;
+    tipo_baja: { nombre: string } | null;
   } | null;
 }
 
@@ -40,8 +41,8 @@ export default async function EnlaceFormularioBajaPage({
       formulario_baja_nombre,
       caso:casos(
         numero_siniestro,
-        aseguradora:aseguradoras(nombre),
-        vehiculo:vehiculos(dominio, marca, modelo)
+        vehiculo:vehiculos(dominio, marca, modelo),
+        tipo_baja:tipos_baja(nombre)
       )
     `
     )
@@ -63,11 +64,19 @@ export default async function EnlaceFormularioBajaPage({
     );
   }
 
-  const { data: todosLosDocumentos } = await supabase
-    .from("documentos")
-    .select("id, nombre, url, categoria")
-    .eq("caso_id", evento.caso_id)
-    .order("created_at", { ascending: false });
+  const [{ data: todosLosDocumentos }, { data: eventosBitacora }] = await Promise.all([
+    supabase
+      .from("documentos")
+      .select("id, nombre, url, categoria")
+      .eq("caso_id", evento.caso_id)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("bitacora")
+      .select("tipo_evento, completado")
+      .eq("caso_id", evento.caso_id)
+  ]);
+
+  const progreso = calcularProgreso(eventosBitacora ?? []);
 
   // La carpeta del dominio (imágenes, documentos para la compañía, o
   // cualquier link pegado) es lo que la persona necesita para completar
@@ -93,85 +102,137 @@ export default async function EnlaceFormularioBajaPage({
   ]);
 
   const caso = evento.caso;
+  const yaCargado = documentos.length > 0;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">
-          Caso {caso?.numero_siniestro ?? "—"}
+    <div className="mv max-w-2xl mx-auto" style={{ background: "var(--mv-bg)" }}>
+      <div className="mb-1">
+        <div className="mv-label">Enlace de desarmadero · sin cuenta</div>
+        <h1 className="mv-heading text-xl mt-1 tabular-nums">
+          {caso?.vehiculo?.dominio ?? "—"} · {caso?.numero_siniestro ?? "—"}
         </h1>
-        <p className="text-sm text-slate-500">
-          Hola {evento.formulario_baja_nombre}, acá podés cargar el formulario/04D completado
-          para este caso.
-        </p>
+      </div>
+      <p className="text-sm mt-2 mb-4" style={{ color: "var(--mv-neutral-700)" }}>
+        Hola {evento.formulario_baja_nombre}, acá podés seguir el caso y cargar el formulario/04D
+        completado.
+      </p>
+
+      <div className="mb-5">
+        <InstallBanner />
       </div>
 
-      <InstallBanner />
+      <div className="mv-label mb-1.5">Estado del trámite</div>
+      <div className="mv-heading text-[26px] leading-tight" style={{ letterSpacing: "-0.02em" }}>
+        {progreso.pasoActual ? progreso.pasoActual.label : "Cerrado"}
+      </div>
+      <p className="text-[12.5px] mt-1.5" style={{ color: "var(--mv-neutral-700)" }}>
+        Paso {progreso.completados} de {progreso.total}
+      </p>
+      <div className="flex gap-[3px] mt-4 mb-1.5">
+        {Array.from({ length: progreso.total }).map((_, i) => (
+          <span
+            key={i}
+            className="flex-1 h-1.5"
+            style={{ background: i < progreso.completados ? "var(--mv-accent)" : "var(--mv-neutral-300)" }}
+          />
+        ))}
+      </div>
+      <div className="flex justify-between text-[10.5px] uppercase tracking-wide" style={{ color: "var(--mv-neutral-600)" }}>
+        <span>Ingreso</span>
+        <span>Cierre</span>
+      </div>
 
-      <section className="card p-4">
-        <h2 className="font-medium text-slate-800 mb-3">Datos del caso</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <div>
-            <div className="label">Aseguradora</div>
-            <div className="text-slate-800">{caso?.aseguradora?.nombre ?? "—"}</div>
-          </div>
-          <div>
-            <div className="label">Vehículo</div>
-            <div className="text-slate-800 uppercase">
-              {caso?.vehiculo?.dominio ?? "—"}
-              <span className="normal-case">
-                {caso?.vehiculo?.marca ? ` · ${caso.vehiculo.marca}` : ""}
-                {caso?.vehiculo?.modelo ? ` ${caso.vehiculo.modelo}` : ""}
-              </span>
-            </div>
-          </div>
+      {progreso.pasoActual && (
+        <div className="mt-4" style={{ borderLeft: "2px solid var(--mv-accent)", paddingLeft: 14 }}>
+          <div className="mv-label">Lo que sigue</div>
+          <div className="mv-heading text-[17px] mt-0.5">{progreso.pasoActual.label}</div>
+          <p className="text-[12.5px] mt-1" style={{ color: "var(--mv-neutral-700)" }}>
+            {progreso.motivoBloqueoActual ?? "Sin bloqueos pendientes."}
+          </p>
         </div>
-      </section>
+      )}
+
+      <div className="h-px my-5" style={{ background: "var(--mv-divider)" }} />
+      <div className="mv-label mb-2">Datos del caso</div>
+      <div className="mv-card px-3.5">
+        <Campo label="Vehículo">
+          {caso?.vehiculo?.dominio ?? "—"}
+          {caso?.vehiculo?.marca ? ` · ${caso.vehiculo.marca}` : ""}
+          {caso?.vehiculo?.modelo ? ` ${caso.vehiculo.modelo}` : ""}
+        </Campo>
+        <Campo label="Tipo de baja" ultimo>
+          {caso?.tipo_baja?.nombre ?? "—"}
+        </Campo>
+      </div>
 
       {documentosCaso.length > 0 && (
-        <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Documentación del caso</h2>
-          <ul className="space-y-1 text-sm">
-            {documentosCaso.map((d) => (
-              <li key={d.id}>
+        <>
+          <div className="h-px my-5" style={{ background: "var(--mv-divider)" }} />
+          <div className="mv-label mb-2">Documentación del caso</div>
+          <div className="mv-card px-3.5">
+            {documentosCaso.map((d, i) => (
+              <div
+                key={d.id}
+                className="flex items-center justify-between gap-3 py-3"
+                style={i < documentosCaso.length - 1 ? { borderBottom: "1px solid var(--mv-divider)" } : undefined}
+              >
                 <a
                   href={d.url_firmada ?? "#"}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-brand-600 hover:underline"
+                  className="text-[13.5px] truncate underline underline-offset-4"
+                  style={{ color: "var(--mv-accent-700)" }}
                 >
                   {d.nombre}
                 </a>
-              </li>
+              </div>
             ))}
-          </ul>
-        </section>
+          </div>
+        </>
       )}
 
-      {documentos.length > 0 && (
-        <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Formulario/04D ya cargado</h2>
-          <ul className="space-y-1 text-sm">
-            {documentos.map((d) => (
-              <li key={d.id}>
-                <a
-                  href={d.url_firmada ?? "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand-600 hover:underline"
-                >
-                  {d.nombre}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="card p-4">
-        <h2 className="font-medium text-slate-800 mb-3">Cargar el formulario/04D completado</h2>
+      <div className="h-px my-5" style={{ background: "var(--mv-divider)" }} />
+      <div className="mv-label mb-2">Cargar el formulario/04D completado</div>
+      {yaCargado ? (
+        <div className="mv-card p-3.5">
+          <div className="mv-heading text-[15px]" style={{ color: "var(--mv-accent-700)" }}>
+            04D cargado correctamente
+          </div>
+          <div className="text-[12.5px] mt-1" style={{ color: "var(--mv-neutral-700)" }}>
+            {documentos[0].nombre}
+          </div>
+          <div className="mt-3">
+            <UploadForm token={params.token} />
+          </div>
+        </div>
+      ) : (
         <UploadForm token={params.token} />
-      </section>
+      )}
+
+      <p className="text-[11px] mt-4" style={{ color: "var(--mv-neutral-600)" }}>
+        Este enlace muestra solo el seguimiento y la documentación del caso. No se muestran datos
+        del asegurado ni comerciales.
+      </p>
+    </div>
+  );
+}
+
+function Campo({
+  label,
+  children,
+  ultimo
+}: {
+  label: string;
+  children: React.ReactNode;
+  ultimo?: boolean;
+}) {
+  return (
+    <div
+      className="flex items-baseline justify-between gap-3.5 py-3"
+      style={ultimo ? undefined : { borderBottom: "1px solid var(--mv-divider)" }}
+    >
+      <span className="mv-label shrink-0">{label}</span>
+      <span className="text-[13.5px] text-right">{children}</span>
     </div>
   );
 }
