@@ -45,12 +45,16 @@ export function asuntoYCuerpo(
   const aseguradora = caso.aseguradora?.nombre ?? "s/d";
   const nombreAsegurado = caso.asegurado?.nombre ?? "s/d";
   const gestor = caso.gestor?.nombre ?? "s/d";
+  const formatMoneda = (valor: number | null) =>
+    (valor ?? 0).toLocaleString("es-AR", { style: "currency", currency: "ARS" });
 
   const subject = `Siniestro ${numero} · Dominio ${dominio} · ${aseguradora} — ${TITULOS[tipo]}`;
 
   const cuerpos: Record<TipoNotificacion, string> = {
     ingreso_caso: `Le informamos que se dio inicio al trámite de baja registral del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}).`,
-    contacto_asegurado: `Le informamos que se contactó al asegurado ${nombreAsegurado} para coordinar los próximos pasos de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}).`,
+    contacto_asegurado: `Le informamos que se contactó al asegurado ${nombreAsegurado} para coordinar los próximos pasos de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}). Se comunicó estado de multas por ${formatMoneda(
+      caso.deuda_multas
+    )} y patentes por ${formatMoneda(caso.deuda_patentes)}.`,
     gestor_asignado: `Le informamos que se asignó un gestor de campo (${gestor}) para continuar los trámites de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}).`,
     traslado: `Le informamos que se trasladó la unidad dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) hacia el desarmadero asignado.`,
     presentacion_baja: `Le informamos que se presentó la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) en el registro automotor.`

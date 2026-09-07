@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CasoConRelaciones } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import CasoCabecera from "@/components/casos/CasoCabecera";
+import CasoDetailMobile from "@/components/casos/CasoDetailMobile";
 import BitacoraSection from "@/components/casos/BitacoraSection";
 import DocumentosSection from "@/components/casos/DocumentosSection";
 import HistorialSection from "@/components/casos/HistorialSection";
@@ -80,7 +81,21 @@ export default async function CasoDetallePage({
   const gananciaNeta = ingresos - egresos;
 
   return (
-    <div className="space-y-6">
+    <div>
+      <div className="md:hidden">
+        <CasoDetailMobile
+          caso={caso as CasoConRelaciones}
+          aseguradoras={aseguradoras ?? []}
+          registros={registros ?? []}
+          tiposBaja={tiposBaja ?? []}
+          usuarios={usuarios ?? []}
+          gestores={gestores ?? []}
+          soloLectura={soloLectura}
+          esAdministrador={esAdministrador}
+        />
+      </div>
+
+      <div className="hidden md:block space-y-6">
       <CasoCabecera
         caso={caso as CasoConRelaciones}
         aseguradoras={aseguradoras ?? []}
@@ -159,6 +174,7 @@ export default async function CasoDetallePage({
       )}
 
       <HistorialSection casoId={caso.id} soloLectura={soloLectura} />
+      </div>
     </div>
   );
 }

@@ -48,9 +48,24 @@ export async function updateSession(request: NextRequest) {
   // Enlace público de la encuesta de satisfacción: sin login, se
   // responde una única vez.
   const esEncuestaPublica = pathname.startsWith("/encuesta/");
+  // Hub público del gestor (histórico de todas sus asignaciones), token
+  // propio de la persona, separado del token por caso de arriba.
+  const esGestorHubPublico = pathname.startsWith("/gestor/");
+  // Manifest de PWA por token para los enlaces públicos de arriba: el
+  // navegador los pide sin cookies de sesión al instalar el ícono.
+  const esManifestPublico =
+    pathname.startsWith("/api/manifest-gestor-hub/") ||
+    pathname.startsWith("/api/manifest-formulario-baja/");
 
   if (!user) {
-    if (esGestorPublico || esGrueroPublico || esFormularioBajaPublico || esEncuestaPublica) {
+    if (
+      esGestorPublico ||
+      esGrueroPublico ||
+      esFormularioBajaPublico ||
+      esEncuestaPublica ||
+      esGestorHubPublico ||
+      esManifestPublico
+    ) {
       return response;
     }
     if (esApi) {

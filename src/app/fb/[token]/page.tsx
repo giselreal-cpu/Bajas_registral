@@ -1,8 +1,17 @@
+import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
+import InstallBanner from "@/components/InstallBanner";
 import UploadForm from "./UploadForm";
 
 export const dynamic = "force-dynamic";
+
+// Mismo criterio que /g/[token]: el ícono instalado desde este enlace en
+// Android tiene que volver a ESTE formulario, no al manifest general
+// (start_url "/", que exige sesión) — ver src/lib/pwaManifest.ts.
+export function generateMetadata({ params }: { params: { token: string } }): Metadata {
+  return { manifest: `/api/manifest-formulario-baja/${params.token}` };
+}
 
 interface EventoFormularioBaja {
   id: string;
@@ -96,6 +105,8 @@ export default async function EnlaceFormularioBajaPage({
           para este caso.
         </p>
       </div>
+
+      <InstallBanner />
 
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Datos del caso</h2>

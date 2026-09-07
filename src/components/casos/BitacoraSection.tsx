@@ -353,6 +353,11 @@ export default function BitacoraSection({
   // igual, esto es un paso aparte y opcional).
   const [notificarEventoId, setNotificarEventoId] = useState<string | null>(null);
   const [encuesta, setEncuesta] = useState<EncuestaSatisfaccion | null>(null);
+  // Para casos donde "Presentación de Baja" ya estaba completada antes de
+  // que existiera la encuesta (o cuya encuesta no se llegó a enviar en su
+  // momento): botón manual para generar/mostrar el enlace en cualquier
+  // momento, no solo justo al completar el evento.
+  const [mostrarEncuestaEventoId, setMostrarEncuestaEventoId] = useState<string | null>(null);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -1072,6 +1077,19 @@ export default function BitacoraSection({
                       Eliminar
                     </button>
                   )}
+                  {!soloLectura &&
+                    ev.tipo_evento === "Presentación de Baja" &&
+                    ev.completado &&
+                    !encuesta?.respondida && (
+                      <button
+                        className="text-xs text-slate-400 hover:text-brand-700"
+                        onClick={() =>
+                          setMostrarEncuestaEventoId((id) => (id === ev.id ? null : ev.id))
+                        }
+                      >
+                        {encuesta ? "Ver enlace de encuesta" : "Generar encuesta"}
+                      </button>
+                    )}
                 </div>
               </div>
               {excepcionEventoId === ev.id && (
@@ -1115,9 +1133,10 @@ export default function BitacoraSection({
                   onClose={() => setNotificarEventoId(null)}
                 />
               )}
-              {notificarEventoId === ev.id && ev.tipo_evento === "Presentación de Baja" && (
-                <EncuestaBox casoId={casoId} caso={caso} />
-              )}
+              {ev.tipo_evento === "Presentación de Baja" &&
+                (notificarEventoId === ev.id || mostrarEncuestaEventoId === ev.id) && (
+                  <EncuestaBox casoId={casoId} caso={caso} />
+                )}
             </li>
           );
         })}

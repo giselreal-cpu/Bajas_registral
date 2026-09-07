@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { CasoConRelaciones, ESTADOS } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { estadoBadgeClass } from "@/lib/estadoBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -14,17 +15,10 @@ const CASO_SELECT = `
   tipo_baja:tipos_baja(*)
 `;
 
-function estadoBadgeClass(estado: string) {
-  switch (estado) {
-    case "cerrado":
-      return "bg-emerald-100 text-emerald-700";
-    case "baja_en_tramite":
-      return "bg-brand-100 text-brand-700";
-    case "iniciado":
-      return "bg-slate-100 text-slate-700";
-    default:
-      return "bg-amber-100 text-amber-700";
-  }
+function diasAbiertos(fechaIngreso: string): number {
+  const ingreso = new Date(fechaIngreso + "T00:00:00");
+  const hoy = new Date();
+  return Math.floor((hoy.getTime() - ingreso.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export default async function CasosPage({
@@ -85,8 +79,8 @@ export default async function CasosPage({
         )}
       </div>
 
-      <form className="card p-4 mb-6 flex flex-wrap gap-3 items-end" method="get">
-        <div className="flex-1 min-w-[140px]">
+      <form className="card p-4 mb-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end" method="get">
+        <div className="col-span-2 sm:flex-1 sm:min-w-[140px]">
           <label className="label">N° de siniestro</label>
           <input
             name="q"
@@ -95,7 +89,7 @@ export default async function CasosPage({
             placeholder="Buscar..."
           />
         </div>
-        <div className="flex-1 min-w-[140px]">
+        <div className="col-span-2 sm:flex-1 sm:min-w-[140px]">
           <label className="label">Dominio</label>
           <input
             name="dominio"
@@ -104,7 +98,7 @@ export default async function CasosPage({
             placeholder="Buscar..."
           />
         </div>
-        <div className="flex-1 min-w-[160px]">
+        <div className="sm:flex-1 sm:min-w-[160px]">
           <label className="label">Compañía</label>
           <select
             name="aseguradora_id"
@@ -119,7 +113,7 @@ export default async function CasosPage({
             ))}
           </select>
         </div>
-        <div className="flex-1 min-w-[160px]">
+        <div className="sm:flex-1 sm:min-w-[160px]">
           <label className="label">Tipo de baja</label>
           <select
             name="tipo_baja_id"
@@ -134,7 +128,7 @@ export default async function CasosPage({
             ))}
           </select>
         </div>
-        <div className="flex-1 min-w-[140px]">
+        <div className="sm:flex-1 sm:min-w-[140px]">
           <label className="label">Estado</label>
           <select
             name="estado"
@@ -149,7 +143,7 @@ export default async function CasosPage({
             ))}
           </select>
         </div>
-        <button className="btn-secondary" type="submit">
+        <button className="btn-secondary col-span-2 sm:col-span-1" type="submit">
           Filtrar
         </button>
       </form>
@@ -160,7 +154,85 @@ export default async function CasosPage({
         </div>
       )}
 
-      <div className="card overflow-x-auto">
+      {/* Mobile: cards */}
+      <div className="mv md:hidden -mx-4 px-4 pb-4" style={{ background: "var(--mv-bg)" }}>
+        <div className="pt-1 pb-3">
+          <h2 className="mv-heading text-base">Casos</h2>
+          <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-600)" }}>
+            {casos?.length ?? 0} {casos?.length === 1 ? "caso" : "casos"}
+          </p>
+        </div>
+        <div className="flex flex-col gap-3">
+          {(casos as CasoConRelaciones[] | null)?.map((caso) => {
+            const abierto = caso.estado !== "cerrado";
+            const dias = diasAbiertos(caso.fecha_ingreso);
+            return (
+              <Link key={caso.id} href={`/casos/${caso.id}`} className="mv-card block p-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div
+                      className="uppercase leading-tight"
+                      style={{
+                        fontFamily: "var(--mv-font-body)",
+                        fontWeight: 600,
+                        fontSize: 21,
+                        letterSpacing: "0.01em",
+                        fontVariantNumeric: "tabular-nums"
+                      }}
+                    >
+                      {caso.vehiculo?.dominio ?? "—"}
+                    </div>
+                    <div className="text-[12.5px] mt-0.5 truncate" style={{ color: "var(--mv-neutral-700)" }}>
+                      {[caso.vehiculo?.marca, caso.vehiculo?.modelo].filter(Boolean).join(" ") || "—"}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div
+                      className="uppercase tracking-wide tabular-nums text-[11px]"
+                      style={{ color: "var(--mv-neutral-600)", letterSpacing: "0.08em" }}
+                    >
+                      {caso.numero_caso === 0 ? "DEMO" : `N° ${caso.numero_caso}`}
+                    </div>
+                    <div className="text-xs tabular-nums mt-0.5" style={{ color: "var(--mv-neutral-700)" }}>
+                      {caso.numero_siniestro}
+                    </div>
+                  </div>
+                </div>
+                <div className="h-px my-2.5" style={{ background: "var(--mv-divider)" }} />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0 text-[12.5px] truncate" style={{ color: "var(--mv-neutral-800)" }}>
+                    {caso.asegurado?.nombre ?? "—"} · {caso.aseguradora?.nombre ?? "—"}
+                  </div>
+                  {abierto && dias >= 15 && (
+                    <span
+                      className="shrink-0 text-[11px] tabular-nums"
+                      style={{
+                        color: "var(--mv-accent-700)",
+                        borderBottom: "1px solid var(--mv-accent)",
+                        paddingBottom: 1
+                      }}
+                    >
+                      {dias} días abierto
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2.5">
+                  <span className={`mv-badge ${abierto ? "" : "mv-badge-closed"}`}>
+                    {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+          {casos?.length === 0 && (
+            <div className="mv-card p-8 text-center text-sm" style={{ color: "var(--mv-neutral-600)" }}>
+              No hay casos cargados todavía.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="hidden md:block card overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>

@@ -1,9 +1,34 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
+import InstallBanner from "@/components/InstallBanner";
 import UploadForm from "./UploadForm";
 import ObservacionForm from "./ObservacionForm";
 
 export const dynamic = "force-dynamic";
+
+// El ícono instalado desde acá tiene que volver siempre al listado
+// completo de asignaciones del gestor (no a este caso puntual, y menos
+// al manifest general, cuyo start_url "/" exige sesión que el gestor no
+// tiene) — por eso resuelve el token_acceso del gestor dueño de este
+// caso y usa el manifest del hub. Ver src/lib/pwaManifest.ts.
+export async function generateMetadata({
+  params
+}: {
+  params: { token: string };
+}): Promise<Metadata> {
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from("casos")
+    .select("gestor:gestores(token_acceso)")
+    .eq("token_gestor", params.token)
+    .maybeSingle();
+
+  const tokenAcceso = (data?.gestor as unknown as { token_acceso: string } | null)?.token_acceso;
+  if (!tokenAcceso) return {};
+  return { manifest: `/api/manifest-gestor-hub/${tokenAcceso}` };
+}
 
 interface CasoResumenGestor {
   id: string;
@@ -20,7 +45,7 @@ interface CasoResumenGestor {
   vehiculo: { dominio: string; marca: string | null; modelo: string | null } | null;
   registro: { numero: string; seccional: string | null; provincia: string | null } | null;
   tipo_baja: { nombre: string } | null;
-  gestor: { nombre: string } | null;
+  gestor: { nombre: string; token_acceso: string } | null;
 }
 
 export default async function EnlaceGestorPage({
@@ -42,7 +67,7 @@ export default async function EnlaceGestorPage({
       vehiculo:vehiculos(dominio, marca, modelo),
       registro:registros_automotores(numero, seccional, provincia),
       tipo_baja:tipos_baja(nombre),
-      gestor:gestores(nombre)
+      gestor:gestores(nombre, token_acceso)
     `
     )
     .eq("token_gestor", params.token)
@@ -82,7 +107,17 @@ export default async function EnlaceGestorPage({
         <p className="text-sm text-slate-500">
           Hola {caso.gestor?.nombre ?? ""}, acá tenés los datos para gestionar este caso.
         </p>
+        {caso.gestor?.token_acceso && (
+          <Link
+            href={`/gestor/${caso.gestor.token_acceso}`}
+            className="text-sm text-brand-600 hover:underline"
+          >
+            Ver todas mis asignaciones →
+          </Link>
+        )}
       </div>
+
+      <InstallBanner />
 
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Datos del caso</h2>

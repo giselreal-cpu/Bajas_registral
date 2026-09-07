@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CATEGORIAS_GESTOR, Documento } from "@/types/database";
+import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
 const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania"; label: string }[] = [
   { value: "imagen_dominio", label: "Imagen del dominio" },
@@ -64,19 +65,40 @@ export default function DocumentosSection({
       return;
     }
     setSaving(true);
+    setError(null);
     try {
-      const body = new FormData();
-      body.append("categoria", form.categoria);
-      if (form.nombre) body.append("nombre", form.nombre);
+      let body: Record<string, string>;
+
       if (modo === "archivo" && form.file) {
-        body.append("file", form.file);
+        const resSubida = await fetch(`/api/casos/${casoId}/documentos/subida-firmada`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            categoria: form.categoria,
+            nombre: form.nombre || form.file.name,
+            size: form.file.size,
+            type: form.file.type
+          })
+        });
+        const jsonSubida = await resSubida.json();
+        if (!resSubida.ok) {
+          setError(jsonSubida.error);
+          return;
+        }
+        await subirArchivoDirecto(jsonSubida.data.path, jsonSubida.data.token, form.file);
+        body = {
+          categoria: form.categoria,
+          nombre: form.nombre || form.file.name,
+          path: jsonSubida.data.path
+        };
       } else {
-        body.append("url", form.url.trim());
+        body = { categoria: form.categoria, nombre: form.nombre, url: form.url.trim() };
       }
 
       const res = await fetch(`/api/casos/${casoId}/documentos`, {
         method: "POST",
-        body
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
       });
       const json = await res.json();
       if (!res.ok) {
@@ -86,8 +108,8 @@ export default function DocumentosSection({
       setForm({ categoria: "imagen_dominio", nombre: "", file: null, url: "" });
       setShowForm(false);
       load();
-    } catch {
-      setError("No se pudo conectar con el servidor. Probá de nuevo.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo conectar con el servidor. Probá de nuevo.");
     } finally {
       setSaving(false);
     }

@@ -17,13 +17,12 @@ siguiendo el `CLAUDE.md` del proyecto.
     (`/casos/nuevo`).
   - Vista de detalle (`/casos/[id]`) con cabecera organizada en secciones
     con título propio (Datos del caso, Trámite, Vehículo, Datos
-    económicos, Asegurado / titular, Tercero autorizado), todas editables:
-    número de siniestro, número de póliza/ítem, **aseguradora**, nombre y
+    económicos, Asegurado / titular), todas editables:
+    número de siniestro, número de póliza, **aseguradora**, nombre y
     contacto del productor, nombre y email del trámitador de la compañía,
     dominio/marca/modelo/año del vehículo, suma asegurada, estado, rama,
     tipo de trámite, tipo de baja, responsable, registro, deudas, fechas,
-    los datos propios del asegurado, y el tercero autorizado a entregar la
-    unidad. El campo **desarmadero** de la cabecera es de solo lectura
+    y los datos propios del asegurado. El campo **desarmadero** de la cabecera es de solo lectura
     desde `0036_desarmadero_en_evento.sql` — se asigna desde el propio
     evento de bitácora "Asignación de desarmadero" (ver "Bitácora" más
     abajo), no desde acá. Editar el vehículo o los datos del asegurado
@@ -38,39 +37,39 @@ siguiendo el `CLAUDE.md` del proyecto.
   todos los casos abiertos, agrupados en Vencidos / Próximos 7 días / Más
   adelante / Sin fecha, con filtro por responsable.
 - **Panel de control** (`/panel`, página de inicio): filtro por
-  **compañía/aseguradora, mes de ingreso y tipo de baja** (afecta las
-  tarjetas de totales, "Casos por estado" y el dashboard de tiempos de
-  trámite — por ejemplo, para ver cuánto tarda en promedio un 04C
-  específicamente. No hay filtro por estado ahí porque esa misma sección
+  **compañía/aseguradora, mes de ingreso y tipo de baja** (afecta todo el
+  panel — por ejemplo, para ver cuánto tarda en promedio un 04C
+  específicamente. No hay filtro por estado ahí porque "Casos por estado"
   ya desglosa por estado — sería redundante. El resto del panel
   —vencimientos, casos sin movimiento— sigue mostrando todo, ya que son
-  alertas operativas, no un reporte), casos totales/abiertos/
-  cerrados, casos por estado, alerta de **casos sin movimiento hace 7+ días**
-  (configurable en `DIAS_SIN_MOVIMIENTO` en `src/app/panel/page.tsx`, solo
-  aparece si hay algún caso en esa situación), alerta de **casos sin
-  contactar al asegurado** (casos abiertos que todavía no tienen ningún
-  evento "Contacto con el asegurado" cargado, ni pendiente ni completado),
-  y una lista combinada de
-  **"Próximos vencimientos"** que junta los eventos de bitácora con fecha
-  de vencimiento cargada *y* los casos sin movimiento hace 7+ días (aunque
-  no tengan ninguna fecha cargada) — los vencidos aparecen primero, y un
-  dashboard de tiempos de trámite (visible para operador/administrador,
-  oculto para el rol compañía): tiempo promedio de trámite completo (fecha
-  de ingreso → fecha de cierre) y tiempo promedio entre "Presentación de
-  Baja" completada y el cierre, con tabla de los últimos casos cerrados.
-  También una sección **"Eventos sin completar"**: por cada tipo de
-  evento de bitácora (`TIPOS_EVENTO` en `src/lib/eventosBitacora.ts`),
-  cuántos casos lo tienen cargado pero todavía no completado, con un
-  `<details>` desplegable por tipo listando los casos/dominios
-  afectados (un mismo caso puede aparecer en más de un tipo a la vez).
-  Una tabla **"Casos por gestor"**: por cada gestor de campo con casos
-  asignados, total de casos, pendientes (no están en "Documentación
-  enviada a la Cía" ni cerrados) y **cerrados sin pagar** (casos
-  cerrados de ese gestor sin un movimiento "Honorarios por Gestoría"
-  marcado como pagado), con un desplegable para ver el detalle de
-  trámites pendientes de un gestor puntual. Y una sección **"Encuestas
-  de satisfacción"** — ver el detalle en "Notificaciones por mail" más
-  abajo.
+  alertas operativas, no un reporte). Toda la obtención de datos vive en
+  un módulo compartido (`src/lib/panelData.ts` → `obtenerDatosPanel`),
+  para que el Panel y `/panel/detalle` (ver más abajo) usen exactamente
+  el mismo recorte de casos según los filtros aplicados. Muestra: casos
+  totales/abiertos/cerrados, casos por estado, alerta de **casos sin
+  movimiento hace 7+ días** (configurable en `DIAS_SIN_MOVIMIENTO` en
+  `src/lib/panelData.ts`, solo aparece si hay algún caso en esa
+  situación), alerta de **casos sin contactar al asegurado** (casos
+  abiertos que todavía no tienen ningún evento "Contacto con el
+  asegurado" cargado, ni pendiente ni completado), una lista combinada
+  de **"Próximos vencimientos"** que junta los eventos de bitácora con
+  fecha de vencimiento cargada *y* los casos sin movimiento hace 7+ días
+  (los vencidos aparecen primero), la tarjeta de Rentabilidad (ver
+  módulo financiero más abajo), y resúmenes compactos —con un link
+  **"Ver detalle →"**— de: "Casos por gestor" (total/pendientes/cerrados
+  sin pagar por gestor), "Eventos sin completar" (cuántos casos tienen
+  cada tipo de evento cargado pero no completado), "Encuestas de
+  satisfacción" (enviadas/respondidas/sin responder + promedio por
+  pregunta) y "Tiempos de trámite" (promedio de días de trámite completo
+  y de presentación→cierre, oculto para el rol compañía). Los listados
+  completos de esas cuatro secciones —el desplegable por gestor, el
+  `<details>` con los casos de cada tipo de evento, los comentarios
+  destacados y pendientes de recordatorio de encuestas, y la tabla de
+  casos cerrados con sus tiempos— viven aparte en **`/panel/detalle`**
+  (con anclas `#gestores`/`#eventos`/`#encuestas`/`#tiempos`, y los
+  mismos filtros de compañía/mes/tipo de baja del Panel propagados por
+  query string), para que el Panel en sí quede como un resumen liviano
+  y no una página larga con todos los listados desplegados.
 - **Avance automático de estado**: el catálogo de estados del caso tiene un
   paso propio por cada evento clave de la bitácora (`0010_estados_por_evento.sql`),
   así el seguimiento es más preciso. Cada vez que se agrega o edita un
@@ -180,8 +179,9 @@ siguiendo el `CLAUDE.md` del proyecto.
     documento completado, que queda guardado en Documentos con categoría
     `formulario_baja`). Si se cambia el nombre asignado, el token se
     regenera solo y el enlace anterior deja de servir. El middleware
-    (`src/lib/supabase/middleware.ts`) exime a `/g/*`, `/gr/*`, `/fb/*` y
-    `/encuesta/*` de requerir sesión.
+    (`src/lib/supabase/middleware.ts`) exime a `/g/*`, `/gr/*`, `/fb/*`,
+    `/gestor/*` y `/encuesta/*` de requerir sesión (junto con las rutas
+    de manifest dinámico por token, ver "Gestor de campo" más abajo).
   - El evento **"Asignación de desarmadero"** tiene su propio selector de
     desarmadero (catálogo `/catalogos/desarmaderos`); al guardarlo se
     replica en `casos.desarmadero_id` desde el servidor, así la cabecera
@@ -201,9 +201,10 @@ siguiendo el `CLAUDE.md` del proyecto.
     no revierte ni bloquea la acción principal, solo se muestra el error.
     Se envía con **Gmail** (`nodemailer`, `GMAIL_USER`/`GMAIL_APP_PASSWORD`
     en `.env.local` — hace falta una contraseña de aplicación de Gmail, no
-    la contraseña normal de la cuenta). Ver
-    `src/lib/email/enviarEmail.ts`, `src/lib/email/notificacionesCaso.ts`
-    (ahí están los textos de asunto/cuerpo por tipo de evento),
+    la contraseña normal de la cuenta). El texto del mail de "Contacto con
+    el asegurado" incluye el estado de **deuda de multas y de patentes**
+    del caso (`formatMoneda`, en `src/lib/email/notificacionesCaso.ts`).
+    Ver también `src/lib/email/enviarEmail.ts`,
     `src/components/casos/SelectorNotificacion.tsx` y
     `/api/casos/[id]/notificar`.
   - **Encuesta de satisfacción**: al completar "Presentación de Baja"
@@ -216,10 +217,11 @@ siguiendo el `CLAUDE.md` del proyecto.
     es get-or-create (`POST /api/casos/[id]/encuesta`, upsert atómico
     sobre un constraint único de `caso_id` — ver `0038`) para no duplicar
     filas si la caja se llega a montar más de una vez. Una vez respondida,
-    el resultado se ve en la propia bitácora del caso, y el Panel suma una
-    sección "Encuestas de satisfacción" con enviadas/respondidas/sin
-    responder, promedio de calificación por pregunta, comentarios
-    destacados, y una lista de "Pendientes de recordatorio" (más de 48hs
+    el resultado se ve en la propia bitácora del caso, y el Panel suma un
+    resumen "Encuestas de satisfacción" (enviadas/respondidas/sin
+    responder, promedio de calificación por pregunta) con su detalle
+    completo en `/panel/detalle`: comentarios destacados, todas las
+    enviadas, y una lista de "Pendientes de recordatorio" (más de 48hs
     hábiles sin responder, calculado con
     `src/lib/fechas.ts` → `horasHabilesTranscurridas`) con un botón
     **"Reenviar recordatorio"** (`src/components/panel/RecordatorioEncuesta.tsx`
@@ -230,9 +232,18 @@ siguiendo el `CLAUDE.md` del proyecto.
     Ver `src/lib/whatsapp.ts` (mensaje + armado del link `wa.me`,
     compartido con el resto de las cajas de WhatsApp de la bitácora) y
     `src/app/encuesta/[token]/`.
-- **Exportar datos** (`/exportar`): CSV de casos, bitácora y documentos (con
-  relaciones ya resueltas, listo para Excel) más un backup completo en JSON
-  de todas las tablas.
+  - **Generación retroactiva**: la caja de WhatsApp normalmente aparece
+    sola al completar "Presentación de Baja", pero un caso puede haber
+    llegado a ese estado (o incluso estar ya cerrado) desde antes de que
+    existiera esta función, sin encuesta generada. Por eso ese evento de
+    la bitácora tiene además un botón manual **"Generar encuesta"** (o
+    "Ver enlace de encuesta" si ya existe), que muestra la misma caja en
+    cualquier momento — no hace falta reeditar el evento. El alta sigue
+    siendo get-or-create, así que no duplica la fila si ya había una.
+- **Exportar datos** (`/exportar`): CSV de casos (incluye el nombre del
+  **trámitador de la compañía**), bitácora y documentos (con relaciones ya
+  resueltas, listo para Excel) más un backup completo en JSON de todas las
+  tablas.
 - **Documentos**: al agregar uno, se elige **"Pegar un link"** (por ejemplo
   una carpeta de Drive — sigue siendo el uso habitual del equipo interno) o
   **"Subir un archivo"** (fotos JPG/PNG/WEBP/HEIC o PDF, hasta 10MB) a un
@@ -244,15 +255,31 @@ siguiendo el `CLAUDE.md` del proyecto.
   documento que era archivo real también se borra del bucket. Se pueden
   arrastrar entre "Imagen del dominio" y "Documento para la compañía" para
   corregir la categoría sin borrar y volver a cargar, y también se pueden
-  eliminar. Ruta `/api/casos/[id]/documentos` (POST, acepta
-  `multipart/form-data` con `categoria` + o bien `file` o bien `url`) y
-  `/api/documentos/[id]` (PUT/DELETE).
+  eliminar.
+  - **Subida directa a Storage (no pasa por Vercel)**: Vercel limita a
+    **4.5MB** el body de cualquier función serverless (Server Action o
+    Route Handler), un límite de la plataforma que no se puede subir por
+    configuración — así que el archivo nunca viaja por una función de
+    Vercel. En su lugar, el servidor solo genera una **URL de subida
+    firmada** de Supabase Storage (`src/lib/documentosStorage.ts` →
+    `crearSubidaFirmada`, `POST /api/casos/[id]/documentos/subida-firmada`
+    para la carga interna) y el navegador sube el archivo **directo** a
+    Storage con esa URL (`src/lib/uploadArchivoDirecto.ts` →
+    `subirArchivoDirecto`); recién después se registra el documento en la
+    base con un segundo paso liviano (`POST /api/casos/[id]/documentos`,
+    ahora JSON: `{categoria, nombre, path}` o `{categoria, nombre, url}`
+    para un link). Este mismo patrón de dos pasos se usa en las tres
+    pantallas donde se sube un archivo: la carga interna
+    (`DocumentosSection.tsx`), el enlace del gestor (`/g/[token]`) y el
+    del Formulario de Baja (`/fb/[token]`). `/api/documentos/[id]`
+    (PUT/DELETE) no cambió.
 - **Gestor de campo**: catálogo nuevo (`/catalogos/gestores`, nombre +
-  contacto) para personas externas que hacen trámites en el territorio
-  (turno en el registro, retirar recibos, etc.). Se asignan a un caso desde
-  su cabecera (campo "Gestor asignado"), lo que genera un **enlace público
-  permanente** (`/g/<token>`) sin necesidad de cuenta ni login: el gestor ve
-  un resumen acotado del caso (aseguradora, **tipo de baja**, vehículo,
+  contacto + **dirección, email y zona de cobertura**) para personas
+  externas que hacen trámites en el territorio (turno en el registro,
+  retirar recibos, etc.). Se asignan a un caso desde su cabecera (campo
+  "Gestor asignado"), lo que genera un **enlace público permanente**
+  (`/g/<token>`) sin necesidad de cuenta ni login: el gestor ve un
+  resumen acotado del caso (aseguradora, **tipo de baja**, vehículo,
   datos de contacto del asegurado, registro de radicación, y los
   documentos ya adjuntados) y puede subir archivos en 4 categorías fijas —
   Turno en Registro, Observaciones, Recibos, Otros — que quedan visibles
@@ -270,6 +297,32 @@ siguiendo el `CLAUDE.md` del proyecto.
   gestor, el enlace anterior se regenera solo. El middleware
   (`src/lib/supabase/middleware.ts`) exime a `/g/*` de requerir sesión (junto
   con `/gr/*`, `/fb/*` y `/encuesta/*` — ver "Bitácora" más abajo).
+  - **Historial de asignaciones por gestor** (`/gestor/<token_acceso>`):
+    a diferencia del `token_gestor`, que es por *caso*, cada gestor tiene
+    además un `token_acceso` propio y permanente (`gestores.token_acceso`,
+    `0040_gestores_token_acceso.sql`) que identifica a la *persona*. Esa
+    página lista, desde la base (no desde lo que ese celular haya
+    visitado), todos los casos donde el gestor está o estuvo asignado
+    —abiertos y cerrados, más reciente primero, con estado— y cada uno
+    linkea a su `/g/<token_gestor>`. Desde cualquier caso hay un link
+    **"Ver todas mis asignaciones →"** hacia ese hub. Pensado para que,
+    si el gestor instala el ícono de la app en su celular (ver PWA más
+    abajo), lo que se le abra sea el listado completo y no un caso
+    puntual perdido entre varios.
+  - **Instalación como app (PWA) desde los enlaces públicos**: `/g/*` y
+    `/fb/*` muestran un banner para "Agregar a la pantalla de inicio"
+    (`InstallBanner.tsx`). El manifest general de la app tiene
+    `start_url: "/"`, que exige sesión — inservible para alguien sin
+    cuenta. Por eso estas páginas sirven su propio manifest dinámico por
+    token (`src/lib/pwaManifest.ts` → `manifestParaRuta`,
+    `/api/manifest-gestor-hub/[token]` y
+    `/api/manifest-formulario-baja/[token]`, exceptuados de sesión en el
+    middleware junto con las páginas de arriba): el de `/fb/[token]`
+    vuelve a ese mismo formulario, y el de `/g/[token]` **no** apunta al
+    caso puntual sino al hub del gestor (`/gestor/<token_acceso>`,
+    resuelto en el propio `generateMetadata` de la página) — así, sin
+    importar desde qué caso instale el ícono, siempre vuelve al listado
+    completo de asignaciones.
 - **Catálogo de registros automotores precargado**: 835 registros
   seccionales de competencia AUTOMOTOR de todo el país (DNRPA), con
   número, denominación y provincia, cargados vía
@@ -312,14 +365,13 @@ siguiendo el `CLAUDE.md` del proyecto.
   caso — .docx y PDF): genera una carta descargable con la autorización
   de retiro (declaraciones legales de embargo/inhibición, multas/deudas
   siempre a cargo del titular, y estado de entrega del vehículo).
-  Requirió agregar campos nuevos: `numero_poliza`/`item_poliza` en
-  casos, `entre_calles`/`partido` en asegurados. Si en la cabecera del
-  caso se carga un **tercero autorizado a entregar la unidad** (nombre,
-  DNI, contacto), sus datos **reemplazan** (no se suman) a los del
-  asegurado en la sección "quien hará entrega del vehículo", y se agrega
-  una frase que autoriza expresamente a esa persona a entregarla en
-  representación del asegurado. Si no se carga ningún tercero, esa
-  sección usa los datos del asegurado como siempre.
+  Requirió agregar campos nuevos: `numero_poliza` en casos,
+  `entre_calles`/`partido` en asegurados. La sección "quien hará entrega
+  del vehículo" queda siempre **en blanco**, para completar a mano al
+  momento de la entrega — el campo "Ítem" y la función de "tercero
+  autorizado a entregar la unidad" que existían antes se sacaron de la
+  cabecera del caso y del documento, a pedido del usuario, para que el
+  formato coincida con el que usa la aseguradora.
   - **Encabezado con logos**: el logo de la aseguradora (cargado por
     aseguradora en `/catalogos/aseguradoras`, tabla `aseguradoras`,
     columna `logo_path`, bucket privado de Storage
@@ -359,6 +411,14 @@ siguiendo el `CLAUDE.md` del proyecto.
   resto, componentes (`card`, `btn`, `input`, `badge`) pulidos. Interfaz
   responsiva: menú hamburguesa en mobile, tablas con scroll horizontal en
   pantallas chicas, formularios que pasan a una sola columna.
+- **Vista mobile del caso** (`CasoDetailMobile.tsx`, se activa por ancho de
+  pantalla): cabecera fija con dominio/estado y tabs Resumen/Bitácora/
+  Documentos, con navegación inferior propia (`MobileNav.tsx`, con acceso
+  rápido a foto del dominio/observación/bitácora). Tiene un botón
+  **"← Volver"** visible en el encabezado (antes solo se podía volver con
+  el gesto de deslizar, no siempre intuitivo) — usa el historial de
+  navegación si lo hay, o cae a `/casos` si se entró por un enlace
+  directo.
 
 - **Rentabilidad / módulo financiero (Fases 1 y 2)**: página dedicada
   `/casos/[id]/rentabilidad` (accesible desde un resumen compacto —
@@ -444,15 +504,29 @@ siguiendo el `CLAUDE.md` del proyecto.
     estado pagado/pendiente, editable ahí mismo); totales generales de
     pendiente por cobrar, pendiente por pagar y ya pagado arriba de todo.
     Sección aparte **"Casos cerrados pendientes de pago a compañía"**:
-    agrupados por compañía/mes, solo los casos donde el movimiento "Pago
-    a la compañía" todavía no está cargado o está cargado pero sin
-    tildar como pagado, con botón de exportación a CSV
-    (`GET /api/seguimiento-financiero/pendientes-pago-compania/export`)
-    con siniestro, dominio, marca/modelo/año, desarmadero, trámitador,
-    valor restos y fecha de cierre.
-  - **Panel → Rentabilidad**: totales de ingresos (cobrados)/egresos/
-    ganancia neta sobre los casos ya filtrados, más una lista de facturas
-    pendientes de cobro.
+    agrupados por compañía/mes, **solo casos 04D / 04 Digital**
+    (`TIPOS_BAJA_PAGO_COMPANIA` en `src/app/seguimiento-financiero/page.tsx`
+    — este reporte es específico de ese trámite, a pedido del usuario)
+    donde el movimiento "Pago a la compañía" todavía no está cargado o
+    está cargado pero sin tildar como pagado, con botón de exportación a
+    CSV (`GET /api/seguimiento-financiero/pendientes-pago-compania/export`,
+    mismo filtro de tipo de baja) con siniestro, dominio, marca/modelo/año,
+    desarmadero, trámitador, **tipo de baja**, valor restos y fecha de
+    cierre.
+  - **Panel → Rentabilidad**: totales de ingresos (cobrados)/egresos
+    (pagados)/ganancia neta sobre los casos ya filtrados, más una lista
+    de facturas pendientes de cobro. Además, una tabla aparte **"Ganancia
+    neta por mes"** (casos cerrados, agrupados por mes de cierre): a
+    diferencia de la tarjeta de arriba, acá los ingresos son **todo lo
+    facturado** (cobrado o no) y los egresos son **todos los cargados**
+    (pagados y pendientes de pago) — es una mirada devengada mes a mes,
+    útil para ver qué se generó ese mes aunque todavía no se haya
+    cobrado/pagado, distinta a propósito de la mirada de caja de la
+    tarjeta de Rentabilidad. Ambos cálculos conviven en
+    `src/lib/panelData.ts` con mapas separados (`ingresosPorCaso`/
+    `egresosPorCaso` para la tarjeta en base caja, `facturadoPorCaso`/
+    `egresosTotalesPorCaso` para la tabla mensual en base devengado) para
+    no mezclar los dos criterios.
   - Es información **100% interna**: el rol compañía no tiene ningún
     acceso a nada de esto, ni por pantalla ni por API directa (RLS real).
   - Quedan pendientes para próximas sesiones: RBAC granular en paralelo
@@ -563,6 +637,12 @@ externa sin cuenta en el sistema, no un rol interno del equipo).
      WhatsApp) y `0038_encuesta_satisfaccion_unique_caso.sql` (constraint
      único de `caso_id`, para que el alta get-or-create sea atómica y no
      pueda duplicar filas)
+   - `supabase/migrations/0039_gestores_direccion_email_zona.sql`
+     (agrega dirección, email y zona de cobertura al catálogo de
+     gestores)
+   - `supabase/migrations/0040_gestores_token_acceso.sql` (agrega
+     `token_acceso`, identidad persistente por gestor para el hub de
+     "Ver todas mis asignaciones" en `/gestor/<token>`)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.
@@ -717,7 +797,9 @@ Supabase. El código ya está listo (botón "Continuar con Google" en
 - **Enlace del gestor**: es permanente mientras el caso siga con ese
   `gestor_id` asignado; si se comparte por error, "Regenerar enlace" en la
   cabecera del caso lo invalida sin necesitar sacar al gestor del caso. Al
-  reasignar a otro gestor se regenera solo.
+  reasignar a otro gestor se regenera solo. El `token_acceso` del hub
+  (`/gestor/<token>`) es un token distinto, por persona — no se toca al
+  regenerar el enlace de un caso puntual.
 - Los tipos TypeScript en `src/types/database.ts` están escritos a mano; si
   se modifica el esquema SQL hay que actualizarlos (o generarlos con
   `supabase gen types typescript`).

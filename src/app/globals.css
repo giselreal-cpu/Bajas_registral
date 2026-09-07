@@ -2,6 +2,123 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Paleta y tipografía del mockup "App Movil Bajas" (Claude Design), usada
+   únicamente por las vistas móviles nuevas (nav inferior, /casos en mobile,
+   detalle con tabs, banner de instalación) — no reemplaza los tokens del
+   resto de la app (brand/accent/silver de tailwind.config.ts). */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Lora:wght@400;600&display=swap");
+
+.mv {
+  --mv-bg: #f3f2f2;
+  --mv-surface: #eae9e9;
+  --mv-text: #201f1d;
+  --mv-accent: #b68235;
+  --mv-divider: rgba(32, 31, 29, 0.16);
+  --mv-neutral-100: #f8f4f4;
+  --mv-neutral-300: #d7d3d3;
+  --mv-neutral-400: #bab6b6;
+  --mv-neutral-500: #9b9797;
+  --mv-neutral-600: #7d7979;
+  --mv-neutral-700: #605d5d;
+  --mv-neutral-800: #444141;
+  --mv-neutral-900: #2d2b2b;
+  --mv-accent-100: #fff3e4;
+  --mv-accent-300: #facb8d;
+  --mv-accent-400: #e1ad66;
+  --mv-accent-700: #7d5411;
+  --mv-font-heading: "Cormorant Garamond", serif;
+  --mv-font-body: "Lora", serif;
+  --mv-radius-sm: 2px;
+  --mv-radius-md: 4px;
+  --mv-radius-lg: 7px;
+  font-family: var(--mv-font-body);
+  color: var(--mv-text);
+}
+
+.mv h1,
+.mv h2,
+.mv h3,
+.mv h4,
+.mv h5,
+.mv h6,
+.mv-heading {
+  font-family: var(--mv-font-heading);
+  font-weight: 600;
+}
+
+.mv-card {
+  border-radius: var(--mv-radius-md);
+  border: 1px solid var(--mv-divider);
+  background: #fff;
+}
+
+.mv-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--mv-font-heading);
+  font-weight: 600;
+  border-radius: var(--mv-radius-md);
+  cursor: pointer;
+}
+
+.mv-btn-primary {
+  background: var(--mv-accent);
+  color: #fff;
+}
+.mv-btn-primary:active {
+  background: var(--mv-accent-700);
+}
+
+.mv-btn-secondary {
+  background: transparent;
+  border: 1px solid var(--mv-accent);
+  color: var(--mv-accent-700);
+}
+.mv-btn-secondary:active {
+  background: rgba(182, 130, 53, 0.12);
+}
+
+.mv-label {
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mv-neutral-600);
+}
+
+.mv-input {
+  width: 100%;
+  border: 1px solid var(--mv-divider);
+  border-radius: var(--mv-radius-md);
+  background: #fff;
+  padding: 10px 12px;
+  font-family: var(--mv-font-body);
+  font-size: 14px;
+  color: var(--mv-text);
+}
+
+.mv-gradient-line {
+  height: 2px;
+  background: linear-gradient(90deg, var(--mv-accent) 0%, var(--mv-accent-300) 55%, var(--mv-neutral-400) 100%);
+}
+
+.mv-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 99px;
+  border: 1px solid var(--mv-accent);
+  color: var(--mv-accent-700);
+  font-size: 12px;
+  font-family: var(--mv-font-heading);
+  font-weight: 600;
+  padding: 4px 11px;
+}
+.mv-badge-closed {
+  border-color: var(--mv-neutral-400);
+  color: var(--mv-neutral-700);
+}
+
 body {
   @apply bg-silver-100 text-brand-900 antialiased;
 }

@@ -331,6 +331,20 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     loadFacturas();
   }
 
+  async function handleEliminarNotaCredito(facturaId: string, notaId: string) {
+    if (!confirm("¿Eliminar esta nota de crédito? (por ejemplo, si el monto se calculó mal). El saldo pendiente de la factura vuelve a subir.")) {
+      return;
+    }
+    setError(null);
+    const res = await fetch(`/api/facturas/${facturaId}/notas-credito/${notaId}`, { method: "DELETE" });
+    const json = await res.json();
+    if (!res.ok) {
+      setError(json.error);
+      return;
+    }
+    loadFacturas();
+  }
+
   async function handleEliminarFactura(facturaId: string) {
     if (!confirm("¿Eliminar esta factura? Sus movimientos volverán a quedar sin facturar.")) return;
     setError(null);
@@ -791,8 +805,16 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                 {(f.notas_credito ?? []).length > 0 && (
                   <ul className="mt-1 text-xs text-slate-500 space-y-0.5">
                     {f.notas_credito?.map((n) => (
-                      <li key={n.id}>
-                        Nota de crédito {formatCurrency(n.monto)} — {n.motivo}
+                      <li key={n.id} className="flex items-center gap-2">
+                        <span>
+                          Nota de crédito {formatCurrency(n.monto)} — {n.motivo}
+                        </span>
+                        <button
+                          className="text-slate-400 hover:text-red-600"
+                          onClick={() => handleEliminarNotaCredito(f.id, n.id)}
+                        >
+                          Eliminar
+                        </button>
                       </li>
                     ))}
                   </ul>
