@@ -291,10 +291,10 @@ export default async function CasosPage({
                       caso.estado}
                   </span>
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-2 whitespace-nowrap">
                   <AvanceBar {...avanceCaso(caso.estado)} size="sm" />
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-4 py-2 whitespace-nowrap">
                   {new Date(caso.fecha_ingreso + "T00:00:00").toLocaleDateString("es-AR")}
                 </td>
               </tr>

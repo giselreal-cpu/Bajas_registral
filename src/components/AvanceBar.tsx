@@ -12,9 +12,9 @@ export default function AvanceBar({ paso, total, size = "sm", showLabel = true }
   const pct = total === 0 ? 0 : Math.round((paso / total) * 100);
   const alto = size === "sm" ? 6 : 8;
   return (
-    <span className="inline-flex items-center gap-2">
+    <span className="inline-flex items-center gap-2 whitespace-nowrap">
       <span
-        className="inline-block rounded-full bg-silver-200 overflow-hidden"
+        className="inline-block shrink-0 rounded-full bg-silver-200 overflow-hidden"
         style={{ width: size === "sm" ? 64 : 100, height: alto }}
       >
         <span
