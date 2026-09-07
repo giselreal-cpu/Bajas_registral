@@ -236,19 +236,19 @@ export default async function CasosPage({
       </div>
 
       <div className="hidden md:block card overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
-              <th className="px-4 py-2 font-medium">N°</th>
-              <th className="px-4 py-2 font-medium">N° siniestro</th>
-              <th className="px-4 py-2 font-medium">Asegurado</th>
-              <th className="px-4 py-2 font-medium">Dominio</th>
-              <th className="px-4 py-2 font-medium">Aseguradora</th>
-              <th className="px-4 py-2 font-medium">Tipo de baja</th>
-              <th className="px-4 py-2 font-medium">Responsable</th>
-              <th className="px-4 py-2 font-medium">Estado</th>
-              <th className="px-4 py-2 font-medium">Avance</th>
-              <th className="px-4 py-2 font-medium">Ingreso</th>
+              <th className="px-2 py-2 font-medium w-12">N°</th>
+              <th className="px-2 py-2 font-medium w-28">N° siniestro</th>
+              <th className="px-2 py-2 font-medium w-32">Asegurado</th>
+              <th className="px-2 py-2 font-medium w-28">Dominio</th>
+              <th className="px-2 py-2 font-medium w-28">Aseguradora</th>
+              <th className="px-2 py-2 font-medium w-20">Tipo de baja</th>
+              <th className="px-2 py-2 font-medium w-24">Responsable</th>
+              <th className="px-2 py-2 font-medium w-28">Estado</th>
+              <th className="px-2 py-2 font-medium w-32">Avance</th>
+              <th className="px-2 py-2 font-medium w-20">Ingreso</th>
             </tr>
           </thead>
           <tbody>
@@ -257,14 +257,14 @@ export default async function CasosPage({
                 key={caso.id}
                 className="border-t border-slate-100 hover:bg-slate-50"
               >
-                <td className="px-4 py-2 text-slate-500">
+                <td className="px-2 py-2 text-slate-500">
                   {caso.numero_caso === 0 ? (
                     <span className="badge bg-slate-100 text-slate-400">DEMO</span>
                   ) : (
                     caso.numero_caso
                   )}
                 </td>
-                <td className="px-4 py-2">
+                <td className="px-2 py-2 truncate">
                   <Link
                     href={`/casos/${caso.id}`}
                     className="text-brand-600 font-medium hover:underline"
@@ -272,8 +272,17 @@ export default async function CasosPage({
                     {caso.numero_siniestro}
                   </Link>
                 </td>
-                <td className="px-4 py-2">{caso.asegurado?.nombre ?? "—"}</td>
-                <td className="px-4 py-2">
+                <td className="px-2 py-2 truncate" title={caso.asegurado?.nombre ?? undefined}>
+                  {caso.asegurado?.nombre ?? "—"}
+                </td>
+                <td
+                  className="px-2 py-2 truncate"
+                  title={
+                    [caso.vehiculo?.dominio, caso.vehiculo?.marca, caso.vehiculo?.modelo]
+                      .filter(Boolean)
+                      .join(" · ") || undefined
+                  }
+                >
                   <span className="uppercase">{caso.vehiculo?.dominio ?? "—"}</span>
                   {(caso.vehiculo?.marca || caso.vehiculo?.modelo) && (
                     <span className="text-slate-400">
@@ -282,26 +291,35 @@ export default async function CasosPage({
                     </span>
                   )}
                 </td>
-                <td className="px-4 py-2">{caso.aseguradora?.nombre ?? "—"}</td>
-                <td className="px-4 py-2">{caso.tipo_baja?.nombre ?? "—"}</td>
-                <td className="px-4 py-2">{caso.responsable?.nombre ?? "—"}</td>
-                <td className="px-4 py-2">
-                  <span className={`badge ${estadoBadgeClass(caso.estado)}`}>
+                <td className="px-2 py-2 truncate" title={caso.aseguradora?.nombre ?? undefined}>
+                  {caso.aseguradora?.nombre ?? "—"}
+                </td>
+                <td className="px-2 py-2 truncate" title={caso.tipo_baja?.nombre ?? undefined}>
+                  {caso.tipo_baja?.nombre ?? "—"}
+                </td>
+                <td className="px-2 py-2 truncate" title={caso.responsable?.nombre ?? undefined}>
+                  {caso.responsable?.nombre ?? "—"}
+                </td>
+                <td className="px-2 py-2 truncate">
+                  <span
+                    className={`badge ${estadoBadgeClass(caso.estado)} max-w-full truncate align-bottom`}
+                    title={ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
+                  >
                     {ESTADOS.find((e) => e.value === caso.estado)?.label ??
                       caso.estado}
                   </span>
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap">
+                <td className="px-2 py-2 whitespace-nowrap">
                   <AvanceBar {...avanceCaso(caso.estado)} size="sm" />
                 </td>
-                <td className="px-4 py-2 whitespace-nowrap">
+                <td className="px-2 py-2 whitespace-nowrap">
                   {new Date(caso.fecha_ingreso + "T00:00:00").toLocaleDateString("es-AR")}
                 </td>
               </tr>
             ))}
             {casos?.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={10} className="px-2 py-8 text-center text-slate-500">
                   No hay casos cargados todavía.
                 </td>
               </tr>
