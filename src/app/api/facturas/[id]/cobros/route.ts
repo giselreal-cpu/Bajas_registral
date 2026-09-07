@@ -11,7 +11,7 @@ export async function POST(
 ) {
   const supabase = createClient();
   const body = await request.json();
-  const { monto, fecha, medio_pago, observacion } = body;
+  const { monto, fecha, medio_pago, observacion, caja_id, cuenta_contable_id } = body;
 
   if (!monto || Number(monto) <= 0) {
     return NextResponse.json({ error: "El monto del cobro es obligatorio." }, { status: 400 });
@@ -34,7 +34,9 @@ export async function POST(
       monto,
       fecha: fecha || new Date().toISOString().slice(0, 10),
       medio_pago: medio_pago || null,
-      observacion: observacion || null
+      observacion: observacion || null,
+      caja_id: caja_id || null,
+      cuenta_contable_id: cuenta_contable_id || null
     })
     .select()
     .single();

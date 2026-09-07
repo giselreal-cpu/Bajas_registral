@@ -380,7 +380,10 @@ export interface Cobro {
   observacion: string | null;
   anticipo_id: string | null;
   caja_id: string | null;
+  cuenta_contable_id: string | null;
   created_at: string;
+  caja?: Caja | null;
+  cuenta_contable?: CuentaContable | null;
 }
 
 export interface NotaCredito {

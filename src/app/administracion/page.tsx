@@ -81,22 +81,21 @@ export default async function AdministracionPage({
     supabase.from("aseguradoras").select("id, nombre").order("nombre")
   ]);
 
-  // Solo entran acá los movimientos que ya tienen caja o cuenta asignada
-  // (la carga sigue siendo opcional en el resto de la app — un movimiento
-  // sin ninguna de las dos sigue sumando a la rentabilidad del caso como
-  // siempre, pero no aparece en este libro porque no hay caja/cuenta que
-  // mostrarle), y que ya están aprobados — un gasto cargado desde la app
-  // móvil (Caja → Registrar gasto) no impacta acá hasta que alguien lo
-  // aprueba, mismo criterio que la ficha del caso y el Panel. Nota
-  // importante: esto muestra lo CARGADO (devengado), no necesariamente lo
-  // COBRADO — para ingresos realmente cobrados, la fuente de verdad sigue
-  // siendo /cuenta-corriente y /seguimiento-financiero.
+  // El Libro de movimientos es un libro de CAJA (plata que efectivamente
+  // entró o salió), no de lo devengado. Por eso el lado de egresos sale
+  // de movimientos_caso ya PAGADOS (no alcanza con tener caja/cuenta
+  // asignada: un gasto cargado pero todavía impago no movió ninguna
+  // caja), y el lado de ingresos sale directamente de `cobros` (plata
+  // real recibida contra una factura) en vez del movimiento de ingreso
+  // devengado — ver queryCobros más abajo. Se mantiene el filtro de
+  // aprobado=true (gastos de campo sin aprobar tampoco cuentan).
   let query = supabase
     .from("movimientos_caso")
     .select(
       "*, concepto:conceptos_movimiento(*), caja:cajas(*), cuenta_contable:cuentas_contables(*), caso:casos!inner(numero_siniestro, aseguradora_id, aseguradora:aseguradoras(nombre), vehiculo:vehiculos(dominio))"
     )
     .eq("aprobado", true)
+    .eq("pagado", true)
     .or("caja_id.not.is.null,cuenta_contable_id.not.is.null")
     .order("fecha", { ascending: true })
     .order("created_at", { ascending: true });
@@ -108,7 +107,55 @@ export default async function AdministracionPage({
   if (searchParams.hasta) query = query.lte("fecha", searchParams.hasta);
 
   const { data: movimientosRaw } = await query;
-  const movimientos = (movimientosRaw ?? []) as unknown as MovimientoAdmin[];
+  // "pagado" solo tiene sentido para egresos (un ingreso se cobra vía
+  // `cobros`, no se marca "pagado") — el filtro de arriba en la práctica
+  // ya deja afuera los ingresos, pero se filtra explícito acá para no
+  // depender de que nadie marque "pagado" un movimiento de ingreso.
+  const movimientos = ((movimientosRaw ?? []) as unknown as MovimientoAdmin[]).filter(
+    (m) => m.concepto?.tipo === "egreso"
+  );
+
+  // Ingresos reales: cobros contra facturas (plata efectivamente
+  // recibida), con la caja/cuenta que se les asignó al registrarlos.
+  interface CobroAdmin {
+    id: string;
+    monto: number;
+    fecha: string;
+    medio_pago: string | null;
+    caja_id: string | null;
+    cuenta_contable_id: string | null;
+    caja: { nombre: string } | null;
+    cuenta_contable: { codigo: string } | null;
+    factura: {
+      caso_id: string;
+      tipo_receptor: string;
+      caso: {
+        numero_siniestro: string;
+        aseguradora_id: string;
+        aseguradora: { nombre: string } | null;
+        vehiculo: { dominio: string } | null;
+      };
+    };
+  }
+
+  let queryCobros = supabase
+    .from("cobros")
+    .select(
+      "id, monto, fecha, medio_pago, caja_id, cuenta_contable_id, caja:cajas(nombre), cuenta_contable:cuentas_contables(codigo), factura:facturas!inner(caso_id, tipo_receptor, caso:casos!inner(numero_siniestro, aseguradora_id, aseguradora:aseguradoras(nombre), vehiculo:vehiculos(dominio)))"
+    )
+    .or("caja_id.not.is.null,cuenta_contable_id.not.is.null")
+    .order("fecha", { ascending: true });
+
+  if (searchParams.caja_id) queryCobros = queryCobros.eq("caja_id", searchParams.caja_id);
+  if (searchParams.cuenta_contable_id)
+    queryCobros = queryCobros.eq("cuenta_contable_id", searchParams.cuenta_contable_id);
+  if (searchParams.aseguradora_id)
+    queryCobros = queryCobros.eq("factura.caso.aseguradora_id", searchParams.aseguradora_id);
+  if (searchParams.desde) queryCobros = queryCobros.gte("fecha", searchParams.desde);
+  if (searchParams.hasta) queryCobros = queryCobros.lte("fecha", searchParams.hasta);
+
+  const { data: cobrosRaw } = await queryCobros;
+  const cobros = (cobrosRaw ?? []) as unknown as CobroAdmin[];
 
   // Movimientos generales (sueldos, hosting, alquiler, etc. — sin caso):
   // mismos filtros de fecha/caja/cuenta que el Libro, pero no tienen
@@ -136,8 +183,22 @@ export default async function AdministracionPage({
     cuentaCodigo: m.cuenta_contable?.codigo ?? null,
     cajaNombre: m.caja?.nombre ?? null,
     centroDeCosto: m.caso?.aseguradora?.nombre ?? "—",
-    tipo: m.concepto?.tipo === "egreso" ? "egreso" : "ingreso",
+    tipo: "egreso",
     monto: m.monto
+  }));
+  const filasCobros: FilaLibro[] = cobros.map((c) => ({
+    key: `cobro-${c.id}`,
+    fecha: c.fecha,
+    casoHref: `/casos/${c.factura.caso_id}`,
+    casoLabel: c.factura.caso?.vehiculo?.dominio ?? c.factura.caso?.numero_siniestro ?? "—",
+    descripcion: `Cobro${c.factura.tipo_receptor === "desarmadero" ? " (desarmadero)" : " (compañía)"}${
+      c.medio_pago ? ` — ${c.medio_pago}` : ""
+    }`,
+    cuentaCodigo: c.cuenta_contable?.codigo ?? null,
+    cajaNombre: c.caja?.nombre ?? null,
+    centroDeCosto: c.factura.caso?.aseguradora?.nombre ?? "—",
+    tipo: "ingreso",
+    monto: c.monto
   }));
   const filasGenerales: FilaLibro[] = searchParams.aseguradora_id
     ? []
@@ -154,7 +215,7 @@ export default async function AdministracionPage({
         monto: m.monto
       }));
 
-  const filasUnificadas = [...filasCaso, ...filasGenerales].sort((a, b) =>
+  const filasUnificadas = [...filasCaso, ...filasCobros, ...filasGenerales].sort((a, b) =>
     a.fecha.localeCompare(b.fecha)
   );
 
@@ -172,34 +233,41 @@ export default async function AdministracionPage({
     .filter((f) => f.tipo === "egreso")
     .reduce((a, f) => a + f.monto, 0);
 
-  // Liquidez: mismo dataset (con caja asignada) de movimientos de caso Y
-  // generales, agrupado por caja, sin el filtro de caja puntual (para
-  // poder listar todas las tarjetas) pero respetando el resto de los
-  // filtros (fecha) — sin el filtro de centro de costo, que es propio
-  // del Libro.
+  // Liquidez: mismo criterio de caja del Libro (egresos pagados +
+  // cobros reales, no lo devengado), agrupado por caja, sin el filtro
+  // de caja puntual (para poder listar todas las tarjetas) pero
+  // respetando el resto de los filtros (fecha) — sin el filtro de
+  // centro de costo, que es propio del Libro.
   let queryLiquidez = supabase
     .from("movimientos_caso")
     .select("caja_id, monto, concepto:conceptos_movimiento(tipo)")
     .eq("aprobado", true)
+    .eq("pagado", true)
     .not("caja_id", "is", null);
   if (searchParams.desde) queryLiquidez = queryLiquidez.gte("fecha", searchParams.desde);
   if (searchParams.hasta) queryLiquidez = queryLiquidez.lte("fecha", searchParams.hasta);
+  let queryCobrosLiquidez = supabase.from("cobros").select("caja_id, monto").not("caja_id", "is", null);
+  if (searchParams.desde) queryCobrosLiquidez = queryCobrosLiquidez.gte("fecha", searchParams.desde);
+  if (searchParams.hasta) queryCobrosLiquidez = queryCobrosLiquidez.lte("fecha", searchParams.hasta);
   let queryLiquidezGenerales = supabase
     .from("movimientos_generales")
     .select("caja_id, monto, tipo")
     .not("caja_id", "is", null);
   if (searchParams.desde) queryLiquidezGenerales = queryLiquidezGenerales.gte("fecha", searchParams.desde);
   if (searchParams.hasta) queryLiquidezGenerales = queryLiquidezGenerales.lte("fecha", searchParams.hasta);
-  const [{ data: movsLiquidezRaw }, { data: generalesLiquidezRaw }] = await Promise.all([
-    queryLiquidez,
-    queryLiquidezGenerales
-  ]);
+  const [{ data: movsLiquidezRaw }, { data: cobrosLiquidezRaw }, { data: generalesLiquidezRaw }] =
+    await Promise.all([queryLiquidez, queryCobrosLiquidez, queryLiquidezGenerales]);
   const movsLiquidez = [
     ...((movsLiquidezRaw ?? []) as unknown as {
       caja_id: string;
       monto: number;
       concepto: { tipo: string } | null;
-    }[]),
+    }[]).filter((m) => m.concepto?.tipo === "egreso"),
+    ...((cobrosLiquidezRaw ?? []) as unknown as { caja_id: string; monto: number }[]).map((c) => ({
+      caja_id: c.caja_id,
+      monto: c.monto,
+      concepto: { tipo: "ingreso" }
+    })),
     ...((generalesLiquidezRaw ?? []) as unknown as { caja_id: string; monto: number; tipo: string }[]).map(
       (m) => ({ caja_id: m.caja_id, monto: m.monto, concepto: { tipo: m.tipo } })
     )
@@ -250,9 +318,9 @@ export default async function AdministracionPage({
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Administración</h1>
           <p className="text-sm text-slate-500">
-            Libro de movimientos y liquidez por caja, uniendo lo cargado por caso con los
-            movimientos generales (sueldos, hosting, alquiler, etc.) que no son de un caso
-            puntual.
+            Libro de movimientos y liquidez por caja — solo lo efectivamente pagado o cobrado
+            (no lo devengado), uniendo egresos pagados y cobros por caso con los movimientos
+            generales (sueldos, hosting, alquiler, etc.) que no son de un caso puntual.
           </p>
         </div>
       </div>
@@ -349,8 +417,9 @@ export default async function AdministracionPage({
               {filas.length === 1 ? "1 movimiento" : `${filas.length} movimientos`}
             </span>
             <span className="text-xs text-slate-500">
-              Los movimientos sin caja ni cuenta asignada no aparecen acá — los de caso se siguen
-              viendo en la ficha del caso.
+              Solo egresos ya pagados y cobros ya recibidos, con caja o cuenta asignada — lo
+              pendiente de pago/cobro o sin caja/cuenta asignada se sigue viendo en la ficha del
+              caso.
             </span>
           </div>
           <div className="card overflow-x-auto">

@@ -83,6 +83,8 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
   const [cobroFacturaId, setCobroFacturaId] = useState<string | null>(null);
   const [cobroMonto, setCobroMonto] = useState("");
   const [cobroMedioPago, setCobroMedioPago] = useState("");
+  const [cobroCajaId, setCobroCajaId] = useState("");
+  const [cobroCuentaContableId, setCobroCuentaContableId] = useState("");
   const [savingCobro, setSavingCobro] = useState(false);
 
   const [anticiposCompania, setAnticiposCompania] = useState<Anticipo[]>([]);
@@ -351,7 +353,12 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
       const res = await fetch(`/api/facturas/${facturaId}/cobros`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ monto: Number(cobroMonto), medio_pago: cobroMedioPago })
+        body: JSON.stringify({
+          monto: Number(cobroMonto),
+          medio_pago: cobroMedioPago,
+          caja_id: cobroCajaId || null,
+          cuenta_contable_id: cobroCuentaContableId || null
+        })
       });
       const json = await res.json();
       if (!res.ok) {
@@ -361,6 +368,8 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
       setCobroFacturaId(null);
       setCobroMonto("");
       setCobroMedioPago("");
+      setCobroCajaId("");
+      setCobroCuentaContableId("");
       loadFacturas();
     } finally {
       setSavingCobro(false);
@@ -918,6 +927,9 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                           Cobro {formatCurrency(c.monto)}
                           {c.medio_pago && ` — ${c.medio_pago}`} —{" "}
                           {new Date(c.fecha + "T00:00:00").toLocaleDateString("es-AR")}
+                          {c.caja_id && ` · ${cajas.find((cj) => cj.id === c.caja_id)?.nombre ?? "—"}`}
+                          {c.cuenta_contable_id &&
+                            ` · ${cuentas.find((cc) => cc.id === c.cuenta_contable_id)?.codigo ?? "—"}`}
                         </span>
                         <button
                           className="text-slate-400 hover:text-red-600"
@@ -968,6 +980,38 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                             onChange={(e) => setCobroMedioPago(e.target.value)}
                           />
                         </div>
+                        <div>
+                          <label className="label">Caja</label>
+                          <select
+                            className="input w-40"
+                            value={cobroCajaId}
+                            onChange={(e) => setCobroCajaId(e.target.value)}
+                          >
+                            <option value="">Sin asignar</option>
+                            {cajas.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="label">Cuenta contable</label>
+                          <select
+                            className="input w-48"
+                            value={cobroCuentaContableId}
+                            onChange={(e) => setCobroCuentaContableId(e.target.value)}
+                          >
+                            <option value="">Sin asignar</option>
+                            {cuentas
+                              .filter((cc) => cc.imputable && cc.tipo === "ingreso")
+                              .map((cc) => (
+                                <option key={cc.id} value={cc.id}>
+                                  {cc.codigo} · {cc.nombre}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
                         <button
                           className="btn-primary text-xs"
                           disabled={savingCobro}
@@ -977,7 +1021,11 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                         </button>
                         <button
                           className="btn-secondary text-xs"
-                          onClick={() => setCobroFacturaId(null)}
+                          onClick={() => {
+                            setCobroFacturaId(null);
+                            setCobroCajaId("");
+                            setCobroCuentaContableId("");
+                          }}
                         >
                           Cancelar
                         </button>
