@@ -419,20 +419,6 @@ siguiendo el `CLAUDE.md` del proyecto.
   el gesto de deslizar, no siempre intuitivo) — usa el historial de
   navegación si lo hay, o cae a `/casos` si se entró por un enlace
   directo.
-- **Filtros del listado en mobile** (`FiltrosCasosMobile.tsx`, dentro de
-  `/casos`): reemplaza el formulario de escritorio por un buscador único
-  (dominio, N° de siniestro o asegurado, vía el nuevo parámetro `buscar`)
-  y tres chips — Tipo de baja, Compañía, Estado — que abren una hoja de
-  selección; al elegir, el chip queda marcado en oro con una ✕ para
-  limpiarlo. El formulario de escritorio (`q`/`dominio`/selects) sigue
-  intacto para pantallas grandes.
-- **Vistas públicas de gestor y desarmadero rediseñadas**: `/g/[token]`
-  suma botones **"Llamar"** (`tel:`) y **"Cómo llegar"** (Google Maps con
-  la dirección del asegurado); `/fb/[token]` (formulario de baja) suma
-  una regla de avance visual (paso X de Y sobre `PASOS_PROGRESO` en
-  `src/lib/eventosBitacora.ts`, compartido con `BitacoraTimeline.tsx`) y
-  recorta "Datos del caso" a vehículo y tipo de baja únicamente, sin
-  datos del asegurado ni comerciales.
 
 - **Rentabilidad / módulo financiero (Fases 1 y 2)**: página dedicada
   `/casos/[id]/rentabilidad` (accesible desde un resumen compacto —
