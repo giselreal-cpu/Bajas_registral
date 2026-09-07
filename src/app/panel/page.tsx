@@ -3,6 +3,8 @@ import { ESTADOS } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
 import { obtenerDatosPanel, nombreMes, PanelFiltros } from "@/lib/panelData";
+import { avanceCaso } from "@/lib/avanceCaso";
+import AvanceBar from "@/components/AvanceBar";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
   const datos = await obtenerDatosPanel(searchParams);
   const usuarioActual = await getUsuarioActual();
   const puedeVerTiempos = usuarioActual?.rol !== "compania";
+  const puedeVerFinanzas = usuarioActual?.rol !== "compania";
 
   const {
     errores,
@@ -44,8 +47,51 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
     totalEgresosPanel,
     gananciaNetaPanel,
     resumenMensual,
-    itemsAtencionLimitados
+    itemsAtencionLimitados,
+    totalACobrarCartera,
+    casosACobrarCartera,
+    totalPendienteAprobar,
+    cantidadPendienteAprobar,
+    margenMesActual
   } = datos;
+
+  const primerNombre = usuarioActual?.nombre?.split(" ")[0] ?? "";
+  const horaActual = new Date().getHours();
+  const saludo = horaActual < 12 ? "Buen día" : horaActual < 20 ? "Buenas tardes" : "Buenas noches";
+
+  // "Los casos que piden atención" del mockup = misma señal que antes se
+  // mostraba en dos cajas separadas (sin movimiento / sin contactar),
+  // unificada en una sola lista.
+  const casosQuePidenAtencion = [
+    ...casosSinMovimiento.map((c) => ({
+      id: c.id,
+      numero_siniestro: c.numero_siniestro,
+      asegurado: c.asegurado,
+      responsable: c.responsable,
+      motivo: `${c.dias} días sin movimiento`,
+      clase: "bg-amber-100 text-amber-800"
+    })),
+    ...casosSinContactar.map((c) => ({
+      id: c.id,
+      numero_siniestro: c.numero_siniestro,
+      asegurado: c.asegurado,
+      responsable: c.responsable,
+      motivo: "Sin contactar al asegurado",
+      clase: "bg-sky-100 text-sky-800"
+    }))
+  ].slice(0, 10);
+
+  const hoyPanel = new Date();
+  hoyPanel.setHours(0, 0, 0, 0);
+  const en7Dias = new Date(hoyPanel);
+  en7Dias.setDate(en7Dias.getDate() + 7);
+  const vencimientosSemana = itemsAtencionLimitados.filter((item) => {
+    if (!item.badgeTexto) return false;
+    const [dia, mes, anio] = item.badgeTexto.split("/");
+    if (!dia || !mes || !anio) return false;
+    const fecha = new Date(Number(anio), Number(mes) - 1, Number(dia));
+    return fecha <= en7Dias;
+  });
 
   // Mismos filtros del Panel, para que "Ver detalle →" lleve a
   // /panel/detalle mostrando el mismo recorte de casos.
@@ -63,11 +109,23 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-slate-900">Panel de control</h1>
-        <p className="text-sm text-slate-500">
-          Estado general de los casos y próximos vencimientos.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="font-heading text-2xl font-semibold text-brand-900">
+            {saludo}{primerNombre ? `, ${primerNombre}` : ""}
+          </h1>
+          <p className="text-sm text-slate-500">
+            Estado general de los casos y próximos vencimientos.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/exportar" className="btn-secondary">
+            Exportar
+          </Link>
+          <Link href="/casos/nuevo" className="btn-primary">
+            + Nuevo caso
+          </Link>
+        </div>
       </div>
 
       <form className="card p-4 flex flex-wrap gap-3 items-end" method="get">
@@ -136,22 +194,29 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard label="Casos totales" value={totalCasos} />
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard label="Casos abiertos" value={casosAbiertos} />
-        <StatCard label="Casos cerrados" value={casosCerrados} />
+        <StatCard label="Sin movimiento 7+ días" value={casosSinMovimiento.length} />
+        {puedeVerFinanzas && (
+          <StatCard label="A cobrar" value={formatCurrency(totalACobrarCartera)} sub={`${casosACobrarCartera} ${casosACobrarCartera === 1 ? "caso" : "casos"}`} />
+        )}
+        {puedeVerFinanzas && (
+          <StatCard label="A rendir" value={formatCurrency(totalPendienteAprobar)} sub={`${cantidadPendienteAprobar} ${cantidadPendienteAprobar === 1 ? "gasto" : "gastos"}`} />
+        )}
+        {puedeVerFinanzas && (
+          <StatCard label="Margen del mes" value={margenMesActual !== null ? `${margenMesActual}%` : "—"} />
+        )}
       </div>
 
-      {casosSinMovimiento.length > 0 && (
-        <section className="card border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-medium text-amber-800">
-              ⚠ Casos sin movimiento hace 7+ días ({casosSinMovimiento.length})
-            </h2>
-          </div>
-          <div className="divide-y divide-amber-100">
-            {casosSinMovimiento.map((c) => (
-              <div key={c.id} className="py-2 flex items-center justify-between gap-3">
+      <section className="card p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-heading font-semibold text-slate-800">Los casos que piden atención</h2>
+          <span className="text-xs text-slate-400">{casosQuePidenAtencion.length}</span>
+        </div>
+        {casosQuePidenAtencion.length > 0 ? (
+          <div className="divide-y divide-slate-100">
+            {casosQuePidenAtencion.map((c) => (
+              <div key={`${c.id}-${c.motivo}`} className="py-2 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <Link
                     href={`/casos/${c.id}`}
@@ -163,39 +228,95 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
                     {c.asegurado?.nombre} · {c.responsable?.nombre ?? "Sin responsable"}
                   </p>
                 </div>
-                <span className="badge bg-amber-100 text-amber-800 shrink-0">
-                  {c.dias} días sin movimiento
-                </span>
+                <span className={`badge shrink-0 ${c.clase}`}>{c.motivo}</span>
               </div>
             ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">No hay casos que pidan atención por ahora.</p>
+        )}
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section className="card p-4">
+          <h2 className="font-heading font-semibold text-slate-800 mb-3">Avance de la cartera por etapa</h2>
+          <div className="space-y-3">
+            {ESTADOS.map((e) => {
+              const cantidad = conteoPorEstado[e.value] ?? 0;
+              const pct = Math.round((cantidad / maxConteo) * 100);
+              return (
+                <Link
+                  key={e.value}
+                  href={`/casos?estado=${e.value}${
+                    searchParams.aseguradora_id
+                      ? `&aseguradora_id=${searchParams.aseguradora_id}`
+                      : ""
+                  }`}
+                  className="block group"
+                >
+                  <div className="flex items-center justify-between text-sm mb-1">
+                    <span className="text-slate-700 group-hover:text-brand-600">
+                      {e.label}
+                    </span>
+                    <span className="text-slate-500">{cantidad}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-silver-200 overflow-hidden">
+                    <div
+                      className="h-full bg-accent-600 rounded-full"
+                      style={{ width: `${cantidad === 0 ? 0 : Math.max(pct, 4)}%` }}
+                    />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
-      )}
 
-      {casosSinContactar.length > 0 && (
-        <section className="card border-sky-200 bg-sky-50 p-4">
+        <section className="card p-4">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-medium text-sky-800">
-              📞 Casos sin contactar al asegurado ({casosSinContactar.length})
-            </h2>
+            <h2 className="font-heading font-semibold text-slate-800">Vencimientos de esta semana</h2>
+            <Link href="/agenda" className="text-sm text-brand-600 hover:underline">
+              Ver agenda completa
+            </Link>
           </div>
-          <div className="divide-y divide-sky-100">
-            {casosSinContactar.map((c) => (
-              <div key={c.id} className="py-2 flex items-center justify-between gap-3">
+          <div className="divide-y divide-slate-100">
+            {vencimientosSemana.map((item) => (
+              <div key={item.key} className="py-2 flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <Link
-                    href={`/casos/${c.id}`}
-                    className="text-brand-700 font-medium hover:underline text-sm"
+                    href={`/casos/${item.casoId}`}
+                    className="text-brand-600 font-medium hover:underline text-sm"
                   >
-                    {c.numero_siniestro}
+                    {item.numero}
                   </Link>
-                  <p className="text-xs text-slate-500">
-                    {c.asegurado?.nombre} · {c.responsable?.nombre ?? "Sin responsable"}
-                  </p>
+                  <p className="text-sm text-slate-700 truncate">{item.detalle}</p>
+                  <p className="text-xs text-slate-400">{item.meta}</p>
                 </div>
-                <span className="badge bg-sky-100 text-sky-800 shrink-0">Sin contactar</span>
+                {item.badgeTexto && (
+                  <span className={`badge shrink-0 ${item.badgeClase}`}>{item.badgeTexto}</span>
+                )}
               </div>
             ))}
+            {vencimientosSemana.length === 0 && (
+              <p className="text-sm text-slate-500 py-2">No hay vencimientos en los próximos 7 días.</p>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {puedeVerFinanzas && cantidadPendienteAprobar > 0 && (
+        <section className="card border-accent-200 bg-accent-50 p-4">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <h2 className="font-heading font-semibold text-accent-900">Pendiente de aprobar</h2>
+              <p className="text-sm text-accent-800 mt-0.5">
+                {cantidadPendienteAprobar} {cantidadPendienteAprobar === 1 ? "gasto" : "gastos"} de campo
+                por {formatCurrency(totalPendienteAprobar)} esperando aprobación.
+              </p>
+            </div>
+            <Link href="/administracion" className="btn-secondary shrink-0">
+              Ir a Administración →
+            </Link>
           </div>
         </section>
       )}
@@ -311,75 +432,6 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
           )}
         </section>
       )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Casos por estado</h2>
-          <div className="space-y-3">
-            {ESTADOS.map((e) => {
-              const cantidad = conteoPorEstado[e.value] ?? 0;
-              const pct = Math.round((cantidad / maxConteo) * 100);
-              return (
-                <Link
-                  key={e.value}
-                  href={`/casos?estado=${e.value}${
-                    searchParams.aseguradora_id
-                      ? `&aseguradora_id=${searchParams.aseguradora_id}`
-                      : ""
-                  }`}
-                  className="block group"
-                >
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-slate-700 group-hover:text-brand-600">
-                      {e.label}
-                    </span>
-                    <span className="text-slate-500">{cantidad}</span>
-                  </div>
-                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div
-                      className="h-full bg-brand-500 rounded-full"
-                      style={{ width: `${cantidad === 0 ? 0 : Math.max(pct, 4)}%` }}
-                    />
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-medium text-slate-800">Próximos vencimientos</h2>
-            <Link href="/agenda" className="text-sm text-brand-600 hover:underline">
-              Ver agenda completa
-            </Link>
-          </div>
-          <div className="divide-y divide-slate-100">
-            {itemsAtencionLimitados.map((item) => (
-              <div key={item.key} className="py-2 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <Link
-                    href={`/casos/${item.casoId}`}
-                    className="text-brand-600 font-medium hover:underline text-sm"
-                  >
-                    {item.numero}
-                  </Link>
-                  <p className="text-sm text-slate-700 truncate">{item.detalle}</p>
-                  <p className="text-xs text-slate-400">{item.meta}</p>
-                </div>
-                {item.badgeTexto && (
-                  <span className={`badge shrink-0 ${item.badgeClase}`}>{item.badgeTexto}</span>
-                )}
-              </div>
-            ))}
-            {itemsAtencionLimitados.length === 0 && (
-              <p className="text-sm text-slate-500 py-2">
-                No hay vencimientos ni casos sin movimiento por ahora.
-              </p>
-            )}
-          </div>
-        </section>
-      </div>
 
       <section className="card p-4">
         <div className="flex items-center justify-between mb-1">
@@ -514,7 +566,17 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
   );
 }
 
-function StatCard({ label, value, sufijo }: { label: string; value: number; sufijo?: string }) {
+function StatCard({
+  label,
+  value,
+  sufijo,
+  sub
+}: {
+  label: string;
+  value: number | string;
+  sufijo?: string;
+  sub?: string;
+}) {
   return (
     <div className="card p-4">
       <p className="text-sm text-slate-500">{label}</p>
@@ -522,6 +584,7 @@ function StatCard({ label, value, sufijo }: { label: string; value: number; sufi
         {value}
         {sufijo && <span className="text-base font-normal text-slate-500">{sufijo}</span>}
       </p>
+      {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
     </div>
   );
 }

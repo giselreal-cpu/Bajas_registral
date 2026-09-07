@@ -14,6 +14,8 @@ import {
 import CasoCabeceraMobile from "./CasoCabeceraMobile";
 import BitacoraTimeline from "./BitacoraTimeline";
 import DocumentosMobile from "./DocumentosMobile";
+import { avanceCaso } from "@/lib/avanceCaso";
+import AvanceBar from "@/components/AvanceBar";
 
 type Tab = "resumen" | "bitacora" | "documentos";
 
@@ -101,9 +103,12 @@ export default function CasoDetailMobile(props: Props) {
               {caso.numero_caso === 0 ? "DEMO" : `N° ${caso.numero_caso}`} · {caso.numero_siniestro}
             </div>
           </div>
-          <span className={`mv-badge shrink-0 ${estadoAbierto ? "" : "mv-badge-closed"}`}>
-            {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
-          </span>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <span className={`mv-badge ${estadoAbierto ? "" : "mv-badge-closed"}`}>
+              {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
+            </span>
+            <AvanceBar {...avanceCaso(caso.estado)} size="sm" showLabel={false} />
+          </div>
         </div>
 
         <div className="mv-gradient-line mt-3" />

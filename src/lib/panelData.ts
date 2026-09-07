@@ -72,6 +72,7 @@ export interface ResumenMes {
   autosCerrados: number;
   gananciaNeta: number;
   cobradoDesarmadero: number;
+  facturado: number;
 }
 
 export interface ItemAtencion {
@@ -461,14 +462,59 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   for (const c of casosConTiempos) {
     const mesKey = c.fecha_cierre!.slice(0, 7);
     if (!resumenPorMes.has(mesKey)) {
-      resumenPorMes.set(mesKey, { mes: mesKey, autosCerrados: 0, gananciaNeta: 0, cobradoDesarmadero: 0 });
+      resumenPorMes.set(mesKey, {
+        mes: mesKey,
+        autosCerrados: 0,
+        gananciaNeta: 0,
+        cobradoDesarmadero: 0,
+        facturado: 0
+      });
     }
     const entrada = resumenPorMes.get(mesKey)!;
     entrada.autosCerrados += 1;
     entrada.gananciaNeta += (facturadoPorCaso.get(c.id) ?? 0) - (egresosTotalesPorCaso.get(c.id) ?? 0);
     entrada.cobradoDesarmadero += cobradoDesarmaderoPorCaso.get(c.id) ?? 0;
+    entrada.facturado += facturadoPorCaso.get(c.id) ?? 0;
   }
   const resumenMensual = Array.from(resumenPorMes.values()).sort((a, b) => b.mes.localeCompare(a.mes));
+
+  // Agregados de nivel "cartera completa" para las 5 tarjetas del Panel
+  // rediseñado — mismos criterios que ya usa /caja (A cobrar = facturas
+  // a la compañía sin cobrar del todo; A rendir = gastos de campo con
+  // aprobado=false), pero sumados en toda la cartera en vez de por caso.
+  const [{ data: facturasCompaniaPendientes }, { data: movimientosSinAprobar }] = await Promise.all([
+    supabase
+      .from("facturas")
+      .select("caso_id, monto_total, cobros(monto), notas_credito(monto)")
+      .eq("tipo_receptor", "compania")
+      .neq("estado", "cobrado_total"),
+    supabase.from("movimientos_caso").select("id, monto").eq("aprobado", false)
+  ]);
+
+  const facturasCompaniaSaldo = (facturasCompaniaPendientes ?? []) as unknown as {
+    caso_id: string;
+    monto_total: number;
+    cobros: { monto: number }[];
+    notas_credito: { monto: number }[];
+  }[];
+  const totalACobrarCartera = facturasCompaniaSaldo.reduce((acc, f) => {
+    const saldo =
+      f.monto_total -
+      f.cobros.reduce((a, c) => a + Number(c.monto), 0) -
+      f.notas_credito.reduce((a, n) => a + Number(n.monto), 0);
+    return acc + Math.max(saldo, 0);
+  }, 0);
+  const casosACobrarCartera = new Set(facturasCompaniaSaldo.map((f) => f.caso_id)).size;
+
+  const pendienteAprobar = (movimientosSinAprobar ?? []) as unknown as { id: string; monto: number }[];
+  const totalPendienteAprobar = pendienteAprobar.reduce((acc, m) => acc + Number(m.monto), 0);
+
+  const mesActualKey = ahora.toISOString().slice(0, 7);
+  const resumenMesActual = resumenPorMes.get(mesActualKey);
+  const margenMesActual =
+    resumenMesActual && resumenMesActual.facturado > 0
+      ? Math.round((resumenMesActual.gananciaNeta / resumenMesActual.facturado) * 1000) / 10
+      : null;
 
   const itemsAtencion: ItemAtencion[] = [];
   for (const v of (vencimientos as unknown as VencimientoRow[] | null) ?? []) {
@@ -533,6 +579,11 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     totalEgresosPanel,
     gananciaNetaPanel,
     resumenMensual,
-    itemsAtencionLimitados
+    itemsAtencionLimitados,
+    totalACobrarCartera,
+    casosACobrarCartera,
+    totalPendienteAprobar,
+    cantidadPendienteAprobar: pendienteAprobar.length,
+    margenMesActual
   };
 }

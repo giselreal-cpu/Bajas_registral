@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import { CasoConRelaciones, ESTADOS } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { estadoBadgeClass } from "@/lib/estadoBadge";
+import { avanceCaso } from "@/lib/avanceCaso";
+import AvanceBar from "@/components/AvanceBar";
 
 export const dynamic = "force-dynamic";
 
@@ -216,10 +218,11 @@ export default async function CasosPage({
                     </span>
                   )}
                 </div>
-                <div className="mt-2.5">
+                <div className="mt-2.5 flex items-center justify-between gap-2">
                   <span className={`mv-badge ${abierto ? "" : "mv-badge-closed"}`}>
                     {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
                   </span>
+                  <AvanceBar {...avanceCaso(caso.estado)} size="sm" />
                 </div>
               </Link>
             );
@@ -244,6 +247,7 @@ export default async function CasosPage({
               <th className="px-4 py-2 font-medium">Tipo de baja</th>
               <th className="px-4 py-2 font-medium">Responsable</th>
               <th className="px-4 py-2 font-medium">Estado</th>
+              <th className="px-4 py-2 font-medium">Avance</th>
               <th className="px-4 py-2 font-medium">Ingreso</th>
             </tr>
           </thead>
@@ -288,13 +292,16 @@ export default async function CasosPage({
                   </span>
                 </td>
                 <td className="px-4 py-2">
+                  <AvanceBar {...avanceCaso(caso.estado)} size="sm" />
+                </td>
+                <td className="px-4 py-2">
                   {new Date(caso.fecha_ingreso + "T00:00:00").toLocaleDateString("es-AR")}
                 </td>
               </tr>
             ))}
             {casos?.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
                   No hay casos cargados todavía.
                 </td>
               </tr>

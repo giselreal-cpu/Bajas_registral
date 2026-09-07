@@ -5,9 +5,11 @@ import Link from "next/link";
 import HeaderNav from "@/components/HeaderNav";
 import LogoutButton from "@/components/LogoutButton";
 import MobileNav from "@/components/MobileNav";
+import SidebarNav from "@/components/SidebarNav";
 import InstallBanner from "@/components/InstallBanner";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { ROLES } from "@/types/database";
 import "./globals.css";
 
 const lora = Lora({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-body" });
@@ -38,15 +40,28 @@ export const viewport: Viewport = {
   themeColor: "#b68235"
 };
 
-const NAV_LINKS = [
+// Los 4 destinos principales del rediseño (turno 7 del mockup), arriba
+// del todo. El resto de las páginas que ya existían antes no se tocan
+// ni se pierden — pasan al sidebar (ver SidebarNav), no al nav
+// superior.
+const NAV_LINKS_PRIMARIOS = [
   { href: "/panel", label: "Panel" },
   { href: "/casos", label: "Casos" },
+  { href: "/administracion", label: "Administración", ocultarParaCompania: true },
+  { href: "/analisis", label: "Análisis", ocultarParaCompania: true }
+];
+
+const NAV_LINKS_SECUNDARIOS = [
   { href: "/agenda", label: "Agenda" },
   { href: "/catalogos", label: "Catálogos", ocultarParaCompania: true },
   { href: "/cuenta-corriente", label: "Cta. Corriente", ocultarParaCompania: true },
   { href: "/seguimiento-financiero", label: "Seguimiento", ocultarParaCompania: true },
-  { href: "/administracion", label: "Administración", ocultarParaCompania: true },
   { href: "/exportar", label: "Exportar" }
+];
+
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
 ];
 
 export default async function RootLayout({
@@ -65,9 +80,21 @@ export default async function RootLayout({
   // sistema hasta que un administrador lo apruebe.
   const pendienteDeAprobacion = !!user && !usuarioActual;
 
-  const navLinks = NAV_LINKS.filter(
-    (link) => !(link.ocultarParaCompania && usuarioActual?.rol === "compania")
+  const esCompania = usuarioActual?.rol === "compania";
+  const navLinksPrimarios = NAV_LINKS_PRIMARIOS.filter(
+    (link) => !(link.ocultarParaCompania && esCompania)
   );
+  const navLinksSecundarios = NAV_LINKS_SECUNDARIOS.filter(
+    (link) => !(link.ocultarParaCompania && esCompania)
+  );
+  const ahora = new Date();
+  const periodo = `Ejercicio ${ahora.getFullYear()} · ${MESES[ahora.getMonth()]}`;
+  const rolLabel = usuarioActual ? ROLES.find((r) => r.value === usuarioActual.rol)?.label : null;
+  const nombreConRol = usuarioActual?.nombre
+    ? rolLabel
+      ? `${usuarioActual.nombre} · ${rolLabel}`
+      : usuarioActual.nombre
+    : (user?.email ?? "");
 
   return (
     <html lang="es" className={`${lora.variable} ${cormorantGaramond.variable}`}>
@@ -85,8 +112,8 @@ export default async function RootLayout({
                   priority
                 />
                 <span className="hidden sm:flex flex-col leading-tight">
-                  <span className="font-heading font-semibold text-white tracking-tight">
-                    Bajas Registrales
+                  <span className="font-heading font-semibold text-white tracking-tight text-lg">
+                    Oltra <span className="text-accent-300">Bajas</span>
                   </span>
                   <span className="text-[11px] text-silver-400 tracking-wide">
                     Gestión Integral Automotor
@@ -95,8 +122,10 @@ export default async function RootLayout({
               </Link>
               {user && !pendienteDeAprobacion && (
                 <HeaderNav
-                  navLinks={navLinks}
-                  nombreUsuario={usuarioActual?.nombre ?? user.email ?? ""}
+                  navLinks={navLinksPrimarios}
+                  secondaryLinks={navLinksSecundarios}
+                  periodo={periodo}
+                  nombreUsuario={nombreConRol}
                 />
               )}
               {pendienteDeAprobacion && (
@@ -108,27 +137,30 @@ export default async function RootLayout({
             </div>
             <div className="h-0.5 bg-gradient-to-r from-accent-600 via-accent-400 to-silver-300" />
           </header>
-          <main className="flex-1 mx-auto w-full max-w-6xl px-4 py-6 pb-24 md:pb-6">
-            {pendienteDeAprobacion ? (
-              <div className="max-w-md mx-auto text-center py-16">
-                <h1 className="text-lg font-semibold text-slate-900 mb-2">
-                  Cuenta pendiente de aprobación
-                </h1>
-                <p className="text-sm text-slate-500">
-                  Tu cuenta ({user!.email}) se creó correctamente, pero todavía
-                  no tenés un rol asignado. Pedile a un administrador que te
-                  autorice desde Catálogos → Usuarios.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="md:hidden mb-4">
-                  <InstallBanner />
+          <div className="flex-1 flex items-stretch min-h-0">
+            {user && !pendienteDeAprobacion && <SidebarNav links={navLinksSecundarios} />}
+            <main className="flex-1 min-w-0 mx-auto w-full max-w-6xl px-4 py-6 pb-24 md:pb-6">
+              {pendienteDeAprobacion ? (
+                <div className="max-w-md mx-auto text-center py-16">
+                  <h1 className="text-lg font-semibold text-slate-900 mb-2">
+                    Cuenta pendiente de aprobación
+                  </h1>
+                  <p className="text-sm text-slate-500">
+                    Tu cuenta ({user!.email}) se creó correctamente, pero todavía
+                    no tenés un rol asignado. Pedile a un administrador que te
+                    autorice desde Catálogos → Usuarios.
+                  </p>
                 </div>
-                {children}
-              </>
-            )}
-          </main>
+              ) : (
+                <>
+                  <div className="md:hidden mb-4">
+                    <InstallBanner />
+                  </div>
+                  {children}
+                </>
+              )}
+            </main>
+          </div>
           {user && !pendienteDeAprobacion && <MobileNav />}
         </div>
       </body>

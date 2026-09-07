@@ -4,6 +4,8 @@ import { ESTADOS, RAMAS } from "@/types/database";
 import { estadoBadgeClass } from "@/lib/estadoBadge";
 import { CasoCabeceraProps, formatCurrency, useCasoCabecera } from "./useCasoCabecera";
 import SelectorNotificacion from "./SelectorNotificacion";
+import { avanceCaso } from "@/lib/avanceCaso";
+import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabecera(props: CasoCabeceraProps) {
   const { caso, aseguradoras, registros, tiposBaja, usuarios, gestores, soloLectura, esAdministrador } =
@@ -47,6 +49,9 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
             {caso.asegurado?.nombre} · Dominio {caso.vehiculo?.dominio} ·{" "}
             {caso.aseguradora?.nombre}
           </p>
+          <div className="mt-1.5">
+            <AvanceBar {...avanceCaso(caso.estado)} size="sm" />
+          </div>
         </div>
         {!editing ? (
           <div className="flex gap-2">

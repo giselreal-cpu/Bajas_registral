@@ -4,6 +4,8 @@ import { ESTADOS, RAMAS } from "@/types/database";
 import { estadoBadgeClass } from "@/lib/estadoBadge";
 import { CasoCabeceraProps, formatCurrency, useCasoCabecera } from "./useCasoCabecera";
 import SelectorNotificacion from "./SelectorNotificacion";
+import { avanceCaso } from "@/lib/avanceCaso";
+import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
   const { caso, aseguradoras, registros, tiposBaja, usuarios, gestores, soloLectura, esAdministrador } =
@@ -35,9 +37,12 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-4">
-        <span className={`mv-badge ${estadoAbierto ? "" : "mv-badge-closed"}`}>
-          {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
-        </span>
+        <div className="flex items-center gap-2.5">
+          <span className={`mv-badge ${estadoAbierto ? "" : "mv-badge-closed"}`}>
+            {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
+          </span>
+          <AvanceBar {...avanceCaso(caso.estado)} size="sm" />
+        </div>
         {!editing ? (
           <div className="flex gap-2">
             {!soloLectura && (
