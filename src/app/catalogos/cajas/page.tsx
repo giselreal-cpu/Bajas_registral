@@ -1,13 +1,13 @@
 "use client";
 
 import CatalogTable from "@/components/catalogos/CatalogTable";
-import { TIPOS_CAJA } from "@/types/database";
+import { MONEDAS, TIPOS_CAJA } from "@/types/database";
 
 export default function CajasPage() {
   return (
     <CatalogTable
       title="Cajas"
-      description="Medios de efectivo reales: caja física, cuenta bancaria, billetera virtual, fondo fijo."
+      description="Medios de efectivo reales: caja física, cuenta bancaria, billetera virtual, fondo fijo, financiera, caja de seguridad."
       endpoint="/api/cajas"
       columns={[
         { key: "nombre", label: "Nombre", required: true },
@@ -17,6 +17,13 @@ export default function CajasPage() {
           required: true,
           type: "select",
           options: TIPOS_CAJA
+        },
+        {
+          key: "moneda",
+          label: "Moneda",
+          required: true,
+          type: "select",
+          options: MONEDAS
         }
       ]}
     />

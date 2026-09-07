@@ -37,7 +37,12 @@ interface CasoCerradoReporte {
   desarmadero: { nombre: string } | null;
   tipo_baja: { nombre: string } | null;
   vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
-  movimientos_caso: { monto: number; pagado: boolean; concepto: { nombre: string } | null }[];
+  movimientos_caso: {
+    monto: number;
+    pagado: boolean;
+    aprobado: boolean;
+    concepto: { nombre: string } | null;
+  }[];
 }
 
 interface CasoReporte {
@@ -52,6 +57,7 @@ interface CasoReporte {
     fecha: string;
     observacion: string | null;
     pagado: boolean;
+    aprobado: boolean;
     concepto: { nombre: string; tipo: string } | null;
   }[];
   facturas: {
@@ -89,7 +95,7 @@ export default async function SeguimientoFinancieroPage() {
         aseguradora:aseguradoras(nombre),
         desarmadero:desarmaderos(nombre),
         vehiculo:vehiculos(dominio),
-        movimientos_caso(id, monto, fecha, observacion, pagado, concepto:conceptos_movimiento(nombre, tipo)),
+        movimientos_caso(id, monto, fecha, observacion, pagado, aprobado, concepto:conceptos_movimiento(nombre, tipo)),
         facturas(id, numero_factura, tipo_receptor, monto_total, estado, fecha_emision, cobros(monto), notas_credito(monto))
       `
       )
@@ -103,7 +109,7 @@ export default async function SeguimientoFinancieroPage() {
         desarmadero:desarmaderos(nombre),
         tipo_baja:tipos_baja(nombre),
         vehiculo:vehiculos(dominio, marca, modelo, anio),
-        movimientos_caso(monto, pagado, concepto:conceptos_movimiento(nombre))
+        movimientos_caso(monto, pagado, aprobado, concepto:conceptos_movimiento(nombre))
       `
       )
       .eq("estado", "cerrado")
@@ -127,7 +133,9 @@ export default async function SeguimientoFinancieroPage() {
   )
     .filter((c) => c.tipo_baja?.nombre && TIPOS_BAJA_PAGO_COMPANIA.includes(c.tipo_baja.nombre))
     .map((c) => {
-      const movimientosPago = c.movimientos_caso.filter((m) => m.concepto?.nombre === PAGO_COMPANIA);
+      const movimientosPago = c.movimientos_caso.filter(
+        (m) => m.concepto?.nombre === PAGO_COMPANIA && m.aprobado
+      );
       const pendientePago = movimientosPago
         .filter((m) => !m.pagado)
         .reduce((acc, m) => acc + Number(m.monto), 0);
@@ -169,7 +177,7 @@ export default async function SeguimientoFinancieroPage() {
 
   const casosConActividad = ((casos as unknown as CasoReporte[]) ?? [])
     .map((c) => {
-      const egresos = c.movimientos_caso.filter((m) => m.concepto?.tipo === "egreso");
+      const egresos = c.movimientos_caso.filter((m) => m.concepto?.tipo === "egreso" && m.aprobado);
       const egresosPendientes = egresos.filter((m) => !m.pagado);
       const egresosPagados = egresos.filter((m) => m.pagado);
       const totalPendientePago = egresosPendientes.reduce((acc, m) => acc + Number(m.monto), 0);

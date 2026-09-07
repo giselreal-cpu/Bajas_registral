@@ -35,7 +35,9 @@ export default function ConceptosMovimientoPage() {
           key: "cuenta_contable_id",
           label: "Cuenta contable sugerida",
           type: "select",
-          options: cuentas.map((c) => ({ value: c.id, label: `${c.codigo} · ${c.nombre}` }))
+          options: cuentas
+            .filter((c) => c.imputable && (c.tipo === "ingreso" || c.tipo === "egreso"))
+            .map((c) => ({ value: c.id, label: `${c.codigo} · ${c.nombre}` }))
         }
       ]}
     />

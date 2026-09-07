@@ -145,6 +145,21 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [casoId]);
 
+  // Solo cuentas imputables (no las de agrupación del plan de cuentas) y
+  // del mismo tipo que el concepto elegido — evita mezclar cuentas de
+  // Activo/Pasivo/PN (que son parte del plan de cuentas completo pero no
+  // se imputan movimientos de caso contra ellas) en un selector pensado
+  // para ingresos/egresos.
+  function cuentasParaConcepto(conceptoId: string) {
+    const concepto = conceptos.find((c) => c.id === conceptoId);
+    return cuentas.filter(
+      (cc) =>
+        cc.imputable &&
+        (cc.tipo === "ingreso" || cc.tipo === "egreso") &&
+        (!concepto || cc.tipo === concepto.tipo)
+    );
+  }
+
   function anticiposDe(f: Factura): Anticipo[] {
     const lista = f.tipo_receptor === "compania" ? anticiposCompania : anticiposDesarmadero;
     return lista.filter((a) => a.saldo_disponible > 0);
@@ -459,7 +474,7 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
     return acc + cobradoFactura;
   }, 0);
   const totalEgresos = (movimientos ?? [])
-    .filter((m) => m.concepto?.tipo === "egreso")
+    .filter((m) => m.concepto?.tipo === "egreso" && m.aprobado)
     .reduce((acc, m) => acc + Number(m.monto), 0);
   const gananciaNeta = totalIngresos - totalEgresos;
 
@@ -579,7 +594,7 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                 onChange={(e) => setForm((f) => ({ ...f, cuenta_contable_id: e.target.value }))}
               >
                 <option value="">Sin asignar</option>
-                {cuentas.map((cc) => (
+                {cuentasParaConcepto(form.concepto_id).map((cc) => (
                   <option key={cc.id} value={cc.id}>
                     {cc.codigo} · {cc.nombre}
                   </option>
@@ -662,7 +677,7 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                     }
                   >
                     <option value="">Sin cuenta</option>
-                    {cuentas.map((cc) => (
+                    {cuentasParaConcepto(editForm.concepto_id).map((cc) => (
                       <option key={cc.id} value={cc.id}>
                         {cc.codigo} · {cc.nombre}
                       </option>
