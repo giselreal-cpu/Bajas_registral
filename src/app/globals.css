@@ -3,12 +3,13 @@
 @tailwind utilities;
 
 /* Paleta "Classical" (Claude Design) — desde el rebrand, es el sistema
-   de diseño de TODA la app: brand/accent/silver de tailwind.config.ts
+   de colores de TODA la app: brand/accent/silver de tailwind.config.ts
    calcan estos mismos valores para el escritorio, y .mv-* (abajo) los
    repite en variables CSS propias para las vistas mobile que ya
-   estaban armadas sobre ellas. --font-heading/--font-body los carga
-   next/font en layout.tsx (Cormorant Garamond / Lora) — .mv los
-   referencia en vez de repetir el nombre de la fuente a mano. */
+   estaban armadas sobre ellas. La tipografía del escritorio volvió a
+   Inter/Poppins; las vistas mobile mantienen su Cormorant Garamond/Lora
+   original con variables propias (--font-mv-heading/--font-mv-body),
+   cargadas también por next/font en layout.tsx. */
 
 .mv {
   --mv-bg: #f3f2f2;
@@ -28,8 +29,8 @@
   --mv-accent-300: #facb8d;
   --mv-accent-400: #e1ad66;
   --mv-accent-700: #7d5411;
-  --mv-font-heading: var(--font-heading), serif;
-  --mv-font-body: var(--font-body), serif;
+  --mv-font-heading: var(--font-mv-heading), serif;
+  --mv-font-body: var(--font-mv-body), serif;
   --mv-radius-sm: 2px;
   --mv-radius-md: 4px;
   --mv-radius-lg: 7px;

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, Lora } from "next/font/google";
+import { Cormorant_Garamond, Inter, Lora, Poppins } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import HeaderNav from "@/components/HeaderNav";
@@ -12,11 +12,17 @@ import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { ROLES } from "@/types/database";
 import "./globals.css";
 
-const lora = Lora({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-body" });
+const inter = Inter({ subsets: ["latin"], variable: "--font-body" });
+const poppins = Poppins({ subsets: ["latin"], weight: ["600", "700"], variable: "--font-heading" });
+// El resto de la app volvió a Inter/Poppins, pero las vistas mobile (.mv)
+// ya usaban Cormorant Garamond/Lora desde antes del rebrand Classical —
+// mantienen su propia fuente con variables separadas, sin depender de
+// --font-body/--font-heading de acá.
+const lora = Lora({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-mv-body" });
 const cormorantGaramond = Cormorant_Garamond({
   subsets: ["latin"],
   weight: ["400", "600"],
-  variable: "--font-heading"
+  variable: "--font-mv-heading"
 });
 
 export const metadata: Metadata = {
@@ -97,7 +103,10 @@ export default async function RootLayout({
     : (user?.email ?? "");
 
   return (
-    <html lang="es" className={`${lora.variable} ${cormorantGaramond.variable}`}>
+    <html
+      lang="es"
+      className={`${inter.variable} ${poppins.variable} ${lora.variable} ${cormorantGaramond.variable}`}
+    >
       <body>
         <div className="min-h-screen flex flex-col">
           <header className="bg-brand-900 relative">

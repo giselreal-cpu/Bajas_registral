@@ -442,6 +442,8 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
             )}
           </Field>
 
+          <div />
+
           <Field label="Marca">
             {editing ? (
               <input
