@@ -240,15 +240,15 @@ export default async function CasosPage({
           <thead className="bg-slate-50 text-left text-slate-500">
             <tr>
               <th className="px-2 py-2 font-medium w-12">N°</th>
-              <th className="px-2 py-2 font-medium w-28">N° siniestro</th>
-              <th className="px-2 py-2 font-medium w-32">Asegurado</th>
-              <th className="px-2 py-2 font-medium w-28">Dominio</th>
-              <th className="px-2 py-2 font-medium w-28">Aseguradora</th>
-              <th className="px-2 py-2 font-medium w-20">Tipo de baja</th>
-              <th className="px-2 py-2 font-medium w-24">Responsable</th>
-              <th className="px-2 py-2 font-medium w-28">Estado</th>
+              <th className="px-2 py-2 font-medium w-32">N° siniestro</th>
+              <th className="px-3 py-2 font-medium w-44">Asegurado</th>
+              <th className="px-3 py-2 font-medium w-32">Dominio</th>
+              <th className="px-3 py-2 font-medium w-36">Aseguradora</th>
+              <th className="px-2 py-2 font-medium w-24">Tipo de baja</th>
+              <th className="px-3 py-2 font-medium w-32">Responsable</th>
+              <th className="px-2 py-2 font-medium w-32">Estado</th>
               <th className="px-2 py-2 font-medium w-32">Avance</th>
-              <th className="px-2 py-2 font-medium w-20">Ingreso</th>
+              <th className="px-2 py-2 font-medium w-24">Ingreso</th>
             </tr>
           </thead>
           <tbody>
@@ -272,11 +272,11 @@ export default async function CasosPage({
                     {caso.numero_siniestro}
                   </Link>
                 </td>
-                <td className="px-2 py-2 truncate" title={caso.asegurado?.nombre ?? undefined}>
+                <td className="px-3 py-2 truncate" title={caso.asegurado?.nombre ?? undefined}>
                   {caso.asegurado?.nombre ?? "—"}
                 </td>
                 <td
-                  className="px-2 py-2 truncate"
+                  className="px-3 py-2 truncate"
                   title={
                     [caso.vehiculo?.dominio, caso.vehiculo?.marca, caso.vehiculo?.modelo]
                       .filter(Boolean)
@@ -291,13 +291,13 @@ export default async function CasosPage({
                     </span>
                   )}
                 </td>
-                <td className="px-2 py-2 truncate" title={caso.aseguradora?.nombre ?? undefined}>
+                <td className="px-3 py-2 truncate" title={caso.aseguradora?.nombre ?? undefined}>
                   {caso.aseguradora?.nombre ?? "—"}
                 </td>
                 <td className="px-2 py-2 truncate" title={caso.tipo_baja?.nombre ?? undefined}>
                   {caso.tipo_baja?.nombre ?? "—"}
                 </td>
-                <td className="px-2 py-2 truncate" title={caso.responsable?.nombre ?? undefined}>
+                <td className="px-3 py-2 truncate" title={caso.responsable?.nombre ?? undefined}>
                   {caso.responsable?.nombre ?? "—"}
                 </td>
                 <td className="px-2 py-2 truncate">

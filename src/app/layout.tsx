@@ -110,7 +110,7 @@ export default async function RootLayout({
       <body>
         <div className="min-h-screen flex flex-col">
           <header className="bg-brand-900 relative">
-            <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
+            <div className="mx-auto max-w-[1440px] px-4 py-3 flex items-center justify-between">
               <Link href="/panel" className="flex items-center gap-2.5 group shrink-0">
                 <Image
                   src="/logo-oltra.jpg"
@@ -148,7 +148,7 @@ export default async function RootLayout({
           </header>
           <div className="flex-1 flex items-stretch min-h-0">
             {user && !pendienteDeAprobacion && <SidebarNav links={navLinksSecundarios} />}
-            <main className="flex-1 min-w-0 mx-auto w-full max-w-6xl px-4 py-6 pb-24 md:pb-6">
+            <main className="flex-1 min-w-0 mx-auto w-full max-w-[1440px] px-4 py-6 pb-24 md:pb-6">
               {pendienteDeAprobacion ? (
                 <div className="max-w-md mx-auto text-center py-16">
                   <h1 className="text-lg font-semibold text-slate-900 mb-2">
