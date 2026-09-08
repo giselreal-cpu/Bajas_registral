@@ -4,6 +4,7 @@ import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import MovimientosGeneralesSection from "@/components/administracion/MovimientosGeneralesSection";
 import LibroImportSection from "@/components/administracion/LibroImportSection";
 import CierresMensualesSection from "@/components/administracion/CierresMensualesSection";
+import PresupuestoSection from "@/components/administracion/PresupuestoSection";
 import { obtenerFilasLibro } from "@/lib/libroMovimientos";
 
 export const dynamic = "force-dynamic";
@@ -46,16 +47,18 @@ export default async function AdministracionPage({
         ? "generales"
         : searchParams.reporte === "cierres"
           ? "cierres"
-          : "libro";
+          : searchParams.reporte === "cuentas"
+            ? "cuentas"
+            : searchParams.reporte === "presupuesto"
+              ? "presupuesto"
+              : "libro";
 
   const [{ data: cajas }, { data: cuentas }, { data: aseguradoras }] = await Promise.all([
     supabase.from("cajas").select("*").eq("activa", true).order("nombre"),
-    supabase
-      .from("cuentas_contables")
-      .select("*")
-      .eq("imputable", true)
-      .in("tipo", ["ingreso", "egreso"])
-      .order("codigo"),
+    // Sin filtrar por tipo acá: "Resumen por cuenta" necesita también
+    // activo/pasivo/PN, no solo ingreso/egreso (que es lo único que
+    // usan los formularios de movimientos).
+    supabase.from("cuentas_contables").select("*").eq("imputable", true).order("codigo"),
     supabase.from("aseguradoras").select("id, nombre").order("nombre")
   ]);
 
@@ -157,6 +160,63 @@ export default async function AdministracionPage({
     );
   }
 
+  // Resumen por cuenta contable: NO es un balance formal (Activo =
+  // Pasivo + PN) — el sistema es de partida simple, cada movimiento
+  // toca una sola cuenta, no hay débito/crédito. Es una suma de lo
+  // cargado (devengado, aprobado, no anulado) contra cada cuenta del
+  // plan, para ver dónde está la actividad. No incluye cobros/notas de
+  // crédito (son la contrapartida de caja de un movimiento que ya se
+  // contó acá, no un hecho económico nuevo).
+  let resumenCuentas: {
+    cuenta: { id: string; codigo: string; nombre: string; tipo: string };
+    montoArs: number;
+    montoUsd: number;
+    cantidad: number;
+  }[] = [];
+  if (reporte === "cuentas") {
+    const [{ data: movCuentas }, { data: genCuentas }] = await Promise.all([
+      supabase
+        .from("movimientos_caso")
+        .select("cuenta_contable_id, monto, moneda")
+        .eq("aprobado", true)
+        .eq("anulado", false)
+        .not("cuenta_contable_id", "is", null),
+      supabase
+        .from("movimientos_generales")
+        .select("cuenta_contable_id, monto, moneda")
+        .eq("anulado", false)
+        .not("cuenta_contable_id", "is", null)
+    ]);
+
+    const acumulado = new Map<string, { montoArs: number; montoUsd: number; cantidad: number }>();
+    for (const m of [...(movCuentas ?? []), ...(genCuentas ?? [])] as {
+      cuenta_contable_id: string;
+      monto: number;
+      moneda: string;
+    }[]) {
+      if (!acumulado.has(m.cuenta_contable_id)) {
+        acumulado.set(m.cuenta_contable_id, { montoArs: 0, montoUsd: 0, cantidad: 0 });
+      }
+      const entrada = acumulado.get(m.cuenta_contable_id)!;
+      if (m.moneda === "USD") entrada.montoUsd += Number(m.monto);
+      else entrada.montoArs += Number(m.monto);
+      entrada.cantidad += 1;
+    }
+
+    resumenCuentas = (cuentas ?? [])
+      .filter((c) => c.imputable && acumulado.has(c.id))
+      .map((c) => ({ cuenta: c, ...acumulado.get(c.id)! }))
+      .sort((a, b) => a.cuenta.codigo.localeCompare(b.cuenta.codigo));
+  }
+
+  const GRUPOS_CUENTA: { tipo: string; label: string }[] = [
+    { tipo: "activo", label: "Activo" },
+    { tipo: "pasivo", label: "Pasivo" },
+    { tipo: "pn", label: "Patrimonio neto" },
+    { tipo: "ingreso", label: "Ingresos" },
+    { tipo: "egreso", label: "Egresos" }
+  ];
+
   function qs(overrides: Record<string, string | undefined>) {
     const params = new URLSearchParams();
     const combinado = { ...searchParams, ...overrides };
@@ -204,9 +264,24 @@ export default async function AdministracionPage({
         >
           Cierre de período
         </Link>
+        <Link
+          href={qs({ reporte: "cuentas" })}
+          className={`btn-secondary ${reporte === "cuentas" ? "!bg-brand-900 !text-white" : ""}`}
+        >
+          Resumen por cuenta
+        </Link>
+        <Link
+          href={qs({ reporte: "presupuesto" })}
+          className={`btn-secondary ${reporte === "presupuesto" ? "!bg-brand-900 !text-white" : ""}`}
+        >
+          Presupuesto
+        </Link>
       </div>
 
-      {reporte !== "generales" && reporte !== "cierres" && (
+      {reporte !== "generales" &&
+        reporte !== "cierres" &&
+        reporte !== "cuentas" &&
+        reporte !== "presupuesto" && (
       <form className="card p-4 mb-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end" method="get">
         <input type="hidden" name="reporte" value={reporte} />
         <div className="sm:flex-1 sm:min-w-[130px]">
@@ -268,7 +343,58 @@ export default async function AdministracionPage({
       </form>
       )}
 
-      {reporte === "cierres" ? (
+      {reporte === "presupuesto" ? (
+        <PresupuestoSection cuentas={cuentas ?? []} esAdministrador={usuarioActual?.rol === "administrador"} />
+      ) : reporte === "cuentas" ? (
+        <div className="space-y-4">
+          <div className="card p-3 text-sm text-amber-800 bg-amber-50 border-amber-200">
+            Esto <b>no es un balance contable formal</b> (no garantiza Activo = Pasivo + PN) — el
+            sistema carga cada movimiento contra una sola cuenta, no lleva partida doble. Es la
+            suma de lo cargado (devengado, aprobado, no anulado) por cuenta del plan, para ver
+            dónde está la actividad.
+          </div>
+          {GRUPOS_CUENTA.map((grupo) => {
+            const filas = resumenCuentas.filter((r) => r.cuenta.tipo === grupo.tipo);
+            if (filas.length === 0) return null;
+            return (
+              <div key={grupo.tipo} className="card overflow-x-auto">
+                <h3 className="px-4 pt-3 pb-1 font-heading font-semibold text-slate-800">{grupo.label}</h3>
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-slate-500">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Cuenta</th>
+                      <th className="px-4 py-2 font-medium text-right">Movido (ARS)</th>
+                      <th className="px-4 py-2 font-medium text-right">Movido (USD)</th>
+                      <th className="px-4 py-2 font-medium text-right">Movimientos</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filas.map((f) => (
+                      <tr key={f.cuenta.id} className="border-t border-slate-100">
+                        <td className="px-4 py-2">
+                          <span className="text-slate-500">{f.cuenta.codigo}</span> · {f.cuenta.nombre}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums">
+                          {f.montoArs > 0 ? formatCurrency(f.montoArs) : "—"}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums">
+                          {f.montoUsd > 0 ? formatCurrency(f.montoUsd, "USD") : "—"}
+                        </td>
+                        <td className="px-4 py-2 text-right tabular-nums text-slate-500">{f.cantidad}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
+          })}
+          {resumenCuentas.length === 0 && (
+            <div className="card p-8 text-center text-slate-500">
+              Todavía no hay movimientos cargados contra ninguna cuenta contable.
+            </div>
+          )}
+        </div>
+      ) : reporte === "cierres" ? (
         <CierresMensualesSection esAdministrador={usuarioActual?.rol === "administrador"} />
       ) : reporte === "generales" ? (
         <MovimientosGeneralesSection

@@ -441,6 +441,17 @@ export interface CierreMensual {
   cerrado_por_usuario?: { nombre: string } | null;
 }
 
+// Presupuesto por cuenta contable y mes — ver 0053_presupuestos.sql.
+export interface Presupuesto {
+  id: string;
+  cuenta_contable_id: string;
+  mes: string;
+  monto: number;
+  creado_por: string | null;
+  created_at: string;
+  cuenta_contable?: CuentaContable | null;
+}
+
 export interface EncuestaSatisfaccion {
   id: string;
   caso_id: string;
