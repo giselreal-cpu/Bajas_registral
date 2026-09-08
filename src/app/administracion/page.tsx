@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import MovimientosGeneralesSection from "@/components/administracion/MovimientosGeneralesSection";
+import LibroImportSection from "@/components/administracion/LibroImportSection";
 import { obtenerFilasLibro } from "@/lib/libroMovimientos";
 
 export const dynamic = "force-dynamic";
@@ -239,6 +240,7 @@ export default async function AdministracionPage({
         <MovimientosGeneralesSection cajas={cajas ?? []} cuentas={cuentas ?? []} />
       ) : reporte === "libro" ? (
         <>
+          <LibroImportSection />
           <div className="flex items-center justify-between gap-3 mb-2">
             <span className="text-xs text-slate-500">
               {filas.length === 1 ? "1 movimiento" : `${filas.length} movimientos`}
