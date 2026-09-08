@@ -46,46 +46,51 @@ export default async function AnalisisPage() {
     casoIdsCerrados.length > 0
       ? supabase
           .from("facturas")
-          .select("caso_id, cobros(monto, anulado), notas_credito(monto, anulado)")
+          .select("caso_id, cobros(monto, anulado, moneda), notas_credito(monto, anulado)")
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({
           data: [] as {
             caso_id: string;
-            cobros: { monto: number; anulado: boolean }[];
+            cobros: { monto: number; anulado: boolean; moneda: string }[];
             notas_credito: { monto: number; anulado: boolean }[];
           }[]
         }),
     casoIdsCerrados.length > 0
       ? supabase
           .from("movimientos_caso")
-          .select("caso_id, monto, concepto:conceptos_movimiento(tipo)")
+          .select("caso_id, monto, moneda, concepto:conceptos_movimiento(tipo)")
           .eq("aprobado", true)
           .eq("pagado", true)
           .eq("anulado", false)
           .in("caso_id", casoIdsCerrados)
-      : Promise.resolve({ data: [] as { caso_id: string; monto: number; concepto: { tipo: string } | null }[] })
+      : Promise.resolve({
+          data: [] as { caso_id: string; monto: number; moneda: string; concepto: { tipo: string } | null }[]
+        })
   ]);
 
+  // Solo pesos en los totales — mismo criterio que Liquidez y el Panel,
+  // para no sumar ARS y USD como si fueran lo mismo.
   const cobradoPorCaso = new Map<string, number>();
   for (const f of (facturasCerradas ?? []) as unknown as {
     caso_id: string;
-    cobros: { monto: number; anulado: boolean }[];
+    cobros: { monto: number; anulado: boolean; moneda: string }[];
     notas_credito: { monto: number; anulado: boolean }[];
   }[]) {
-    f.cobros = (f.cobros ?? []).filter((c) => !c.anulado);
-    f.notas_credito = (f.notas_credito ?? []).filter((n) => !n.anulado);
     const cobrado =
-      (f.cobros ?? []).reduce((a, c) => a + Number(c.monto), 0) +
-      (f.notas_credito ?? []).reduce((a, n) => a + Number(n.monto), 0);
+      (f.cobros ?? [])
+        .filter((c) => !c.anulado && c.moneda === "ARS")
+        .reduce((a, c) => a + Number(c.monto), 0) +
+      (f.notas_credito ?? []).filter((n) => !n.anulado).reduce((a, n) => a + Number(n.monto), 0);
     cobradoPorCaso.set(f.caso_id, (cobradoPorCaso.get(f.caso_id) ?? 0) + cobrado);
   }
   const gastosPorCaso = new Map<string, number>();
   for (const m of (movimientosCerrados ?? []) as unknown as {
     caso_id: string;
     monto: number;
+    moneda: string;
     concepto: { tipo: string } | null;
   }[]) {
-    if (m.concepto?.tipo !== "egreso") continue;
+    if (m.concepto?.tipo !== "egreso" || m.moneda !== "ARS") continue;
     gastosPorCaso.set(m.caso_id, (gastosPorCaso.get(m.caso_id) ?? 0) + Number(m.monto));
   }
 

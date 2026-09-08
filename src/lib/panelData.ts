@@ -295,13 +295,15 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     casoIdsCerrados.length > 0
       ? supabase
           .from("facturas")
-          .select("caso_id, tipo_receptor, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)")
+          .select(
+            "caso_id, tipo_receptor, monto_total, cobros(monto, anulado, moneda), notas_credito(monto, anulado)"
+          )
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({ data: [] as any[] }),
     casoIdsCerrados.length > 0
       ? supabase
           .from("movimientos_caso")
-          .select("caso_id, monto, pagado, concepto:conceptos_movimiento(tipo)")
+          .select("caso_id, monto, pagado, moneda, concepto:conceptos_movimiento(tipo)")
           .eq("aprobado", true)
           .eq("anulado", false)
           .in("caso_id", casoIdsCerrados)
@@ -419,11 +421,15 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     caso_id: string;
     tipo_receptor: string;
     monto_total: number;
-    cobros: { monto: number; anulado: boolean }[];
+    cobros: { monto: number; anulado: boolean; moneda: string }[];
     notas_credito: { monto: number; anulado: boolean }[];
   }[]) {
+    // Solo pesos — mismo criterio que Liquidez, para no sumar ARS y USD
+    // en el mismo total (ver 0052_moneda_movimientos.sql).
     const cobrado =
-      (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0) +
+      (f.cobros ?? [])
+        .filter((c) => !c.anulado && c.moneda === "ARS")
+        .reduce((acc, c) => acc + Number(c.monto), 0) +
       (f.notas_credito ?? []).filter((n) => !n.anulado).reduce((acc, n) => acc + Number(n.monto), 0);
     ingresosPorCaso.set(f.caso_id, (ingresosPorCaso.get(f.caso_id) ?? 0) + cobrado);
     facturadoPorCaso.set(f.caso_id, (facturadoPorCaso.get(f.caso_id) ?? 0) + Number(f.monto_total));
@@ -444,14 +450,18 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     caso_id: string;
     monto: number;
     pagado: boolean;
+    moneda: string;
     concepto: { tipo: string } | null;
   }[]) {
     if (m.concepto?.tipo !== "egreso") continue;
+    // egresosTotalesPorCaso alimenta "Ganancia neta por mes", que ya es
+    // devengado y se muestra etiquetado como tal — se deja sin filtrar
+    // por moneda (limitación conocida, no corresponde a esta pieza).
     egresosTotalesPorCaso.set(
       m.caso_id,
       (egresosTotalesPorCaso.get(m.caso_id) ?? 0) + Number(m.monto)
     );
-    if (m.pagado) {
+    if (m.pagado && m.moneda === "ARS") {
       egresosPorCaso.set(m.caso_id, (egresosPorCaso.get(m.caso_id) ?? 0) + Number(m.monto));
     }
   }

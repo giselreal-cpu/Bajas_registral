@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
-import { obtenerCajaPesosId } from "@/lib/cajaPesos";
+import { obtenerCajaPesosId, obtenerMonedaCaja } from "@/lib/cajaPesos";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
@@ -66,6 +66,11 @@ export async function PUT(
   // cargar un movimiento nuevo ya pagado).
   if (update.pagado === true && !update.caja_id && !existente?.caja_id) {
     update.caja_id = await obtenerCajaPesosId(supabase);
+  }
+  // La moneda sigue a la caja — si esta edición cambia la caja, se
+  // recalcula para no dejar un monto en USD marcado como si fuera ARS.
+  if ("caja_id" in update) {
+    update.moneda = await obtenerMonedaCaja(supabase, update.caja_id as string | null);
   }
 
   const { data, error } = await supabase

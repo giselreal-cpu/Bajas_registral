@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
   const [{ data: conceptos }, { data: cajas }, { data: cuentas }, { data: cierres }] = await Promise.all([
     supabase.from("conceptos_movimiento").select("*"),
-    supabase.from("cajas").select("id, nombre"),
+    supabase.from("cajas").select("id, nombre, moneda"),
     supabase.from("cuentas_contables").select("id, codigo").eq("imputable", true),
     supabase.from("cierres_mensuales").select("mes")
   ]);
@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
           tipo: tipoGeneral,
           monto,
           caja_id: cajaElegida?.id ?? null,
+          moneda: cajaElegida?.moneda ?? "ARS",
           cuenta_contable_id: cuentaElegida?.id ?? null,
           creado_por: usuarioActualId
         });
@@ -203,6 +204,7 @@ export async function POST(request: NextRequest) {
     }
 
     const cajaParaPagadoOCobrado = cajaElegida?.id ?? cajaPesosId;
+    const monedaParaPagadoOCobrado = cajaElegida?.moneda ?? "ARS";
 
     const { data: movimiento, error: errorMov } = await supabase
       .from("movimientos_caso")
@@ -214,6 +216,7 @@ export async function POST(request: NextRequest) {
         observacion: o.observacion?.trim() || null,
         pagado: concepto.tipo === "egreso" ? marcado : false,
         caja_id: concepto.tipo === "egreso" ? (marcado ? cajaParaPagadoOCobrado : cajaElegida?.id ?? null) : null,
+        moneda: monedaParaPagadoOCobrado,
         cuenta_contable_id: cuentaFinal,
         aprobado: true,
         creado_por: usuarioActualId
@@ -257,6 +260,7 @@ export async function POST(request: NextRequest) {
         monto,
         fecha,
         caja_id: cajaParaPagadoOCobrado,
+        moneda: monedaParaPagadoOCobrado,
         cuenta_contable_id: cuentaFinal
       });
 

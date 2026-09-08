@@ -320,6 +320,7 @@ export interface MovimientoCaso {
   cuenta_contable_id: string | null;
   documento_id: string | null;
   aprobado: boolean;
+  moneda: Moneda;
   anulado: boolean;
   anulado_motivo: string | null;
   anulado_at: string | null;
@@ -343,6 +344,7 @@ export interface MovimientoGeneral {
   monto: number;
   caja_id: string | null;
   cuenta_contable_id: string | null;
+  moneda: Moneda;
   anulado: boolean;
   anulado_motivo: string | null;
   anulado_at: string | null;
@@ -389,6 +391,7 @@ export interface Cobro {
   anticipo_id: string | null;
   caja_id: string | null;
   cuenta_contable_id: string | null;
+  moneda: Moneda;
   anulado: boolean;
   anulado_motivo: string | null;
   anulado_at: string | null;
@@ -422,6 +425,7 @@ export interface Anticipo {
   observacion: string | null;
   caja_id: string | null;
   cuenta_contable_id: string | null;
+  moneda: Moneda;
   creado_por: string | null;
   created_at: string;
   caja?: Caja | null;

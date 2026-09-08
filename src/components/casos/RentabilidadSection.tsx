@@ -515,19 +515,33 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
   // las facturas de este caso), no lo devengado al cargar el movimiento.
   // Un ingreso sin facturar o facturado pero no cobrado todavía no suma
   // acá, aunque siga listado abajo como pendiente.
+  // Solo pesos: mezclar montos en ARS y USD en el mismo total sería un
+  // número sin sentido (mismo criterio que ya usa Liquidez, agrupando
+  // por caja/moneda). Si hay algo en USD, se avisa aparte en vez de
+  // sumarlo.
   const totalIngresos = (facturas ?? []).reduce((acc, f) => {
     const cobradoFactura =
-      (f.cobros ?? []).filter((c) => !c.anulado).reduce((a, c) => a + Number(c.monto), 0) +
+      (f.cobros ?? [])
+        .filter((c) => !c.anulado && c.moneda === "ARS")
+        .reduce((a, c) => a + Number(c.monto), 0) +
       (f.notas_credito ?? []).filter((n) => !n.anulado).reduce((a, n) => a + Number(n.monto), 0);
     return acc + cobradoFactura;
   }, 0);
+  const totalIngresosUsd = (facturas ?? []).reduce(
+    (acc, f) =>
+      acc + (f.cobros ?? []).filter((c) => !c.anulado && c.moneda === "USD").reduce((a, c) => a + Number(c.monto), 0),
+    0
+  );
   // Egresos = solo lo efectivamente pagado, no lo cargado pendiente de
   // pago — mismo criterio de caja que Ingresos, para no mezclar caja
   // con devengado en la misma "Ganancia neta" (antes esto sumaba TODO
   // egreso aprobado sin importar si ya se había pagado). Un egreso
   // anulado tampoco cuenta — ya no representa plata real.
   const totalEgresos = (movimientos ?? [])
-    .filter((m) => m.concepto?.tipo === "egreso" && m.aprobado && m.pagado && !m.anulado)
+    .filter((m) => m.concepto?.tipo === "egreso" && m.aprobado && m.pagado && !m.anulado && m.moneda === "ARS")
+    .reduce((acc, m) => acc + Number(m.monto), 0);
+  const totalEgresosUsd = (movimientos ?? [])
+    .filter((m) => m.concepto?.tipo === "egreso" && m.aprobado && m.pagado && !m.anulado && m.moneda === "USD")
     .reduce((acc, m) => acc + Number(m.monto), 0);
   const gananciaNeta = totalIngresos - totalEgresos;
 
@@ -566,6 +580,12 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
           <div className={`font-semibold ${gananciaNeta >= 0 ? "text-accent-700" : "text-red-800"}`}>
             {formatCurrency(gananciaNeta)}
           </div>
+          {(totalIngresosUsd > 0 || totalEgresosUsd > 0) && (
+            <div className="text-[11px] text-slate-500 mt-1">
+              + USD {totalIngresosUsd.toFixed(2)} cobrado / USD {totalEgresosUsd.toFixed(2)} pagado (no
+              incluido acá)
+            </div>
+          )}
         </div>
       </div>
 

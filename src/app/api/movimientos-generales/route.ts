@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { registrarCambioGeneral } from "@/lib/historial";
 import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
+import { obtenerMonedaCaja } from "@/lib/cajaPesos";
 
 // GET /api/movimientos-generales -> ingresos/egresos que no son de un
 // caso puntual (sueldos, hosting, alquiler, etc.), para /administracion.
@@ -52,6 +53,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
   }
 
+  const moneda = await obtenerMonedaCaja(supabase, caja_id || null);
+
   const { data, error } = await supabase
     .from("movimientos_generales")
     .insert({
@@ -60,6 +63,7 @@ export async function POST(request: NextRequest) {
       tipo,
       monto,
       caja_id: caja_id || null,
+      moneda,
       cuenta_contable_id: cuenta_contable_id || null,
       creado_por: usuarioActualId
     })

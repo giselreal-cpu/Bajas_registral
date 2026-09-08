@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { registrarCambioGeneral } from "@/lib/historial";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
+import { obtenerMonedaCaja } from "@/lib/cajaPesos";
 
 const ALLOWED_FIELDS = ["fecha", "descripcion", "tipo", "monto", "caja_id", "cuenta_contable_id"];
 
@@ -25,6 +26,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   const update: Record<string, unknown> = {};
   for (const field of ALLOWED_FIELDS) {
     if (field in body) update[field] = body[field] === "" ? null : body[field];
+  }
+  if ("caja_id" in update) {
+    update.moneda = await obtenerMonedaCaja(supabase, update.caja_id as string | null);
   }
 
   const { data, error } = await supabase

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
-import { obtenerCajaPesosId } from "@/lib/cajaPesos";
+import { obtenerCajaPesosId, obtenerMonedaCaja } from "@/lib/cajaPesos";
 import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 // GET /api/anticipos?tipo=compania|desarmadero&receptor_id=... -> lista
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
   // puntual, va a "Caja pesos" por defecto (mismo criterio que pagos y
   // cobros) para que no quede afuera del Libro ni de Liquidez.
   const cajaFinal = caja_id || (await obtenerCajaPesosId(supabase));
+  const moneda = await obtenerMonedaCaja(supabase, cajaFinal);
 
   const { data, error } = await supabase
     .from("anticipos")
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
       observacion: observacion || null,
       fecha: fechaFinal,
       caja_id: cajaFinal,
+      moneda,
       cuenta_contable_id: cuenta_contable_id || null,
       creado_por: usuarioActualId
     })
