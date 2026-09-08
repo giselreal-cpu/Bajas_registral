@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
+import { obtenerCajaPesosId } from "@/lib/cajaPesos";
 
 const ALLOWED_FIELDS = [
   "concepto_id",
@@ -22,7 +23,7 @@ export async function PUT(
 
   const { data: existente } = await supabase
     .from("movimientos_caso")
-    .select("caso_id, factura_id")
+    .select("caso_id, factura_id, caja_id")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -36,6 +37,13 @@ export async function PUT(
   const update: Record<string, unknown> = {};
   for (const field of ALLOWED_FIELDS) {
     if (field in body) update[field] = body[field] === "" ? null : body[field];
+  }
+
+  // Si se marca como pagado y ni el movimiento ni esta edición tienen
+  // caja asignada, va a "Caja pesos" por defecto (mismo criterio que al
+  // cargar un movimiento nuevo ya pagado).
+  if (update.pagado === true && !update.caja_id && !existente?.caja_id) {
+    update.caja_id = await obtenerCajaPesosId(supabase);
   }
 
   const { data, error } = await supabase

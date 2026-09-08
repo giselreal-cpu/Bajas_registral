@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { registrarCambio } from "@/lib/historial";
+import { obtenerCajaPesosId } from "@/lib/cajaPesos";
 
 // GET /api/casos/[id]/movimientos -> trazabilidad de costo/ganancia del caso
 export async function GET(
@@ -51,6 +52,11 @@ export async function POST(
     );
   }
 
+  // Todo movimiento que se carga ya pagado y sin caja elegida va a
+  // "Caja pesos" por defecto, para que no quede afuera del Libro de
+  // movimientos ni de Liquidez por falta de caja asignada.
+  const cajaFinal = caja_id || (pagado ? await obtenerCajaPesosId(supabase) : null);
+
   const { data, error } = await supabase
     .from("movimientos_caso")
     .insert({
@@ -60,7 +66,7 @@ export async function POST(
       fecha: fecha || new Date().toISOString().slice(0, 10),
       observacion: observacion || null,
       pagado: !!pagado,
-      caja_id: caja_id || null,
+      caja_id: cajaFinal,
       cuenta_contable_id: cuenta_contable_id || null,
       documento_id: documento_id || null,
       // Solo la carga móvil de gastos (Caja → Registrar gasto) manda
