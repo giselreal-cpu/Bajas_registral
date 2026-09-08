@@ -62,7 +62,11 @@ export default async function CasoRentabilidadPage({
         </p>
       </div>
 
-      <RentabilidadSection casoId={casoTipado.id} caso={casoTipado} />
+      <RentabilidadSection
+        casoId={casoTipado.id}
+        caso={casoTipado}
+        esAdministrador={usuarioActual?.rol === "administrador"}
+      />
     </div>
   );
 }

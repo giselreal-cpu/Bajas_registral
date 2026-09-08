@@ -23,3 +23,25 @@ export async function registrarCambio(
     // Silencioso a propósito, ver comentario arriba.
   }
 }
+
+// Mismo criterio que registrarCambio, para movimientos_generales
+// (sueldos, alquiler, hosting, etc.) — no están atados a un caso, así
+// que no pueden usar historial_cambios y tienen su propia tabla.
+export async function registrarCambioGeneral(
+  movimientoGeneralId: string,
+  tipoCambio: string,
+  detalle?: string | null
+) {
+  try {
+    const supabase = createClient();
+    const usuarioId = await getUsuarioActualId();
+    await supabase.from("historial_movimientos_generales").insert({
+      movimiento_general_id: movimientoGeneralId,
+      usuario_id: usuarioId,
+      tipo_cambio: tipoCambio,
+      detalle: detalle ?? null
+    });
+  } catch {
+    // Silencioso a propósito, ver comentario arriba.
+  }
+}

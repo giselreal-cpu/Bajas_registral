@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { obtenerCajaPesosId } from "@/lib/cajaPesos";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 
 const ALLOWED_FIELDS = [
   "concepto_id",
@@ -20,6 +21,19 @@ export async function PUT(
 ) {
   const supabase = createClient();
   const body = await request.json();
+
+  // Aprobar un gasto de campo o marcarlo pagado mueve plata real —
+  // reservado a administrador (evita que la misma persona que cargó el
+  // gasto se lo autoapruebe).
+  if ("aprobado" in body || "pagado" in body) {
+    const usuarioActual = await getUsuarioActual();
+    if (usuarioActual?.rol !== "administrador") {
+      return NextResponse.json(
+        { error: "Solo un administrador puede aprobar un gasto o marcarlo como pagado." },
+        { status: 403 }
+      );
+    }
+  }
 
   const { data: existente } = await supabase
     .from("movimientos_caso")

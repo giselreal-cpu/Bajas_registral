@@ -150,7 +150,7 @@ export default async function CajaPage() {
             </div>
             <div className="h-px my-3" style={{ background: "var(--mv-divider)" }} />
             <div className="flex items-center gap-2.5">
-              <AprobarGastoButton movimientoId={g.id} />
+              <AprobarGastoButton movimientoId={g.id} esAdministrador={usuarioActual?.rol === "administrador"} />
               {g.comprobante_url && (
                 <a
                   href={g.comprobante_url}

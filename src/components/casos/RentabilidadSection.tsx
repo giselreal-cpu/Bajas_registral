@@ -34,6 +34,7 @@ function estadoFacturaBadgeClass(estado: string) {
 interface Props {
   casoId: string;
   caso: CasoConRelaciones;
+  esAdministrador: boolean;
 }
 
 interface FormMovimiento {
@@ -58,7 +59,7 @@ function formVacio(): FormMovimiento {
   };
 }
 
-export default function RentabilidadSection({ casoId, caso }: Props) {
+export default function RentabilidadSection({ casoId, caso, esAdministrador }: Props) {
   const [conceptos, setConceptos] = useState<ConceptoMovimiento[]>([]);
   const [cajas, setCajas] = useState<Caja[]>([]);
   const [cuentas, setCuentas] = useState<CuentaContable[]>([]);
@@ -753,6 +754,7 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                       <MovimientoPagadoToggle
                         movimientoId={m.id}
                         pagado={m.pagado}
+                        esAdministrador={esAdministrador}
                         onChange={loadMovimientos}
                       />
                     </span>
@@ -769,7 +771,7 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
                 <span className="font-medium text-slate-800">{formatCurrency(m.monto)}</span>
                 {!m.factura_id && (
                   <div className="flex flex-col items-end gap-1">
-                    {!m.aprobado && (
+                    {!m.aprobado && esAdministrador && (
                       <button
                         className="text-xs text-accent-700 hover:underline"
                         onClick={() => aprobarMovimiento(m.id)}

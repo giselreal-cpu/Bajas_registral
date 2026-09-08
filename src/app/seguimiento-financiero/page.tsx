@@ -420,7 +420,11 @@ export default async function SeguimientoFinancieroPage() {
                             <td className="py-1.5 pr-4 font-medium">{formatCurrency(m.monto)}</td>
                             <td className="py-1.5 pr-4 text-slate-500">{m.observacion || "—"}</td>
                             <td className="py-1.5 pr-4">
-                              <MovimientoPagadoToggle movimientoId={m.id} pagado={m.pagado} />
+                              <MovimientoPagadoToggle
+                                movimientoId={m.id}
+                                pagado={m.pagado}
+                                esAdministrador={usuarioActual?.rol === "administrador"}
+                              />
                             </td>
                           </tr>
                         ))}

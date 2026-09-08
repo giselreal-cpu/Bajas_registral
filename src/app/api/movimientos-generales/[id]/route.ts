@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { registrarCambioGeneral } from "@/lib/historial";
 
 const ALLOWED_FIELDS = ["fecha", "descripcion", "tipo", "monto", "caja_id", "cuenta_contable_id"];
 
@@ -23,11 +24,31 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  await registrarCambioGeneral(params.id, `Editó movimiento general: ${data.descripcion}`, `$${data.monto}`);
+
   return NextResponse.json({ data });
 }
 
-export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();
+
+  const { data: existente } = await supabase
+    .from("movimientos_generales")
+    .select("descripcion, monto")
+    .eq("id", params.id)
+    .maybeSingle();
+
+  // El registro de auditoría se hace ANTES de borrar: la fila de
+  // historial referencia movimiento_general_id con FK — si se borrara
+  // primero, ya no habría a qué apuntar.
+  if (existente) {
+    await registrarCambioGeneral(
+      params.id,
+      `Eliminó movimiento general: ${existente.descripcion}`,
+      `$${existente.monto}`
+    );
+  }
+
   const { error } = await supabase.from("movimientos_generales").delete().eq("id", params.id);
 
   if (error) {

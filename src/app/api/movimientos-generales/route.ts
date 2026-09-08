@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
+import { registrarCambioGeneral } from "@/lib/historial";
 
 // GET /api/movimientos-generales -> ingresos/egresos que no son de un
 // caso puntual (sueldos, hosting, alquiler, etc.), para /administracion.
@@ -62,6 +63,8 @@ export async function POST(request: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  await registrarCambioGeneral(data.id, `Cargó movimiento general: ${data.descripcion}`, `$${data.monto}`);
 
   return NextResponse.json({ data }, { status: 201 });
 }

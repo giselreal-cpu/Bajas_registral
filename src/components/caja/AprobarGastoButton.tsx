@@ -3,7 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function AprobarGastoButton({ movimientoId }: { movimientoId: string }) {
+interface Props {
+  movimientoId: string;
+  esAdministrador: boolean;
+}
+
+// Aprobar un gasto de campo mueve plata real (una vez aprobado, cuenta
+// para Libro/Liquidez si además se marca pagado) — reservado a
+// administrador, para que no sea la misma persona que cargó el gasto
+// quien se lo autoaprueba.
+export default function AprobarGastoButton({ movimientoId, esAdministrador }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
@@ -19,6 +28,17 @@ export default function AprobarGastoButton({ movimientoId }: { movimientoId: str
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!esAdministrador) {
+    return (
+      <span
+        className="mv-heading text-[13.5px] text-center"
+        style={{ flex: 1, minHeight: 40, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--mv-neutral-600)" }}
+      >
+        Pendiente — solo un administrador puede aprobar
+      </span>
+    );
   }
 
   return (
