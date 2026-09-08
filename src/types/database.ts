@@ -404,8 +404,12 @@ export interface Anticipo {
   saldo_disponible: number;
   fecha: string;
   observacion: string | null;
+  caja_id: string | null;
+  cuenta_contable_id: string | null;
   creado_por: string | null;
   created_at: string;
+  caja?: Caja | null;
+  cuenta_contable?: CuentaContable | null;
 }
 
 export interface EncuestaSatisfaccion {

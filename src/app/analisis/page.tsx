@@ -31,7 +31,9 @@ export default async function AnalisisPage() {
   const supabase = createClient();
   const { rankingGestores } = await obtenerDatosPanel({});
 
-  // Rentabilidad por compañía: casos cerrados agrupados por aseguradora.
+  // Rentabilidad por compañía: casos cerrados agrupados por aseguradora,
+  // en base caja (cobrado − pagado) — mismo criterio que el Panel y la
+  // ficha de cada caso, para que este número sea comparable con esos.
   const { data: casosCerrados } = await supabase
     .from("casos")
     .select("id, aseguradora_id, aseguradora:aseguradoras(nombre)")
@@ -42,20 +44,33 @@ export default async function AnalisisPage() {
 
   const [{ data: facturasCerradas }, { data: movimientosCerrados }] = await Promise.all([
     casoIdsCerrados.length > 0
-      ? supabase.from("facturas").select("caso_id, monto_total").in("caso_id", casoIdsCerrados)
-      : Promise.resolve({ data: [] as { caso_id: string; monto_total: number }[] }),
+      ? supabase
+          .from("facturas")
+          .select("caso_id, cobros(monto), notas_credito(monto)")
+          .in("caso_id", casoIdsCerrados)
+      : Promise.resolve({
+          data: [] as { caso_id: string; cobros: { monto: number }[]; notas_credito: { monto: number }[] }[]
+        }),
     casoIdsCerrados.length > 0
       ? supabase
           .from("movimientos_caso")
           .select("caso_id, monto, concepto:conceptos_movimiento(tipo)")
           .eq("aprobado", true)
+          .eq("pagado", true)
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({ data: [] as { caso_id: string; monto: number; concepto: { tipo: string } | null }[] })
   ]);
 
-  const facturadoPorCaso = new Map<string, number>();
-  for (const f of facturasCerradas ?? []) {
-    facturadoPorCaso.set(f.caso_id, (facturadoPorCaso.get(f.caso_id) ?? 0) + Number(f.monto_total));
+  const cobradoPorCaso = new Map<string, number>();
+  for (const f of (facturasCerradas ?? []) as unknown as {
+    caso_id: string;
+    cobros: { monto: number }[];
+    notas_credito: { monto: number }[];
+  }[]) {
+    const cobrado =
+      (f.cobros ?? []).reduce((a, c) => a + Number(c.monto), 0) +
+      (f.notas_credito ?? []).reduce((a, n) => a + Number(n.monto), 0);
+    cobradoPorCaso.set(f.caso_id, (cobradoPorCaso.get(f.caso_id) ?? 0) + cobrado);
   }
   const gastosPorCaso = new Map<string, number>();
   for (const m of (movimientosCerrados ?? []) as unknown as {
@@ -91,7 +106,7 @@ export default async function AnalisisPage() {
     }
     const entrada = porAseguradora.get(c.aseguradora_id)!;
     entrada.casos += 1;
-    entrada.facturado += facturadoPorCaso.get(c.id) ?? 0;
+    entrada.facturado += cobradoPorCaso.get(c.id) ?? 0;
     entrada.gastos += gastosPorCaso.get(c.id) ?? 0;
   }
   const rentabilidadPorCompania = Array.from(porAseguradora.values())
@@ -189,6 +204,10 @@ export default async function AnalisisPage() {
 
       <section className="card p-4">
         <h2 className="font-heading font-semibold text-slate-800 mb-3">Rentabilidad por compañía</h2>
+        <p className="text-xs text-slate-400 mb-3">
+          Base caja: cobrado efectivamente recibido menos egresos efectivamente pagados — mismo
+          criterio que la ficha de cada caso y el Panel.
+        </p>
         {rentabilidadPorCompania.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -196,8 +215,8 @@ export default async function AnalisisPage() {
                 <tr>
                   <th className="py-1 pr-4 font-medium">Compañía</th>
                   <th className="py-1 pr-4 font-medium">Casos cerrados</th>
-                  <th className="py-1 pr-4 font-medium">Facturado</th>
-                  <th className="py-1 pr-4 font-medium">Gastos</th>
+                  <th className="py-1 pr-4 font-medium">Cobrado</th>
+                  <th className="py-1 pr-4 font-medium">Pagado</th>
                   <th className="py-1 pr-4 font-medium">Resultado</th>
                   <th className="py-1 pr-4 font-medium">Margen</th>
                 </tr>

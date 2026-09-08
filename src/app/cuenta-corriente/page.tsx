@@ -52,18 +52,26 @@ export default async function CuentaCorrientePage() {
 
   const supabase = createClient();
 
-  const [{ data: facturas, error }, { data: aseguradoras }, { data: desarmaderos }, { data: anticipos }] =
-    await Promise.all([
-      supabase
-        .from("facturas")
-        .select(
-          "*, cobros(*), notas_credito(*), caso:casos(numero_siniestro, vehiculo:vehiculos(dominio)), movimientos_caso(concepto:conceptos_movimiento(nombre))"
-        )
-        .order("fecha_emision", { ascending: false }),
-      supabase.from("aseguradoras").select("id, nombre"),
-      supabase.from("desarmaderos").select("id, nombre"),
-      supabase.from("anticipos").select("*")
-    ]);
+  const [
+    { data: facturas, error },
+    { data: aseguradoras },
+    { data: desarmaderos },
+    { data: anticipos },
+    { data: cajas },
+    { data: cuentas }
+  ] = await Promise.all([
+    supabase
+      .from("facturas")
+      .select(
+        "*, cobros(*), notas_credito(*), caso:casos(numero_siniestro, vehiculo:vehiculos(dominio)), movimientos_caso(concepto:conceptos_movimiento(nombre))"
+      )
+      .order("fecha_emision", { ascending: false }),
+    supabase.from("aseguradoras").select("id, nombre"),
+    supabase.from("desarmaderos").select("id, nombre"),
+    supabase.from("anticipos").select("*"),
+    supabase.from("cajas").select("*").eq("activa", true).order("nombre"),
+    supabase.from("cuentas_contables").select("*").eq("imputable", true).order("codigo")
+  ]);
 
   if (error) {
     return (
@@ -168,6 +176,8 @@ export default async function CuentaCorrientePage() {
                   tipo={t.tipo as "compania" | "desarmadero"}
                   receptorId={t.id}
                   saldoDisponible={anticipoDisponibleDe(t.tipo, t.id)}
+                  cajas={cajas ?? []}
+                  cuentas={cuentas ?? []}
                 />
 
                 <div className="overflow-x-auto">

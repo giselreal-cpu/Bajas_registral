@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
+import { obtenerCajaPesosId } from "@/lib/cajaPesos";
 
 // GET /api/anticipos?tipo=compania|desarmadero&receptor_id=... -> lista
 // los anticipos de un tercero (disponibles y ya usados).
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const supabase = createClient();
   const body = await request.json();
-  const { tipo_receptor, receptor_id, monto, observacion, fecha } = body;
+  const { tipo_receptor, receptor_id, monto, observacion, fecha, caja_id, cuenta_contable_id } = body;
 
   if (!tipo_receptor || !receptor_id || !monto || Number(monto) <= 0) {
     return NextResponse.json(
@@ -43,6 +44,10 @@ export async function POST(request: NextRequest) {
   }
 
   const usuarioActualId = await getUsuarioActualId();
+  // Un anticipo es plata real que ya entró — si no se eligió una caja
+  // puntual, va a "Caja pesos" por defecto (mismo criterio que pagos y
+  // cobros) para que no quede afuera del Libro ni de Liquidez.
+  const cajaFinal = caja_id || (await obtenerCajaPesosId(supabase));
 
   const { data, error } = await supabase
     .from("anticipos")
@@ -53,6 +58,8 @@ export async function POST(request: NextRequest) {
       saldo_disponible: monto,
       observacion: observacion || null,
       fecha: fecha || new Date().toISOString().slice(0, 10),
+      caja_id: cajaFinal,
+      cuenta_contable_id: cuenta_contable_id || null,
       creado_por: usuarioActualId
     })
     .select()

@@ -204,7 +204,11 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
           <StatCard label="A rendir" value={formatCurrency(totalPendienteAprobar)} sub={`${cantidadPendienteAprobar} ${cantidadPendienteAprobar === 1 ? "gasto" : "gastos"}`} />
         )}
         {puedeVerFinanzas && (
-          <StatCard label="Margen del mes" value={margenMesActual !== null ? `${margenMesActual}%` : "—"} />
+          <StatCard
+            label="Margen del mes"
+            value={margenMesActual !== null ? `${margenMesActual}%` : "—"}
+            sub="Devengado, no caja"
+          />
         )}
       </div>
 
@@ -368,7 +372,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
 
       {puedeVerTiempos && (
         <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-1">Rentabilidad (casos cerrados)</h2>
+          <h2 className="font-medium text-slate-800 mb-1">Rentabilidad — base caja (casos cerrados)</h2>
           <p className="text-xs text-slate-400 mb-3">
             Ingresos = plata efectivamente cobrada, no lo facturado pendiente. Egresos = solo lo
             efectivamente pagado, no lo cargado pendiente de pago.
@@ -518,7 +522,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
       {puedeVerTiempos && (
         <section className="card p-4">
           <h2 className="font-medium text-slate-800 mb-1">
-            Ganancia neta por mes (casos cerrados)
+            Ganancia neta por mes — devengado (casos cerrados)
           </h2>
           <p className="text-xs text-slate-400 mb-3">
             Ganancia neta = todo lo facturado (cobrado o no) menos todos los egresos cargados

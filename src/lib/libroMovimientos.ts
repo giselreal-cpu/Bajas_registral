@@ -101,6 +101,58 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
   const { data: cobrosRaw } = await queryCobros;
   const cobros = (cobrosRaw ?? []) as unknown as CobroAdmin[];
 
+  // Anticipos: plata real recibida por adelantado (no atada todavía a
+  // una factura puntual). El "cobro" que se genera al aplicarlos contra
+  // una factura no lleva caja propia (no es plata nueva) — la plata
+  // real se cuenta acá, una sola vez, al momento de recibirla.
+  interface AnticipoAdmin {
+    id: string;
+    monto: number;
+    fecha: string;
+    observacion: string | null;
+    tipo_receptor: string;
+    receptor_id: string;
+    caja_id: string | null;
+    cuenta_contable_id: string | null;
+    caja: { nombre: string } | null;
+    cuenta_contable: { codigo: string } | null;
+  }
+
+  let queryAnticipos = supabase
+    .from("anticipos")
+    .select(
+      "id, monto, fecha, observacion, tipo_receptor, receptor_id, caja_id, cuenta_contable_id, caja:cajas(nombre), cuenta_contable:cuentas_contables(codigo)"
+    )
+    .or("caja_id.not.is.null,cuenta_contable_id.not.is.null")
+    .order("fecha", { ascending: true });
+
+  if (filtros.caja_id) queryAnticipos = queryAnticipos.eq("caja_id", filtros.caja_id);
+  if (filtros.cuenta_contable_id)
+    queryAnticipos = queryAnticipos.eq("cuenta_contable_id", filtros.cuenta_contable_id);
+  if (filtros.aseguradora_id)
+    queryAnticipos = queryAnticipos.eq("tipo_receptor", "compania").eq("receptor_id", filtros.aseguradora_id);
+  if (filtros.desde) queryAnticipos = queryAnticipos.gte("fecha", filtros.desde);
+  if (filtros.hasta) queryAnticipos = queryAnticipos.lte("fecha", filtros.hasta);
+
+  const { data: anticiposRaw } = await queryAnticipos;
+  const anticipos = (anticiposRaw ?? []) as unknown as AnticipoAdmin[];
+
+  const receptorIds = { compania: new Set<string>(), desarmadero: new Set<string>() };
+  for (const a of anticipos) {
+    if (a.tipo_receptor === "compania") receptorIds.compania.add(a.receptor_id);
+    else receptorIds.desarmadero.add(a.receptor_id);
+  }
+  const [{ data: aseguradorasAnt }, { data: desarmaderosAnt }] = await Promise.all([
+    receptorIds.compania.size > 0
+      ? supabase.from("aseguradoras").select("id, nombre").in("id", Array.from(receptorIds.compania))
+      : Promise.resolve({ data: [] as { id: string; nombre: string }[] }),
+    receptorIds.desarmadero.size > 0
+      ? supabase.from("desarmaderos").select("id, nombre").in("id", Array.from(receptorIds.desarmadero))
+      : Promise.resolve({ data: [] as { id: string; nombre: string }[] })
+  ]);
+  const nombreTercero = (tipo: string, id: string) =>
+    (tipo === "compania" ? aseguradorasAnt : desarmaderosAnt)?.find((x) => x.id === id)?.nombre ?? "—";
+
   let queryGenerales = supabase
     .from("movimientos_generales")
     .select("*, caja:cajas(*), cuenta_contable:cuentas_contables(*)")
@@ -140,6 +192,18 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
     tipo: "ingreso",
     monto: c.monto
   }));
+  const filasAnticipos: FilaLibro[] = anticipos.map((a) => ({
+    key: `anticipo-${a.id}`,
+    fecha: a.fecha,
+    casoHref: null,
+    casoLabel: null,
+    descripcion: `Anticipo recibido${a.observacion ? ` — ${a.observacion}` : ""}`,
+    cuentaCodigo: a.cuenta_contable?.codigo ?? null,
+    cajaNombre: a.caja?.nombre ?? null,
+    centroDeCosto: nombreTercero(a.tipo_receptor, a.receptor_id),
+    tipo: "ingreso",
+    monto: a.monto
+  }));
   const filasGenerales: FilaLibro[] = filtros.aseguradora_id
     ? []
     : generales.map((m) => ({
@@ -155,8 +219,8 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
         monto: m.monto
       }));
 
-  const filasUnificadas = [...filasCaso, ...filasCobros, ...filasGenerales].sort((a, b) =>
-    a.fecha.localeCompare(b.fecha)
+  const filasUnificadas = [...filasCaso, ...filasCobros, ...filasAnticipos, ...filasGenerales].sort(
+    (a, b) => a.fecha.localeCompare(b.fecha)
   );
 
   let saldo = 0;

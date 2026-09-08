@@ -77,14 +77,26 @@ export default async function AdministracionPage({
   let queryCobrosLiquidez = supabase.from("cobros").select("caja_id, monto").not("caja_id", "is", null);
   if (searchParams.desde) queryCobrosLiquidez = queryCobrosLiquidez.gte("fecha", searchParams.desde);
   if (searchParams.hasta) queryCobrosLiquidez = queryCobrosLiquidez.lte("fecha", searchParams.hasta);
+  let queryAnticiposLiquidez = supabase.from("anticipos").select("caja_id, monto").not("caja_id", "is", null);
+  if (searchParams.desde) queryAnticiposLiquidez = queryAnticiposLiquidez.gte("fecha", searchParams.desde);
+  if (searchParams.hasta) queryAnticiposLiquidez = queryAnticiposLiquidez.lte("fecha", searchParams.hasta);
   let queryLiquidezGenerales = supabase
     .from("movimientos_generales")
     .select("caja_id, monto, tipo")
     .not("caja_id", "is", null);
   if (searchParams.desde) queryLiquidezGenerales = queryLiquidezGenerales.gte("fecha", searchParams.desde);
   if (searchParams.hasta) queryLiquidezGenerales = queryLiquidezGenerales.lte("fecha", searchParams.hasta);
-  const [{ data: movsLiquidezRaw }, { data: cobrosLiquidezRaw }, { data: generalesLiquidezRaw }] =
-    await Promise.all([queryLiquidez, queryCobrosLiquidez, queryLiquidezGenerales]);
+  const [
+    { data: movsLiquidezRaw },
+    { data: cobrosLiquidezRaw },
+    { data: anticiposLiquidezRaw },
+    { data: generalesLiquidezRaw }
+  ] = await Promise.all([
+    queryLiquidez,
+    queryCobrosLiquidez,
+    queryAnticiposLiquidez,
+    queryLiquidezGenerales
+  ]);
   const movsLiquidez = [
     ...((movsLiquidezRaw ?? []) as unknown as {
       caja_id: string;
@@ -94,6 +106,11 @@ export default async function AdministracionPage({
     ...((cobrosLiquidezRaw ?? []) as unknown as { caja_id: string; monto: number }[]).map((c) => ({
       caja_id: c.caja_id,
       monto: c.monto,
+      concepto: { tipo: "ingreso" }
+    })),
+    ...((anticiposLiquidezRaw ?? []) as unknown as { caja_id: string; monto: number }[]).map((a) => ({
+      caja_id: a.caja_id,
+      monto: a.monto,
       concepto: { tipo: "ingreso" }
     })),
     ...((generalesLiquidezRaw ?? []) as unknown as { caja_id: string; monto: number; tipo: string }[]).map(

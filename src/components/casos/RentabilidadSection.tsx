@@ -482,8 +482,12 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
       (f.notas_credito ?? []).reduce((a, n) => a + Number(n.monto), 0);
     return acc + cobradoFactura;
   }, 0);
+  // Egresos = solo lo efectivamente pagado, no lo cargado pendiente de
+  // pago — mismo criterio de caja que Ingresos, para no mezclar caja
+  // con devengado en la misma "Ganancia neta" (antes esto sumaba TODO
+  // egreso aprobado sin importar si ya se había pagado).
   const totalEgresos = (movimientos ?? [])
-    .filter((m) => m.concepto?.tipo === "egreso" && m.aprobado)
+    .filter((m) => m.concepto?.tipo === "egreso" && m.aprobado && m.pagado)
     .reduce((acc, m) => acc + Number(m.monto), 0);
   const gananciaNeta = totalIngresos - totalEgresos;
 
@@ -496,7 +500,8 @@ export default function RentabilidadSection({ casoId, caso }: Props) {
         </button>
       </div>
       <p className="text-xs text-slate-400 mb-3">
-        Ingresos = plata efectivamente cobrada, no lo facturado pendiente.
+        Ingresos = plata efectivamente cobrada, no lo facturado pendiente. Egresos = solo lo
+        efectivamente pagado, no lo cargado pendiente de pago.
       </p>
 
       {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
