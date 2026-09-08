@@ -10,6 +10,7 @@ function formatCurrency(value: number, moneda: "ARS" | "USD" = "ARS"): string {
 interface Props {
   cajas: Caja[];
   cuentas: CuentaContable[];
+  esAdministrador: boolean;
 }
 
 interface FormState {
@@ -37,7 +38,7 @@ function formVacio(): FormState {
 // contables con los movimientos por caso, así entran en el mismo "Libro
 // de movimientos" y "Liquidez" de más arriba, pero se cargan y editan
 // acá porque no tienen un caso al que atarse.
-export default function MovimientosGeneralesSection({ cajas, cuentas }: Props) {
+export default function MovimientosGeneralesSection({ cajas, cuentas, esAdministrador }: Props) {
   const [movimientos, setMovimientos] = useState<MovimientoGeneral[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -92,9 +93,21 @@ export default function MovimientosGeneralesSection({ cajas, cuentas }: Props) {
   }
 
   async function handleEliminar(id: string) {
-    if (!confirm("¿Eliminar este movimiento?")) return;
+    // Un movimiento general representa plata ya real desde que se
+    // carga — no se borra, se anula con motivo (el backend también lo
+    // exige, y solo un administrador puede hacerlo).
+    const motivo = prompt("Este movimiento no se puede borrar — indicá el motivo de la anulación:");
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+      setError("La anulación necesita un motivo.");
+      return;
+    }
     setError(null);
-    const res = await fetch(`/api/movimientos-generales/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/movimientos-generales/${id}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ motivo: motivo.trim() })
+    });
     const json = await res.json();
     if (!res.ok) {
       setError(json.error);
@@ -104,10 +117,10 @@ export default function MovimientosGeneralesSection({ cajas, cuentas }: Props) {
   }
 
   const totalIngresos = (movimientos ?? [])
-    .filter((m) => m.tipo === "ingreso")
+    .filter((m) => m.tipo === "ingreso" && !m.anulado)
     .reduce((a, m) => a + Number(m.monto), 0);
   const totalEgresos = (movimientos ?? [])
-    .filter((m) => m.tipo === "egreso")
+    .filter((m) => m.tipo === "egreso" && !m.anulado)
     .reduce((a, m) => a + Number(m.monto), 0);
 
   return (
@@ -220,30 +233,45 @@ export default function MovimientosGeneralesSection({ cajas, cuentas }: Props) {
           </thead>
           <tbody>
             {(movimientos ?? []).map((m) => (
-              <tr key={m.id} className="border-t border-slate-100">
-                <td className="px-4 py-2 tabular-nums whitespace-nowrap">
+              <tr key={m.id} className={`border-t border-slate-100 ${m.anulado ? "bg-red-50/40" : ""}`}>
+                <td
+                  className={`px-4 py-2 tabular-nums whitespace-nowrap ${m.anulado ? "line-through opacity-60" : ""}`}
+                >
                   {new Date(m.fecha + "T00:00:00").toLocaleDateString("es-AR")}
                 </td>
-                <td className="px-4 py-2">{m.descripcion}</td>
-                <td className="px-4 py-2 text-xs text-slate-500 whitespace-nowrap">
+                <td className={`px-4 py-2 ${m.anulado ? "line-through opacity-60" : ""}`}>
+                  {m.descripcion}
+                  {m.anulado && <span className="badge ml-2 bg-red-100 text-red-700">Anulado</span>}
+                </td>
+                <td
+                  className={`px-4 py-2 text-xs text-slate-500 whitespace-nowrap ${m.anulado ? "line-through opacity-60" : ""}`}
+                >
                   {m.cuenta_contable?.codigo ?? "—"}
                 </td>
-                <td className="px-4 py-2 text-slate-600">{m.caja?.nombre ?? "Sin asignar"}</td>
+                <td className={`px-4 py-2 text-slate-600 ${m.anulado ? "line-through opacity-60" : ""}`}>
+                  {m.caja?.nombre ?? "Sin asignar"}
+                </td>
                 <td
                   className={`px-4 py-2 text-right tabular-nums whitespace-nowrap ${
-                    m.tipo === "egreso" ? "text-red-700" : "text-slate-800"
+                    m.anulado ? "line-through opacity-60 text-slate-400" : m.tipo === "egreso" ? "text-red-700" : "text-slate-800"
                   }`}
                 >
                   {m.tipo === "egreso" ? "− " : ""}
                   {formatCurrency(m.monto)}
                 </td>
                 <td className="px-4 py-2 text-right">
-                  <button
-                    className="text-xs text-slate-400 hover:text-red-600"
-                    onClick={() => handleEliminar(m.id)}
-                  >
-                    Eliminar
-                  </button>
+                  {m.anulado ? (
+                    <span className="text-xs text-red-600">{m.anulado_motivo}</span>
+                  ) : (
+                    esAdministrador && (
+                      <button
+                        className="text-xs text-slate-400 hover:text-red-600"
+                        onClick={() => handleEliminar(m.id)}
+                      >
+                        Anular
+                      </button>
+                    )
+                  )}
                 </td>
               </tr>
             ))}

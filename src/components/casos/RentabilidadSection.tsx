@@ -267,10 +267,29 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm("¿Eliminar este movimiento?")) return;
+  async function handleDelete(m: MovimientoCaso) {
     setError(null);
-    const res = await fetch(`/api/movimientos/${id}`, { method: "DELETE" });
+    let motivo: string | undefined;
+
+    // Un egreso ya pagado es plata real que salió — no se borra, se
+    // anula con motivo (el backend también lo exige).
+    if (m.pagado) {
+      const respuesta = prompt("Este egreso ya está pagado — no se puede borrar. Indicá el motivo de la anulación:");
+      if (respuesta === null) return;
+      motivo = respuesta.trim();
+      if (!motivo) {
+        setError("La anulación necesita un motivo.");
+        return;
+      }
+    } else if (!confirm("¿Eliminar este movimiento?")) {
+      return;
+    }
+
+    const res = await fetch(`/api/movimientos/${m.id}`, {
+      method: "DELETE",
+      headers: motivo ? { "Content-Type": "application/json" } : undefined,
+      body: motivo ? JSON.stringify({ motivo }) : undefined
+    });
     const json = await res.json();
     if (!res.ok) {
       setError(json.error);
@@ -295,7 +314,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
   }
 
   const movimientosSinFacturar = (movimientos ?? []).filter(
-    (m) => !m.factura_id && m.concepto?.tipo === "ingreso"
+    (m) => !m.factura_id && m.concepto?.tipo === "ingreso" && !m.anulado
   );
 
   async function handleGenerarFactura(e: React.FormEvent) {
@@ -378,11 +397,21 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
   }
 
   async function handleEliminarCobro(facturaId: string, cobroId: string) {
-    if (!confirm("¿Eliminar este cobro? (por ejemplo, si se cargó por error). Si venía de un anticipo, se le devuelve el saldo.")) {
+    // Un cobro es siempre plata real ya recibida — no se borra, se
+    // anula con motivo (el backend también lo exige). Si venía de un
+    // anticipo, se le devuelve el saldo.
+    const motivo = prompt("Este cobro no se puede borrar — indicá el motivo de la anulación:");
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+      setError("La anulación necesita un motivo.");
       return;
     }
     setError(null);
-    const res = await fetch(`/api/facturas/${facturaId}/cobros/${cobroId}`, { method: "DELETE" });
+    const res = await fetch(`/api/facturas/${facturaId}/cobros/${cobroId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ motivo: motivo.trim() })
+    });
     const json = await res.json();
     if (!res.ok) {
       setError(json.error);
@@ -392,11 +421,20 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
   }
 
   async function handleEliminarNotaCredito(facturaId: string, notaId: string) {
-    if (!confirm("¿Eliminar esta nota de crédito? (por ejemplo, si el monto se calculó mal). El saldo pendiente de la factura vuelve a subir.")) {
+    // Una nota de crédito ya ajustó el saldo de la factura — no se
+    // borra, se anula con motivo.
+    const motivo = prompt("Esta nota de crédito no se puede borrar — indicá el motivo de la anulación:");
+    if (motivo === null) return;
+    if (!motivo.trim()) {
+      setError("La anulación necesita un motivo.");
       return;
     }
     setError(null);
-    const res = await fetch(`/api/facturas/${facturaId}/notas-credito/${notaId}`, { method: "DELETE" });
+    const res = await fetch(`/api/facturas/${facturaId}/notas-credito/${notaId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ motivo: motivo.trim() })
+    });
     const json = await res.json();
     if (!res.ok) {
       setError(json.error);
@@ -479,16 +517,17 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
   // acá, aunque siga listado abajo como pendiente.
   const totalIngresos = (facturas ?? []).reduce((acc, f) => {
     const cobradoFactura =
-      (f.cobros ?? []).reduce((a, c) => a + Number(c.monto), 0) +
-      (f.notas_credito ?? []).reduce((a, n) => a + Number(n.monto), 0);
+      (f.cobros ?? []).filter((c) => !c.anulado).reduce((a, c) => a + Number(c.monto), 0) +
+      (f.notas_credito ?? []).filter((n) => !n.anulado).reduce((a, n) => a + Number(n.monto), 0);
     return acc + cobradoFactura;
   }, 0);
   // Egresos = solo lo efectivamente pagado, no lo cargado pendiente de
   // pago — mismo criterio de caja que Ingresos, para no mezclar caja
   // con devengado en la misma "Ganancia neta" (antes esto sumaba TODO
-  // egreso aprobado sin importar si ya se había pagado).
+  // egreso aprobado sin importar si ya se había pagado). Un egreso
+  // anulado tampoco cuenta — ya no representa plata real.
   const totalEgresos = (movimientos ?? [])
-    .filter((m) => m.concepto?.tipo === "egreso" && m.aprobado && m.pagado)
+    .filter((m) => m.concepto?.tipo === "egreso" && m.aprobado && m.pagado && !m.anulado)
     .reduce((acc, m) => acc + Number(m.monto), 0);
   const gananciaNeta = totalIngresos - totalEgresos;
 
@@ -727,11 +766,16 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
           return (
             <li
               key={m.id}
-              className="flex items-center justify-between gap-2 rounded-md border border-slate-100 px-3 py-2 text-sm"
+              className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm ${
+                m.anulado ? "border-red-100 bg-red-50/40" : "border-slate-100"
+              }`}
             >
-              <div className="min-w-0">
+              <div className={`min-w-0 ${m.anulado ? "line-through opacity-60" : ""}`}>
                 <p className="font-medium text-slate-800">
                   {m.concepto?.nombre ?? "—"}
+                  {m.anulado && (
+                    <span className="badge ml-2 bg-red-100 text-red-700">Anulado</span>
+                  )}
                   <span
                     className={`badge ml-2 ${
                       m.concepto?.tipo === "ingreso"
@@ -767,33 +811,44 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                   {m.cuenta_contable && ` · ${m.cuenta_contable.codigo}`}
                 </p>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
-                <span className="font-medium text-slate-800">{formatCurrency(m.monto)}</span>
-                {!m.factura_id && (
-                  <div className="flex flex-col items-end gap-1">
-                    {!m.aprobado && esAdministrador && (
+              {m.anulado ? (
+                <div className="text-right shrink-0">
+                  <span className="font-medium text-slate-400 line-through">{formatCurrency(m.monto)}</span>
+                  {m.anulado_motivo && (
+                    <p className="text-xs text-red-600 max-w-[220px]">{m.anulado_motivo}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 shrink-0">
+                  <span className="font-medium text-slate-800">{formatCurrency(m.monto)}</span>
+                  {!m.factura_id && (
+                    <div className="flex flex-col items-end gap-1">
+                      {!m.aprobado && esAdministrador && (
+                        <button
+                          className="text-xs text-accent-700 hover:underline"
+                          onClick={() => aprobarMovimiento(m.id)}
+                        >
+                          Aprobar
+                        </button>
+                      )}
                       <button
-                        className="text-xs text-accent-700 hover:underline"
-                        onClick={() => aprobarMovimiento(m.id)}
+                        className="text-xs text-slate-400 hover:text-brand-700"
+                        onClick={() => empezarEdicion(m)}
                       >
-                        Aprobar
+                        Editar
                       </button>
-                    )}
-                    <button
-                      className="text-xs text-slate-400 hover:text-brand-700"
-                      onClick={() => empezarEdicion(m)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className="text-xs text-slate-400 hover:text-red-600"
-                      onClick={() => handleDelete(m.id)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                )}
-              </div>
+                      {(!m.pagado || esAdministrador) && (
+                        <button
+                          className="text-xs text-slate-400 hover:text-red-600"
+                          onClick={() => handleDelete(m)}
+                        >
+                          {m.pagado ? "Anular" : "Eliminar"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </li>
           );
         })}
@@ -880,13 +935,15 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
 
         <ul className="space-y-2">
           {facturas?.map((f) => {
-            const cobrado = (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0);
-            const acreditadoPorNotas = (f.notas_credito ?? []).reduce(
-              (acc, n) => acc + Number(n.monto),
-              0
-            );
+            const cobrado = (f.cobros ?? [])
+              .filter((c) => !c.anulado)
+              .reduce((acc, c) => acc + Number(c.monto), 0);
+            const acreditadoPorNotas = (f.notas_credito ?? [])
+              .filter((n) => !n.anulado)
+              .reduce((acc, n) => acc + Number(n.monto), 0);
             const saldo = f.monto_total - cobrado - acreditadoPorNotas;
             const anticiposDisponibles = anticiposDe(f);
+            const tieneHistorialCobros = (f.cobros?.length ?? 0) > 0 || (f.notas_credito?.length ?? 0) > 0;
             return (
               <li key={f.id} className="rounded-md border border-slate-100 p-3 text-sm">
                 <div className="flex items-center justify-between gap-2">
@@ -909,7 +966,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                         Descargar detalle
                       </a>
                     )}
-                    {cobrado === 0 && acreditadoPorNotas === 0 && (
+                    {!tieneHistorialCobros && (
                       <button
                         className="text-xs text-slate-400 hover:text-red-600"
                         onClick={() => handleEliminarFactura(f.id)}
@@ -930,7 +987,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                   <ul className="mt-1 text-xs text-slate-500 space-y-0.5">
                     {f.cobros?.map((c) => (
                       <li key={c.id} className="flex items-center gap-2">
-                        <span>
+                        <span className={c.anulado ? "line-through opacity-60" : ""}>
                           Cobro {formatCurrency(c.monto)}
                           {c.medio_pago && ` — ${c.medio_pago}`} —{" "}
                           {new Date(c.fecha + "T00:00:00").toLocaleDateString("es-AR")}
@@ -938,12 +995,18 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                           {c.cuenta_contable_id &&
                             ` · ${cuentas.find((cc) => cc.id === c.cuenta_contable_id)?.codigo ?? "—"}`}
                         </span>
-                        <button
-                          className="text-slate-400 hover:text-red-600"
-                          onClick={() => handleEliminarCobro(f.id, c.id)}
-                        >
-                          Eliminar
-                        </button>
+                        {c.anulado ? (
+                          <span className="text-red-600">Anulado{c.anulado_motivo ? ` — ${c.anulado_motivo}` : ""}</span>
+                        ) : (
+                          esAdministrador && (
+                            <button
+                              className="text-slate-400 hover:text-red-600"
+                              onClick={() => handleEliminarCobro(f.id, c.id)}
+                            >
+                              Anular
+                            </button>
+                          )
+                        )}
                       </li>
                     ))}
                   </ul>
@@ -952,15 +1015,21 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                   <ul className="mt-1 text-xs text-slate-500 space-y-0.5">
                     {f.notas_credito?.map((n) => (
                       <li key={n.id} className="flex items-center gap-2">
-                        <span>
+                        <span className={n.anulado ? "line-through opacity-60" : ""}>
                           Nota de crédito {formatCurrency(n.monto)} — {n.motivo}
                         </span>
-                        <button
-                          className="text-slate-400 hover:text-red-600"
-                          onClick={() => handleEliminarNotaCredito(f.id, n.id)}
-                        >
-                          Eliminar
-                        </button>
+                        {n.anulado ? (
+                          <span className="text-red-600">Anulada{n.anulado_motivo ? ` — ${n.anulado_motivo}` : ""}</span>
+                        ) : (
+                          esAdministrador && (
+                            <button
+                              className="text-slate-400 hover:text-red-600"
+                              onClick={() => handleEliminarNotaCredito(f.id, n.id)}
+                            >
+                              Anular
+                            </button>
+                          )
+                        )}
                       </li>
                     ))}
                   </ul>

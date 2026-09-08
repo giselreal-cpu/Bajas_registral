@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { registrarCambioGeneral } from "@/lib/historial";
+import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 // GET /api/movimientos-generales -> ingresos/egresos que no son de un
 // caso puntual (sueldos, hosting, alquiler, etc.), para /administracion.
@@ -46,10 +47,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "El monto es obligatorio." }, { status: 400 });
   }
 
+  const fechaFinal = fecha || new Date().toISOString().slice(0, 10);
+  if (await periodoCerrado(supabase, fechaFinal)) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+  }
+
   const { data, error } = await supabase
     .from("movimientos_generales")
     .insert({
-      fecha: fecha || new Date().toISOString().slice(0, 10),
+      fecha: fechaFinal,
       descripcion: String(descripcion).trim(),
       tipo,
       monto,

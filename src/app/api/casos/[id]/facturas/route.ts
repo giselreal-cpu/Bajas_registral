@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
+import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 // GET /api/casos/[id]/facturas -> facturas del caso, con sus cobros
 export async function GET(
@@ -36,6 +37,10 @@ export async function POST(
       { error: "Elegí el receptor y al menos un movimiento para facturar." },
       { status: 400 }
     );
+  }
+
+  if (await periodoCerrado(supabase, new Date().toISOString().slice(0, 10))) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
   }
 
   const { data: movimientos, error: errorMov } = await supabase

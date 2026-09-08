@@ -111,8 +111,8 @@ export default async function CuentaCorrientePage() {
     const entrada = resumenPorTercero.get(clave)!;
     entrada.facturado += Number(f.monto_total);
     entrada.cobrado +=
-      (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0) +
-      (f.notas_credito ?? []).reduce((acc, n) => acc + Number(n.monto), 0);
+      (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0) +
+      (f.notas_credito ?? []).filter((n) => !n.anulado).reduce((acc, n) => acc + Number(n.monto), 0);
     entrada.facturas.push(f);
   }
 

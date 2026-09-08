@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { registrarCambio } from "@/lib/historial";
 import { obtenerCajaPesosId } from "@/lib/cajaPesos";
+import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 // GET /api/casos/[id]/movimientos -> trazabilidad de costo/ganancia del caso
 export async function GET(
@@ -52,6 +53,11 @@ export async function POST(
     );
   }
 
+  const fechaFinal = fecha || new Date().toISOString().slice(0, 10);
+  if (await periodoCerrado(supabase, fechaFinal)) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+  }
+
   // Todo movimiento que se carga ya pagado y sin caja elegida va a
   // "Caja pesos" por defecto, para que no quede afuera del Libro de
   // movimientos ni de Liquidez por falta de caja asignada.
@@ -63,7 +69,7 @@ export async function POST(
       caso_id: params.id,
       concepto_id,
       monto,
-      fecha: fecha || new Date().toISOString().slice(0, 10),
+      fecha: fechaFinal,
       observacion: observacion || null,
       pagado: !!pagado,
       caja_id: cajaFinal,

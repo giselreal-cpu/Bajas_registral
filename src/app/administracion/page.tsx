@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import MovimientosGeneralesSection from "@/components/administracion/MovimientosGeneralesSection";
 import LibroImportSection from "@/components/administracion/LibroImportSection";
+import CierresMensualesSection from "@/components/administracion/CierresMensualesSection";
 import { obtenerFilasLibro } from "@/lib/libroMovimientos";
 
 export const dynamic = "force-dynamic";
@@ -43,7 +44,9 @@ export default async function AdministracionPage({
       ? "liquidez"
       : searchParams.reporte === "generales"
         ? "generales"
-        : "libro";
+        : searchParams.reporte === "cierres"
+          ? "cierres"
+          : "libro";
 
   const [{ data: cajas }, { data: cuentas }, { data: aseguradoras }] = await Promise.all([
     supabase.from("cajas").select("*").eq("activa", true).order("nombre"),
@@ -71,10 +74,15 @@ export default async function AdministracionPage({
     .select("caja_id, monto, concepto:conceptos_movimiento(tipo)")
     .eq("aprobado", true)
     .eq("pagado", true)
+    .eq("anulado", false)
     .not("caja_id", "is", null);
   if (searchParams.desde) queryLiquidez = queryLiquidez.gte("fecha", searchParams.desde);
   if (searchParams.hasta) queryLiquidez = queryLiquidez.lte("fecha", searchParams.hasta);
-  let queryCobrosLiquidez = supabase.from("cobros").select("caja_id, monto").not("caja_id", "is", null);
+  let queryCobrosLiquidez = supabase
+    .from("cobros")
+    .select("caja_id, monto")
+    .eq("anulado", false)
+    .not("caja_id", "is", null);
   if (searchParams.desde) queryCobrosLiquidez = queryCobrosLiquidez.gte("fecha", searchParams.desde);
   if (searchParams.hasta) queryCobrosLiquidez = queryCobrosLiquidez.lte("fecha", searchParams.hasta);
   let queryAnticiposLiquidez = supabase.from("anticipos").select("caja_id, monto").not("caja_id", "is", null);
@@ -83,6 +91,7 @@ export default async function AdministracionPage({
   let queryLiquidezGenerales = supabase
     .from("movimientos_generales")
     .select("caja_id, monto, tipo")
+    .eq("anulado", false)
     .not("caja_id", "is", null);
   if (searchParams.desde) queryLiquidezGenerales = queryLiquidezGenerales.gte("fecha", searchParams.desde);
   if (searchParams.hasta) queryLiquidezGenerales = queryLiquidezGenerales.lte("fecha", searchParams.hasta);
@@ -189,9 +198,15 @@ export default async function AdministracionPage({
         >
           Movimientos generales
         </Link>
+        <Link
+          href={qs({ reporte: "cierres" })}
+          className={`btn-secondary ${reporte === "cierres" ? "!bg-brand-900 !text-white" : ""}`}
+        >
+          Cierre de período
+        </Link>
       </div>
 
-      {reporte !== "generales" && (
+      {reporte !== "generales" && reporte !== "cierres" && (
       <form className="card p-4 mb-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end" method="get">
         <input type="hidden" name="reporte" value={reporte} />
         <div className="sm:flex-1 sm:min-w-[130px]">
@@ -253,8 +268,14 @@ export default async function AdministracionPage({
       </form>
       )}
 
-      {reporte === "generales" ? (
-        <MovimientosGeneralesSection cajas={cajas ?? []} cuentas={cuentas ?? []} />
+      {reporte === "cierres" ? (
+        <CierresMensualesSection esAdministrador={usuarioActual?.rol === "administrador"} />
+      ) : reporte === "generales" ? (
+        <MovimientosGeneralesSection
+          cajas={cajas ?? []}
+          cuentas={cuentas ?? []}
+          esAdministrador={usuarioActual?.rol === "administrador"}
+        />
       ) : reporte === "libro" ? (
         <>
           <LibroImportSection />

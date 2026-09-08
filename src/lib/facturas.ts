@@ -11,8 +11,8 @@ export async function recalcularEstadoFactura(facturaId: string): Promise<Estado
 
   const [{ data: factura }, { data: cobros }, { data: notas }] = await Promise.all([
     supabase.from("facturas").select("monto_total").eq("id", facturaId).maybeSingle(),
-    supabase.from("cobros").select("monto").eq("factura_id", facturaId),
-    supabase.from("notas_credito").select("monto").eq("factura_id", facturaId)
+    supabase.from("cobros").select("monto").eq("factura_id", facturaId).eq("anulado", false),
+    supabase.from("notas_credito").select("monto").eq("factura_id", facturaId).eq("anulado", false)
   ]);
 
   const totalCobrado =
@@ -39,8 +39,8 @@ export async function saldoPendienteFactura(facturaId: string): Promise<number> 
 
   const [{ data: factura }, { data: cobros }, { data: notas }] = await Promise.all([
     supabase.from("facturas").select("monto_total").eq("id", facturaId).maybeSingle(),
-    supabase.from("cobros").select("monto").eq("factura_id", facturaId),
-    supabase.from("notas_credito").select("monto").eq("factura_id", facturaId)
+    supabase.from("cobros").select("monto").eq("factura_id", facturaId).eq("anulado", false),
+    supabase.from("notas_credito").select("monto").eq("factura_id", facturaId).eq("anulado", false)
   ]);
 
   const cubierto =

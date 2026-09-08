@@ -46,10 +46,14 @@ export default async function AnalisisPage() {
     casoIdsCerrados.length > 0
       ? supabase
           .from("facturas")
-          .select("caso_id, cobros(monto), notas_credito(monto)")
+          .select("caso_id, cobros(monto, anulado), notas_credito(monto, anulado)")
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({
-          data: [] as { caso_id: string; cobros: { monto: number }[]; notas_credito: { monto: number }[] }[]
+          data: [] as {
+            caso_id: string;
+            cobros: { monto: number; anulado: boolean }[];
+            notas_credito: { monto: number; anulado: boolean }[];
+          }[]
         }),
     casoIdsCerrados.length > 0
       ? supabase
@@ -57,6 +61,7 @@ export default async function AnalisisPage() {
           .select("caso_id, monto, concepto:conceptos_movimiento(tipo)")
           .eq("aprobado", true)
           .eq("pagado", true)
+          .eq("anulado", false)
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({ data: [] as { caso_id: string; monto: number; concepto: { tipo: string } | null }[] })
   ]);
@@ -64,9 +69,11 @@ export default async function AnalisisPage() {
   const cobradoPorCaso = new Map<string, number>();
   for (const f of (facturasCerradas ?? []) as unknown as {
     caso_id: string;
-    cobros: { monto: number }[];
-    notas_credito: { monto: number }[];
+    cobros: { monto: number; anulado: boolean }[];
+    notas_credito: { monto: number; anulado: boolean }[];
   }[]) {
+    f.cobros = (f.cobros ?? []).filter((c) => !c.anulado);
+    f.notas_credito = (f.notas_credito ?? []).filter((n) => !n.anulado);
     const cobrado =
       (f.cobros ?? []).reduce((a, c) => a + Number(c.monto), 0) +
       (f.notas_credito ?? []).reduce((a, n) => a + Number(n.monto), 0);
@@ -146,7 +153,9 @@ export default async function AnalisisPage() {
   // Cuenta corriente: mismo resumen por tercero que ya usa
   // /cuenta-corriente, acá solo el resumen (sin el detalle de facturas).
   const [{ data: facturasCC }, { data: aseguradorasCC }, { data: desarmaderosCC }] = await Promise.all([
-    supabase.from("facturas").select("tipo_receptor, receptor_id, monto_total, cobros(monto), notas_credito(monto)"),
+    supabase
+      .from("facturas")
+      .select("tipo_receptor, receptor_id, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)"),
     supabase.from("aseguradoras").select("id, nombre"),
     supabase.from("desarmaderos").select("id, nombre")
   ]);
@@ -168,8 +177,8 @@ export default async function AnalisisPage() {
     tipo_receptor: string;
     receptor_id: string;
     monto_total: number;
-    cobros: { monto: number }[];
-    notas_credito: { monto: number }[];
+    cobros: { monto: number; anulado: boolean }[];
+    notas_credito: { monto: number; anulado: boolean }[];
   }[]) {
     const clave = `${f.tipo_receptor}:${f.receptor_id}`;
     if (!porTercero.has(clave)) {
@@ -184,8 +193,8 @@ export default async function AnalisisPage() {
     const entrada = porTercero.get(clave)!;
     entrada.facturado += Number(f.monto_total);
     entrada.cobrado +=
-      (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0) +
-      (f.notas_credito ?? []).reduce((acc, n) => acc + Number(n.monto), 0);
+      (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0) +
+      (f.notas_credito ?? []).filter((n) => !n.anulado).reduce((acc, n) => acc + Number(n.monto), 0);
   }
   const cuentaCorriente = Array.from(porTercero.values())
     .map((t) => ({ ...t, saldo: t.facturado - t.cobrado }))

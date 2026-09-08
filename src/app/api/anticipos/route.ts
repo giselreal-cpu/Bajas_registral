@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { obtenerCajaPesosId } from "@/lib/cajaPesos";
+import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 // GET /api/anticipos?tipo=compania|desarmadero&receptor_id=... -> lista
 // los anticipos de un tercero (disponibles y ya usados).
@@ -43,6 +44,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const fechaFinal = fecha || new Date().toISOString().slice(0, 10);
+  if (await periodoCerrado(supabase, fechaFinal)) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+  }
+
   const usuarioActualId = await getUsuarioActualId();
   // Un anticipo es plata real que ya entró — si no se eligió una caja
   // puntual, va a "Caja pesos" por defecto (mismo criterio que pagos y
@@ -57,7 +63,7 @@ export async function POST(request: NextRequest) {
       monto,
       saldo_disponible: monto,
       observacion: observacion || null,
-      fecha: fecha || new Date().toISOString().slice(0, 10),
+      fecha: fechaFinal,
       caja_id: cajaFinal,
       cuenta_contable_id: cuenta_contable_id || null,
       creado_por: usuarioActualId

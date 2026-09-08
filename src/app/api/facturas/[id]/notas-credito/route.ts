@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { registrarCambio } from "@/lib/historial";
 import { recalcularEstadoFactura, saldoPendienteFactura } from "@/lib/facturas";
+import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 // POST /api/facturas/[id]/notas-credito -> ajusta el saldo pendiente de
 // una factura ya emitida sin borrarla (error de facturación, descuento
@@ -40,6 +41,11 @@ export async function POST(
     );
   }
 
+  const fechaFinal = fecha || new Date().toISOString().slice(0, 10);
+  if (await periodoCerrado(supabase, fechaFinal)) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+  }
+
   const usuarioActualId = await getUsuarioActualId();
 
   const { data: nota, error: errorNota } = await supabase
@@ -48,7 +54,7 @@ export async function POST(
       factura_id: params.id,
       monto,
       motivo,
-      fecha: fecha || new Date().toISOString().slice(0, 10),
+      fecha: fechaFinal,
       creado_por: usuarioActualId
     })
     .select()

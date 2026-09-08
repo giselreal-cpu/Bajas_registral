@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { obtenerCajaPesosId } from "@/lib/cajaPesos";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 const ALLOWED_FIELDS = [
   "concepto_id",
@@ -37,7 +38,7 @@ export async function PUT(
 
   const { data: existente } = await supabase
     .from("movimientos_caso")
-    .select("caso_id, factura_id, caja_id")
+    .select("caso_id, factura_id, caja_id, fecha")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -46,6 +47,13 @@ export async function PUT(
       { error: "No se puede editar un movimiento que ya está en una factura." },
       { status: 409 }
     );
+  }
+
+  if (existente && (await periodoCerrado(supabase, existente.fecha))) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+  }
+  if (typeof body.fecha === "string" && body.fecha && (await periodoCerrado(supabase, body.fecha))) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
   }
 
   const update: Record<string, unknown> = {};
@@ -86,14 +94,14 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const supabase = createClient();
 
   const { data: existente } = await supabase
     .from("movimientos_caso")
-    .select("caso_id, factura_id, monto, concepto:conceptos_movimiento(nombre)")
+    .select("caso_id, factura_id, monto, pagado, fecha, concepto:conceptos_movimiento(nombre)")
     .eq("id", params.id)
     .maybeSingle();
 
@@ -104,6 +112,51 @@ export async function DELETE(
     );
   }
 
+  if (existente && (await periodoCerrado(supabase, existente.fecha))) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+  }
+
+  const nombreConcepto = (existente?.concepto as unknown as { nombre: string } | null)?.nombre ?? "—";
+
+  // Un egreso ya pagado es plata real que salió — no se borra, se
+  // anula con motivo (queda visible en la ficha del caso, tachado, sin
+  // sumar a Ganancia neta/Libro/Liquidez). Lo que sigue pendiente de
+  // pago se puede seguir borrando libre, no representa nada real
+  // todavía.
+  if (existente?.pagado) {
+    const usuarioActual = await getUsuarioActual();
+    if (usuarioActual?.rol !== "administrador") {
+      return NextResponse.json(
+        { error: "Solo un administrador puede anular un egreso ya pagado." },
+        { status: 403 }
+      );
+    }
+    const body = await request.json().catch(() => ({}));
+    const motivo = typeof body.motivo === "string" ? body.motivo.trim() : "";
+    if (!motivo) {
+      return NextResponse.json(
+        { error: "Un egreso ya pagado no se puede borrar — indicá el motivo de la anulación." },
+        { status: 400 }
+      );
+    }
+    const { error } = await supabase
+      .from("movimientos_caso")
+      .update({
+        anulado: true,
+        anulado_motivo: motivo,
+        anulado_at: new Date().toISOString(),
+        anulado_por: usuarioActual.id
+      })
+      .eq("id", params.id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    await registrarCambio(existente.caso_id, `Anuló movimiento: ${nombreConcepto}`, motivo);
+    return NextResponse.json({ ok: true });
+  }
+
   const { error } = await supabase.from("movimientos_caso").delete().eq("id", params.id);
 
   if (error) {
@@ -111,7 +164,6 @@ export async function DELETE(
   }
 
   if (existente) {
-    const nombreConcepto = (existente.concepto as unknown as { nombre: string } | null)?.nombre ?? "—";
     await registrarCambio(existente.caso_id, `Eliminó movimiento: ${nombreConcepto}`);
   }
 

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
+import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 // DELETE /api/facturas/[id] -> elimina una factura que todavía no tuvo
 // ningún cobro ni nota de crédito, y devuelve sus movimientos al pool de
@@ -13,12 +14,16 @@ export async function DELETE(
 
   const { data: factura, error: errorFactura } = await supabase
     .from("facturas")
-    .select("id, caso_id, numero_factura")
+    .select("id, caso_id, numero_factura, fecha_emision")
     .eq("id", params.id)
     .maybeSingle();
 
   if (errorFactura || !factura) {
     return NextResponse.json({ error: errorFactura?.message ?? "Factura no encontrada." }, { status: 404 });
+  }
+
+  if (await periodoCerrado(supabase, factura.fecha_emision)) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
   }
 
   const [{ count: cobros }, { count: notas }] = await Promise.all([

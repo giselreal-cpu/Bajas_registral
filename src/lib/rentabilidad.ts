@@ -14,8 +14,8 @@ export async function ingresosCobradosPorCasos(casoIds: string[]): Promise<numbe
   if (facturaIds.length === 0) return 0;
 
   const [{ data: cobros }, { data: notas }] = await Promise.all([
-    supabase.from("cobros").select("monto").in("factura_id", facturaIds),
-    supabase.from("notas_credito").select("monto").in("factura_id", facturaIds)
+    supabase.from("cobros").select("monto").in("factura_id", facturaIds).eq("anulado", false),
+    supabase.from("notas_credito").select("monto").in("factura_id", facturaIds).eq("anulado", false)
   ]);
 
   return (

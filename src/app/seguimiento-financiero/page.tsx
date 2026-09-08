@@ -41,6 +41,7 @@ interface CasoCerradoReporte {
     monto: number;
     pagado: boolean;
     aprobado: boolean;
+    anulado: boolean;
     concepto: { nombre: string } | null;
   }[];
 }
@@ -58,6 +59,7 @@ interface CasoReporte {
     observacion: string | null;
     pagado: boolean;
     aprobado: boolean;
+    anulado: boolean;
     concepto: { nombre: string; tipo: string } | null;
   }[];
   facturas: {
@@ -67,8 +69,8 @@ interface CasoReporte {
     monto_total: number;
     estado: EstadoFactura;
     fecha_emision: string;
-    cobros: { monto: number }[];
-    notas_credito: { monto: number }[];
+    cobros: { monto: number; anulado: boolean }[];
+    notas_credito: { monto: number; anulado: boolean }[];
   }[];
 }
 
@@ -95,8 +97,8 @@ export default async function SeguimientoFinancieroPage() {
         aseguradora:aseguradoras(nombre),
         desarmadero:desarmaderos(nombre),
         vehiculo:vehiculos(dominio),
-        movimientos_caso(id, monto, fecha, observacion, pagado, aprobado, concepto:conceptos_movimiento(nombre, tipo)),
-        facturas(id, numero_factura, tipo_receptor, monto_total, estado, fecha_emision, cobros(monto), notas_credito(monto))
+        movimientos_caso(id, monto, fecha, observacion, pagado, aprobado, anulado, concepto:conceptos_movimiento(nombre, tipo)),
+        facturas(id, numero_factura, tipo_receptor, monto_total, estado, fecha_emision, cobros(monto, anulado), notas_credito(monto, anulado))
       `
       )
       .order("numero_caso", { ascending: false }),
@@ -109,7 +111,7 @@ export default async function SeguimientoFinancieroPage() {
         desarmadero:desarmaderos(nombre),
         tipo_baja:tipos_baja(nombre),
         vehiculo:vehiculos(dominio, marca, modelo, anio),
-        movimientos_caso(monto, pagado, aprobado, concepto:conceptos_movimiento(nombre))
+        movimientos_caso(monto, pagado, aprobado, anulado, concepto:conceptos_movimiento(nombre))
       `
       )
       .eq("estado", "cerrado")
@@ -134,7 +136,7 @@ export default async function SeguimientoFinancieroPage() {
     .filter((c) => c.tipo_baja?.nombre && TIPOS_BAJA_PAGO_COMPANIA.includes(c.tipo_baja.nombre))
     .map((c) => {
       const movimientosPago = c.movimientos_caso.filter(
-        (m) => m.concepto?.nombre === PAGO_COMPANIA && m.aprobado
+        (m) => m.concepto?.nombre === PAGO_COMPANIA && m.aprobado && !m.anulado
       );
       const pendientePago = movimientosPago
         .filter((m) => !m.pagado)
@@ -177,7 +179,9 @@ export default async function SeguimientoFinancieroPage() {
 
   const casosConActividad = ((casos as unknown as CasoReporte[]) ?? [])
     .map((c) => {
-      const egresos = c.movimientos_caso.filter((m) => m.concepto?.tipo === "egreso" && m.aprobado);
+      const egresos = c.movimientos_caso.filter(
+        (m) => m.concepto?.tipo === "egreso" && m.aprobado && !m.anulado
+      );
       const egresosPendientes = egresos.filter((m) => !m.pagado);
       const egresosPagados = egresos.filter((m) => m.pagado);
       const totalPendientePago = egresosPendientes.reduce((acc, m) => acc + Number(m.monto), 0);
@@ -185,8 +189,8 @@ export default async function SeguimientoFinancieroPage() {
 
       const facturasConSaldo = c.facturas.map((f) => {
         const cobrado =
-          f.cobros.reduce((acc, cob) => acc + Number(cob.monto), 0) +
-          f.notas_credito.reduce((acc, n) => acc + Number(n.monto), 0);
+          f.cobros.filter((cob) => !cob.anulado).reduce((acc, cob) => acc + Number(cob.monto), 0) +
+          f.notas_credito.filter((n) => !n.anulado).reduce((acc, n) => acc + Number(n.monto), 0);
         return { ...f, cobrado, saldo: Number(f.monto_total) - cobrado };
       });
       const totalPendienteCobro = facturasConSaldo.reduce((acc, f) => acc + f.saldo, 0);

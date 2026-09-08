@@ -16,8 +16,8 @@ interface FacturaOutstanding {
   tipo_receptor: string;
   receptor_id: string;
   monto_total: number;
-  cobros: { monto: number }[];
-  notas_credito: { monto: number }[];
+  cobros: { monto: number; anulado: boolean }[];
+  notas_credito: { monto: number; anulado: boolean }[];
 }
 
 export default async function CajaPage() {
@@ -39,7 +39,9 @@ export default async function CajaPage() {
     await Promise.all([
       supabase
         .from("facturas")
-        .select("id, caso_id, tipo_receptor, receptor_id, monto_total, cobros(monto), notas_credito(monto)")
+        .select(
+          "id, caso_id, tipo_receptor, receptor_id, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)"
+        )
         .eq("tipo_receptor", "compania")
         .neq("estado", "cobrado_total"),
       supabase
@@ -48,6 +50,7 @@ export default async function CajaPage() {
           "*, concepto:conceptos_movimiento(*), caso:casos(numero_siniestro, vehiculo:vehiculos(dominio)), creado_por_usuario:usuarios(nombre), documento:documentos(id, url)"
         )
         .eq("aprobado", false)
+        .eq("anulado", false)
         .order("created_at", { ascending: false }),
       supabase.from("aseguradoras").select("id, nombre").order("nombre")
     ]);
@@ -55,8 +58,8 @@ export default async function CajaPage() {
   const facturas = (facturasRaw ?? []) as unknown as FacturaOutstanding[];
   const saldoDe = (f: FacturaOutstanding) =>
     f.monto_total -
-    f.cobros.reduce((a, c) => a + c.monto, 0) -
-    f.notas_credito.reduce((a, n) => a + n.monto, 0);
+    f.cobros.filter((c) => !c.anulado).reduce((a, c) => a + c.monto, 0) -
+    f.notas_credito.filter((n) => !n.anulado).reduce((a, n) => a + n.monto, 0);
 
   const totalACobrar = facturas.reduce((a, f) => a + Math.max(saldoDe(f), 0), 0);
   const casosFacturados = new Set(facturas.map((f) => f.caso_id)).size;

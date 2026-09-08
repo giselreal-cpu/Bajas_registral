@@ -295,7 +295,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     casoIdsCerrados.length > 0
       ? supabase
           .from("facturas")
-          .select("caso_id, tipo_receptor, monto_total, cobros(monto), notas_credito(monto)")
+          .select("caso_id, tipo_receptor, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)")
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({ data: [] as any[] }),
     casoIdsCerrados.length > 0
@@ -303,6 +303,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
           .from("movimientos_caso")
           .select("caso_id, monto, pagado, concepto:conceptos_movimiento(tipo)")
           .eq("aprobado", true)
+          .eq("anulado", false)
           .in("caso_id", casoIdsCerrados)
       : Promise.resolve({ data: [] as any[] }),
     casoIds.length > 0
@@ -330,6 +331,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
           .from("movimientos_caso")
           .select("caso_id, pagado, concepto:conceptos_movimiento(nombre)")
           .eq("aprobado", true)
+          .eq("anulado", false)
           .in("caso_id", casoIdsCerradosConGestor)
       : Promise.resolve({ data: [] as any[] }),
     casoIds.length > 0
@@ -417,12 +419,12 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     caso_id: string;
     tipo_receptor: string;
     monto_total: number;
-    cobros: { monto: number }[];
-    notas_credito: { monto: number }[];
+    cobros: { monto: number; anulado: boolean }[];
+    notas_credito: { monto: number; anulado: boolean }[];
   }[]) {
     const cobrado =
-      (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0) +
-      (f.notas_credito ?? []).reduce((acc, n) => acc + Number(n.monto), 0);
+      (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0) +
+      (f.notas_credito ?? []).filter((n) => !n.anulado).reduce((acc, n) => acc + Number(n.monto), 0);
     ingresosPorCaso.set(f.caso_id, (ingresosPorCaso.get(f.caso_id) ?? 0) + cobrado);
     facturadoPorCaso.set(f.caso_id, (facturadoPorCaso.get(f.caso_id) ?? 0) + Number(f.monto_total));
     if (f.tipo_receptor === "desarmadero") {
@@ -485,23 +487,23 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   const [{ data: facturasCompaniaPendientes }, { data: movimientosSinAprobar }] = await Promise.all([
     supabase
       .from("facturas")
-      .select("caso_id, monto_total, cobros(monto), notas_credito(monto)")
+      .select("caso_id, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)")
       .eq("tipo_receptor", "compania")
       .neq("estado", "cobrado_total"),
-    supabase.from("movimientos_caso").select("id, monto").eq("aprobado", false)
+    supabase.from("movimientos_caso").select("id, monto").eq("aprobado", false).eq("anulado", false)
   ]);
 
   const facturasCompaniaSaldo = (facturasCompaniaPendientes ?? []) as unknown as {
     caso_id: string;
     monto_total: number;
-    cobros: { monto: number }[];
-    notas_credito: { monto: number }[];
+    cobros: { monto: number; anulado: boolean }[];
+    notas_credito: { monto: number; anulado: boolean }[];
   }[];
   const totalACobrarCartera = facturasCompaniaSaldo.reduce((acc, f) => {
     const saldo =
       f.monto_total -
-      f.cobros.reduce((a, c) => a + Number(c.monto), 0) -
-      f.notas_credito.reduce((a, n) => a + Number(n.monto), 0);
+      f.cobros.filter((c) => !c.anulado).reduce((a, c) => a + Number(c.monto), 0) -
+      f.notas_credito.filter((n) => !n.anulado).reduce((a, n) => a + Number(n.monto), 0);
     return acc + Math.max(saldo, 0);
   }, 0);
   const casosACobrarCartera = new Set(facturasCompaniaSaldo.map((f) => f.caso_id)).size;

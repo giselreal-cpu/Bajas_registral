@@ -71,7 +71,9 @@ export default async function CasoDetallePage({
         .from("movimientos_caso")
         .select("monto, concepto:conceptos_movimiento(tipo)")
         .eq("caso_id", params.id)
-        .eq("aprobado", true),
+        .eq("aprobado", true)
+        .eq("pagado", true)
+        .eq("anulado", false),
       ingresosCobradosPorCasos([params.id])
     ]);
     ingresos = cobrado;

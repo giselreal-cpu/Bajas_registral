@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { recalcularEstadoFactura } from "@/lib/facturas";
 import { obtenerCajaPesosId } from "@/lib/cajaPesos";
+import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 // POST /api/facturas/[id]/cobros -> registra un cobro (parcial o total)
 // contra una factura, y recalcula su estado.
@@ -28,6 +29,11 @@ export async function POST(
     return NextResponse.json({ error: errorFactura?.message ?? "Factura no encontrada." }, { status: 404 });
   }
 
+  const fechaFinal = fecha || new Date().toISOString().slice(0, 10);
+  if (await periodoCerrado(supabase, fechaFinal)) {
+    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+  }
+
   // Todo cobro es plata efectivamente recibida — si no se eligió una
   // caja puntual, va a "Caja pesos" por defecto (no queda afuera del
   // Libro de movimientos ni de Liquidez por falta de caja asignada).
@@ -38,7 +44,7 @@ export async function POST(
     .insert({
       factura_id: params.id,
       monto,
-      fecha: fecha || new Date().toISOString().slice(0, 10),
+      fecha: fechaFinal,
       medio_pago: medio_pago || null,
       observacion: observacion || null,
       caja_id: cajaFinal,

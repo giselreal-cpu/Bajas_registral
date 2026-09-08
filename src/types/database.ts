@@ -320,6 +320,10 @@ export interface MovimientoCaso {
   cuenta_contable_id: string | null;
   documento_id: string | null;
   aprobado: boolean;
+  anulado: boolean;
+  anulado_motivo: string | null;
+  anulado_at: string | null;
+  anulado_por: string | null;
   creado_por: string | null;
   created_at: string;
   concepto: ConceptoMovimiento | null;
@@ -339,6 +343,10 @@ export interface MovimientoGeneral {
   monto: number;
   caja_id: string | null;
   cuenta_contable_id: string | null;
+  anulado: boolean;
+  anulado_motivo: string | null;
+  anulado_at: string | null;
+  anulado_por: string | null;
   creado_por: string | null;
   created_at: string;
   caja?: Caja | null;
@@ -381,6 +389,10 @@ export interface Cobro {
   anticipo_id: string | null;
   caja_id: string | null;
   cuenta_contable_id: string | null;
+  anulado: boolean;
+  anulado_motivo: string | null;
+  anulado_at: string | null;
+  anulado_por: string | null;
   created_at: string;
   caja?: Caja | null;
   cuenta_contable?: CuentaContable | null;
@@ -392,6 +404,10 @@ export interface NotaCredito {
   monto: number;
   motivo: string;
   fecha: string;
+  anulado: boolean;
+  anulado_motivo: string | null;
+  anulado_at: string | null;
+  anulado_por: string | null;
   creado_por: string | null;
   created_at: string;
 }
@@ -410,6 +426,15 @@ export interface Anticipo {
   created_at: string;
   caja?: Caja | null;
   cuenta_contable?: CuentaContable | null;
+}
+
+// Mes cerrado (formato "AAAA-MM") — ver 0051_cierres_mensuales.sql.
+export interface CierreMensual {
+  id: string;
+  mes: string;
+  cerrado_por: string | null;
+  cerrado_at: string;
+  cerrado_por_usuario?: { nombre: string } | null;
 }
 
 export interface EncuestaSatisfaccion {

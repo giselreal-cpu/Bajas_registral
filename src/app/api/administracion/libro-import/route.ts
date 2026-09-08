@@ -58,11 +58,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const [{ data: conceptos }, { data: cajas }, { data: cuentas }] = await Promise.all([
+  const [{ data: conceptos }, { data: cajas }, { data: cuentas }, { data: cierres }] = await Promise.all([
     supabase.from("conceptos_movimiento").select("*"),
     supabase.from("cajas").select("id, nombre"),
-    supabase.from("cuentas_contables").select("id, codigo").eq("imputable", true)
+    supabase.from("cuentas_contables").select("id, codigo").eq("imputable", true),
+    supabase.from("cierres_mensuales").select("mes")
   ]);
+  const mesesCerrados = new Set((cierres ?? []).map((c) => c.mes));
 
   const numerosSiniestro = Array.from(
     new Set(objetos.map((o) => o.numero_siniestro?.trim()).filter((v): v is string => !!v))
@@ -98,6 +100,10 @@ export async function POST(request: NextRequest) {
     }
     if (!fecha) {
       resultados.push({ fila, ok: false, error: `Fecha inválida: "${o.fecha}" (usar AAAA-MM-DD o DD/MM/AAAA).` });
+      continue;
+    }
+    if (mesesCerrados.has(fecha.slice(0, 7))) {
+      resultados.push({ fila, ok: false, error: `El período de "${fecha}" ya está cerrado.` });
       continue;
     }
     if (!monto || monto <= 0) {

@@ -67,6 +67,7 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
     )
     .eq("aprobado", true)
     .eq("pagado", true)
+    .eq("anulado", false)
     .or("caja_id.not.is.null,cuenta_contable_id.not.is.null")
     .order("fecha", { ascending: true })
     .order("created_at", { ascending: true });
@@ -87,6 +88,7 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
     .select(
       "id, monto, fecha, medio_pago, caja_id, cuenta_contable_id, caja:cajas(nombre), cuenta_contable:cuentas_contables(codigo), factura:facturas!inner(caso_id, tipo_receptor, caso:casos!inner(numero_siniestro, aseguradora_id, aseguradora:aseguradoras(nombre), vehiculo:vehiculos(dominio)))"
     )
+    .eq("anulado", false)
     .or("caja_id.not.is.null,cuenta_contable_id.not.is.null")
     .order("fecha", { ascending: true });
 
@@ -156,6 +158,7 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
   let queryGenerales = supabase
     .from("movimientos_generales")
     .select("*, caja:cajas(*), cuenta_contable:cuentas_contables(*)")
+    .eq("anulado", false)
     .order("fecha", { ascending: true })
     .order("created_at", { ascending: true });
   if (filtros.caja_id) queryGenerales = queryGenerales.eq("caja_id", filtros.caja_id);
