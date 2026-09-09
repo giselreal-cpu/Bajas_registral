@@ -40,14 +40,14 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
             <span className="text-slate-400 font-normal">
               {caso.numero_caso === 0 ? "DEMO" : `N° ${caso.numero_caso}`} ·{" "}
             </span>
-            Siniestro {caso.numero_siniestro}
+            {[caso.vehiculo?.marca, caso.vehiculo?.modelo].filter(Boolean).join(" ") || "—"} ·
+            Dominio {caso.vehiculo?.dominio || "—"}
             <span className={`badge ml-2 align-middle ${estadoBadgeClass(caso.estado)}`}>
               {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
             </span>
           </h1>
           <p className="text-sm text-slate-500">
-            {caso.asegurado?.nombre} · Dominio {caso.vehiculo?.dominio} ·{" "}
-            {caso.aseguradora?.nombre}
+            {caso.asegurado?.nombre} · {caso.aseguradora?.nombre}
           </p>
           <div className="mt-1.5">
             <AvanceBar {...avanceCaso(caso.estado)} size="sm" />

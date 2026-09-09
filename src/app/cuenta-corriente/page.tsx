@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { Anticipo, Cobro, EstadoFactura, ESTADOS_FACTURA, NotaCredito } from "@/types/database";
 import AnticipoForm from "@/components/cuentaCorriente/AnticipoForm";
+import AplicarAnticipoButton from "@/components/cuentaCorriente/AplicarAnticipoButton";
 
 export const dynamic = "force-dynamic";
 
@@ -120,10 +121,13 @@ export default async function CuentaCorrientePage() {
     (a, b) => b.facturado - b.cobrado - (a.facturado - a.cobrado)
   );
 
+  const anticiposDisponiblesDe = (tipo: string, id: string) =>
+    ((anticipos as Anticipo[] | null) ?? []).filter(
+      (a) => a.tipo_receptor === tipo && a.receptor_id === id && Number(a.saldo_disponible) > 0
+    );
+
   const anticipoDisponibleDe = (tipo: string, id: string) =>
-    ((anticipos as Anticipo[] | null) ?? [])
-      .filter((a) => a.tipo_receptor === tipo && a.receptor_id === id)
-      .reduce((acc, a) => acc + Number(a.saldo_disponible), 0);
+    anticiposDisponiblesDe(tipo, id).reduce((acc, a) => acc + Number(a.saldo_disponible), 0);
 
   const serviciosDe = (f: FacturaConDetalle) => {
     const nombres = (f.movimientos_caso ?? [])
@@ -192,6 +196,7 @@ export default async function CuentaCorrientePage() {
                         <th className="py-1 pr-4 font-medium">Cobrado</th>
                         <th className="py-1 pr-4 font-medium">Saldo</th>
                         <th className="py-1 pr-4 font-medium">Estado</th>
+                        <th className="py-1 pr-4 font-medium"></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -203,6 +208,8 @@ export default async function CuentaCorrientePage() {
                             (f.notas_credito ?? [])
                               .filter((n) => !n.anulado)
                               .reduce((acc, n) => acc + Number(n.monto), 0);
+                          const saldoFactura = f.monto_total - cobradoFactura;
+                          const anticiposTercero = anticiposDisponiblesDe(t.tipo, t.id);
                           return (
                             <tr key={f.id} className="border-t border-slate-100">
                               <td className="py-1.5 pr-4">N° {f.numero_factura}</td>
@@ -223,13 +230,20 @@ export default async function CuentaCorrientePage() {
                               </td>
                               <td className="py-1.5 pr-4">{formatCurrency(f.monto_total)}</td>
                               <td className="py-1.5 pr-4">{formatCurrency(cobradoFactura)}</td>
-                              <td className="py-1.5 pr-4">
-                                {formatCurrency(f.monto_total - cobradoFactura)}
-                              </td>
+                              <td className="py-1.5 pr-4">{formatCurrency(saldoFactura)}</td>
                               <td className="py-1.5 pr-4">
                                 <span className={`badge ${estadoFacturaBadgeClass(f.estado)}`}>
                                   {ESTADOS_FACTURA.find((e) => e.value === f.estado)?.label ?? f.estado}
                                 </span>
+                              </td>
+                              <td className="py-1.5 pr-4">
+                                {saldoFactura > 0 && anticiposTercero.length > 0 && (
+                                  <AplicarAnticipoButton
+                                    facturaId={f.id}
+                                    saldoPendiente={saldoFactura}
+                                    anticipos={anticiposTercero}
+                                  />
+                                )}
                               </td>
                             </tr>
                           );
