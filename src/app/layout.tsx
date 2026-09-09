@@ -58,11 +58,11 @@ const NAV_LINKS_PRIMARIOS = [
 ];
 
 const NAV_LINKS_SECUNDARIOS = [
-  { href: "/agenda", label: "Agenda" },
+  { href: "/agenda", label: "Agenda", ocultarParaCompania: true },
   { href: "/catalogos", label: "Catálogos", ocultarParaCompania: true },
   { href: "/cuenta-corriente", label: "Cta. Corriente", ocultarParaCompania: true },
   { href: "/seguimiento-financiero", label: "Seguimiento", ocultarParaCompania: true },
-  { href: "/exportar", label: "Exportar" }
+  { href: "/exportar", label: "Exportar", ocultarParaCompania: true }
 ];
 
 const MESES = [
@@ -170,7 +170,7 @@ export default async function RootLayout({
               )}
             </main>
           </div>
-          {user && !pendienteDeAprobacion && <MobileNav />}
+          {user && !pendienteDeAprobacion && <MobileNav soloLectura={esCompania} />}
         </div>
       </body>
     </html>

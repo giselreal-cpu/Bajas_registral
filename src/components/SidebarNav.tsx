@@ -19,6 +19,8 @@ interface Props {
 export default function SidebarNav({ links }: Props) {
   const pathname = usePathname();
 
+  if (links.length === 0) return null;
+
   return (
     <aside className="hidden md:block shrink-0 w-[190px] border-r border-silver-200 bg-silver-100">
       <div className="py-4">

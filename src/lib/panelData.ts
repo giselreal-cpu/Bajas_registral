@@ -599,3 +599,146 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     margenMesActual
   };
 }
+
+export interface ActividadRecienteRow {
+  id: string;
+  casoId: string;
+  numeroSiniestro: string;
+  dominio: string | null;
+  tipoEvento: string;
+  fecha: string;
+}
+
+export interface VencimientoCompaniaRow {
+  key: string;
+  casoId: string;
+  numeroSiniestro: string;
+  detalle: string;
+  fechaFin: string;
+}
+
+export interface DatosPanelCompania {
+  error: string | null;
+  casosAbiertos: number;
+  casosCerradosEsteMes: number;
+  promedioTramite: number | null;
+  conteoPorEstado: Record<string, number>;
+  maxConteo: number;
+  casosPorTipoBaja: { nombre: string; cantidad: number }[];
+  actividadReciente: ActividadRecienteRow[];
+  vencimientosSemana: VencimientoCompaniaRow[];
+}
+
+// Panel para el rol "compañía": vista ejecutiva de su propia cartera,
+// pensada desde cero para lo que le importa a un cliente ver — no es
+// un recorte del panel interno. Todas las queries acá se apoyan en
+// RLS (0004_roles.sql) para quedar automáticamente scopeadas a la
+// aseguradora del usuario, sin necesitar filtrar aseguradora_id a
+// mano como sí hace `obtenerDatosPanel`.
+export async function obtenerDatosPanelCompania(): Promise<DatosPanelCompania> {
+  const supabase = createClient();
+
+  const [{ data: casos, error: errorCasos }, { data: actividad }, { data: vencimientos }] =
+    await Promise.all([
+      supabase
+        .from("casos")
+        .select("id, estado, numero_siniestro, fecha_ingreso, fecha_cierre, tipo_baja:tipos_baja(nombre)"),
+      supabase
+        .from("bitacora")
+        .select("id, caso_id, tipo_evento, created_at, caso:casos(numero_siniestro, vehiculo:vehiculos(dominio))")
+        .eq("es_interna", false)
+        .order("created_at", { ascending: false })
+        .limit(8),
+      supabase
+        .from("bitacora")
+        .select("id, caso_id, tipo_evento, fecha_fin, caso:casos(numero_siniestro)")
+        .eq("es_interna", false)
+        .eq("completado", false)
+        .not("fecha_fin", "is", null)
+        .lte("fecha_fin", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
+        .order("fecha_fin", { ascending: true })
+        .limit(10)
+    ]);
+
+  const casosTyped = (casos ?? []) as unknown as {
+    id: string;
+    estado: string;
+    numero_siniestro: string;
+    fecha_ingreso: string;
+    fecha_cierre: string | null;
+    tipo_baja: { nombre: string } | null;
+  }[];
+
+  const casosAbiertos = casosTyped.filter((c) => c.estado !== "cerrado").length;
+
+  const inicioMes = new Date();
+  inicioMes.setDate(1);
+  inicioMes.setHours(0, 0, 0, 0);
+  const casosCerradosEsteMes = casosTyped.filter(
+    (c) => c.estado === "cerrado" && c.fecha_cierre && new Date(c.fecha_cierre) >= inicioMes
+  ).length;
+
+  const diasTramite = casosTyped
+    .filter((c) => c.estado === "cerrado" && c.fecha_cierre)
+    .map((c) => diasEntre(c.fecha_ingreso, c.fecha_cierre!));
+  const promedioTramiteCompania = promedio(diasTramite);
+
+  const conteoPorEstado: Record<string, number> = {};
+  for (const e of ESTADOS) conteoPorEstado[e.value] = 0;
+  for (const c of casosTyped) {
+    conteoPorEstado[c.estado] = (conteoPorEstado[c.estado] ?? 0) + 1;
+  }
+  const maxConteo = Math.max(1, ...Object.values(conteoPorEstado));
+
+  const tipoBajaMap = new Map<string, number>();
+  for (const c of casosTyped) {
+    const nombre = c.tipo_baja?.nombre ?? "Sin definir";
+    tipoBajaMap.set(nombre, (tipoBajaMap.get(nombre) ?? 0) + 1);
+  }
+  const casosPorTipoBaja = Array.from(tipoBajaMap.entries())
+    .map(([nombre, cantidad]) => ({ nombre, cantidad }))
+    .sort((a, b) => b.cantidad - a.cantidad);
+
+  const actividadTyped = (actividad ?? []) as unknown as {
+    id: string;
+    caso_id: string;
+    tipo_evento: string;
+    created_at: string;
+    caso: { numero_siniestro: string; vehiculo: { dominio: string } | null } | null;
+  }[];
+  const actividadReciente: ActividadRecienteRow[] = actividadTyped.map((a) => ({
+    id: a.id,
+    casoId: a.caso_id,
+    numeroSiniestro: a.caso?.numero_siniestro ?? "—",
+    dominio: a.caso?.vehiculo?.dominio ?? null,
+    tipoEvento: a.tipo_evento,
+    fecha: a.created_at
+  }));
+
+  const vencimientosTyped = (vencimientos ?? []) as unknown as {
+    id: string;
+    caso_id: string;
+    tipo_evento: string;
+    fecha_fin: string;
+    caso: { numero_siniestro: string } | null;
+  }[];
+  const vencimientosSemana: VencimientoCompaniaRow[] = vencimientosTyped.map((v) => ({
+    key: v.id,
+    casoId: v.caso_id,
+    numeroSiniestro: v.caso?.numero_siniestro ?? "—",
+    detalle: v.tipo_evento,
+    fechaFin: v.fecha_fin
+  }));
+
+  return {
+    error: errorCasos?.message ?? null,
+    casosAbiertos,
+    casosCerradosEsteMes,
+    promedioTramite: promedioTramiteCompania,
+    conteoPorEstado,
+    maxConteo,
+    casosPorTipoBaja,
+    actividadReciente,
+    vencimientosSemana
+  };
+}

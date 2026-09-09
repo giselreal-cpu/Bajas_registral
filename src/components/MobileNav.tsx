@@ -10,7 +10,7 @@ function casoIdFromPathname(pathname: string): string | null {
   return m[1];
 }
 
-export default function MobileNav() {
+export default function MobileNav({ soloLectura }: { soloLectura?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const casoId = casoIdFromPathname(pathname);
@@ -96,60 +96,70 @@ export default function MobileNav() {
 
   return (
     <div className="mv">
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/jpeg,image/png,image/webp,image/heic"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          const file = e.target.files?.[0];
-          if (file) handleFotoSeleccionada(file);
-          e.target.value = "";
-        }}
-      />
+      {!soloLectura && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/heic"
+          capture="environment"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleFotoSeleccionada(file);
+            e.target.value = "";
+          }}
+        />
+      )}
 
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center justify-between px-2 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-2"
+        className={`md:hidden fixed bottom-0 left-0 right-0 z-30 flex items-center px-2 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-2 ${
+          soloLectura ? "justify-center gap-16" : "justify-between"
+        }`}
         style={{ background: "var(--mv-bg)", borderTop: "1px solid var(--mv-divider)" }}
       >
         <NavLink href="/casos" label="Casos" active={pathname.startsWith("/casos")}>
           <path d="M4 6h16M4 12h16M4 18h16" />
         </NavLink>
-        <NavLink href="/agenda" label="Agenda" active={pathname.startsWith("/agenda")}>
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <path d="M16 2v4M8 2v4M3 10h18" />
-        </NavLink>
+        {!soloLectura && (
+          <NavLink href="/agenda" label="Agenda" active={pathname.startsWith("/agenda")}>
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </NavLink>
+        )}
 
-        <button
-          onClick={handleFabClick}
-          aria-label="Carga rápida"
-          className="shrink-0 -mt-6 w-[60px] h-[60px] rounded-full flex items-center justify-center"
-          style={{
-            border: "1px solid var(--mv-accent)",
-            background: "var(--mv-bg)",
-            color: "var(--mv-accent)",
-            boxShadow: "0 1px 2px rgba(45,43,43,0.14)"
-          }}
-        >
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <path d="M12 5v14M5 12h14" />
-          </svg>
-        </button>
+        {!soloLectura && (
+          <button
+            onClick={handleFabClick}
+            aria-label="Carga rápida"
+            className="shrink-0 -mt-6 w-[60px] h-[60px] rounded-full flex items-center justify-center"
+            style={{
+              border: "1px solid var(--mv-accent)",
+              background: "var(--mv-bg)",
+              color: "var(--mv-accent)",
+              boxShadow: "0 1px 2px rgba(45,43,43,0.14)"
+            }}
+          >
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </button>
+        )}
 
-        <NavLink href="/caja" label="Caja" active={pathname.startsWith("/caja")}>
-          <rect x="2" y="6" width="20" height="12" rx="2" />
-          <circle cx="12" cy="12" r="2.5" />
-          <path d="M6 12h.01" />
-          <path d="M18 12h.01" />
-        </NavLink>
+        {!soloLectura && (
+          <NavLink href="/caja" label="Caja" active={pathname.startsWith("/caja")}>
+            <rect x="2" y="6" width="20" height="12" rx="2" />
+            <circle cx="12" cy="12" r="2.5" />
+            <path d="M6 12h.01" />
+            <path d="M18 12h.01" />
+          </NavLink>
+        )}
         <NavLink href="/panel" label="Panel" active={pathname.startsWith("/panel")}>
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M9 3v18M14 9h4M14 14h4" />
         </NavLink>
       </nav>
 
-      {sheetOpen && (
+      {!soloLectura && sheetOpen && (
         <div className="md:hidden fixed inset-0 z-40">
           <div
             className="absolute inset-0"

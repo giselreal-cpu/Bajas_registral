@@ -2,9 +2,10 @@ import Link from "next/link";
 import { ESTADOS } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
-import { obtenerDatosPanel, nombreMes, PanelFiltros } from "@/lib/panelData";
+import { obtenerDatosPanel, obtenerDatosPanelCompania, nombreMes, PanelFiltros } from "@/lib/panelData";
 import { avanceCaso } from "@/lib/avanceCaso";
 import AvanceBar from "@/components/AvanceBar";
+import PanelCompania from "@/components/panel/PanelCompania";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +14,17 @@ function formatCurrency(value: number): string {
 }
 
 export default async function PanelPage({ searchParams }: { searchParams: PanelFiltros }) {
-  const datos = await obtenerDatosPanel(searchParams);
   const usuarioActual = await getUsuarioActual();
-  const puedeVerTiempos = usuarioActual?.rol !== "compania";
-  const puedeVerFinanzas = usuarioActual?.rol !== "compania";
+
+  if (usuarioActual?.rol === "compania") {
+    const datosCompania = await obtenerDatosPanelCompania();
+    return <PanelCompania datos={datosCompania} primerNombre={usuarioActual?.nombre?.split(" ")[0] ?? ""} />;
+  }
+
+  const datos = await obtenerDatosPanel(searchParams);
+  // Ya se devolvió arriba para "compania" — acá siempre es operador/administrador.
+  const puedeVerTiempos = true;
+  const puedeVerFinanzas = true;
 
   const {
     errores,
