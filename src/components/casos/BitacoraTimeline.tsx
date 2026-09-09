@@ -97,6 +97,12 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
     eventos.some((ev) => ev.tipo_evento === p.label && ev.completado)
   ).length;
 
+  // "Observaciones" es de carga libre y repetible (no un paso fijo del
+  // checklist de arriba), así que se lista aparte, más reciente primero.
+  const observaciones = eventos
+    .filter((ev) => ev.tipo_evento === "Observaciones")
+    .sort((a, b) => (a.fecha_inicio < b.fecha_inicio ? 1 : -1));
+
   return (
     <div>
       <p className="text-xs mb-3 tabular-nums" style={{ color: "var(--mv-neutral-600)" }}>
@@ -172,6 +178,28 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
           );
         })}
       </div>
+
+      {observaciones.length > 0 && (
+        <div className="mt-5 pt-4" style={{ borderTop: "1px solid var(--mv-divider)" }}>
+          <p className="mv-heading text-[13px] mb-2" style={{ color: "var(--mv-neutral-600)" }}>
+            Observaciones
+          </p>
+          <div className="flex flex-col gap-3">
+            {observaciones.map((ev) => (
+              <div key={ev.id}>
+                <span className="text-[11.5px] tabular-nums" style={{ color: "var(--mv-neutral-600)" }}>
+                  {new Date(ev.fecha_inicio + "T00:00:00").toLocaleDateString("es-AR")}
+                </span>
+                {!soloLectura && ev.observacion && (
+                  <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-700)" }}>
+                    {ev.observacion}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
