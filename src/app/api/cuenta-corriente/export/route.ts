@@ -14,8 +14,8 @@ interface FacturaExport {
     vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
   } | null;
   movimientos_caso: { concepto: { nombre: string } | null }[] | null;
-  cobros: { monto: number; fecha: string; medio_pago: string | null }[] | null;
-  notas_credito: { monto: number; fecha: string; motivo: string }[] | null;
+  cobros: { monto: number; fecha: string; medio_pago: string | null; anulado: boolean }[] | null;
+  notas_credito: { monto: number; fecha: string; motivo: string; anulado: boolean }[] | null;
 }
 
 // GET /api/cuenta-corriente/export?tipo=compania|desarmadero&id=<receptor_id>
@@ -40,8 +40,8 @@ export async function GET(request: NextRequest) {
         id, numero_factura, monto_total, estado, fecha_emision,
         caso:casos(numero_siniestro, vehiculo:vehiculos(dominio, marca, modelo, anio)),
         movimientos_caso(concepto:conceptos_movimiento(nombre)),
-        cobros(monto, fecha, medio_pago),
-        notas_credito(monto, fecha, motivo)
+        cobros(monto, fecha, medio_pago, anulado),
+        notas_credito(monto, fecha, motivo, anulado)
       `
       )
       .eq("tipo_receptor", tipo)
@@ -55,16 +55,21 @@ export async function GET(request: NextRequest) {
   }
 
   const filas = ((facturas as unknown as FacturaExport[] | null) ?? []).map((f) => {
-    const cobrado = (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0);
-    const acreditadoPorNotas = (f.notas_credito ?? []).reduce((acc, n) => acc + Number(n.monto), 0);
+    const cobrado = (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0);
+    const acreditadoPorNotas = (f.notas_credito ?? [])
+      .filter((n) => !n.anulado)
+      .reduce((acc, n) => acc + Number(n.monto), 0);
     const servicios = Array.from(
       new Set((f.movimientos_caso ?? []).map((m) => m.concepto?.nombre).filter((n): n is string => !!n))
     ).join(", ");
     const detalleCobros = (f.cobros ?? [])
-      .map((c) => `${c.fecha}: $${c.monto}${c.medio_pago ? ` (${c.medio_pago})` : ""}`)
+      .map(
+        (c) =>
+          `${c.fecha}: $${c.monto}${c.medio_pago ? ` (${c.medio_pago})` : ""}${c.anulado ? " [ANULADO]" : ""}`
+      )
       .join("; ");
     const detalleNotas = (f.notas_credito ?? [])
-      .map((n) => `${n.fecha}: $${n.monto} - ${n.motivo}`)
+      .map((n) => `${n.fecha}: $${n.monto} - ${n.motivo}${n.anulado ? " [ANULADO]" : ""}`)
       .join("; ");
 
     const vehiculo = [f.caso?.vehiculo?.marca, f.caso?.vehiculo?.modelo, f.caso?.vehiculo?.anio]

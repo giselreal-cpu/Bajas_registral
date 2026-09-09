@@ -199,8 +199,10 @@ export default async function CuentaCorrientePage() {
                         .sort((a, b) => (a.fecha_emision < b.fecha_emision ? 1 : -1))
                         .map((f) => {
                           const cobradoFactura =
-                            (f.cobros ?? []).reduce((acc, c) => acc + Number(c.monto), 0) +
-                            (f.notas_credito ?? []).reduce((acc, n) => acc + Number(n.monto), 0);
+                            (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0) +
+                            (f.notas_credito ?? [])
+                              .filter((n) => !n.anulado)
+                              .reduce((acc, n) => acc + Number(n.monto), 0);
                           return (
                             <tr key={f.id} className="border-t border-slate-100">
                               <td className="py-1.5 pr-4">N° {f.numero_factura}</td>
