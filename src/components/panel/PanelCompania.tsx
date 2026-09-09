@@ -30,8 +30,10 @@ export default function PanelCompania({
 }) {
   const {
     error,
+    mesFiltro,
     casosAbiertos,
-    casosCerradosEsteMes,
+    casosCerradosLabel,
+    casosCerrados,
     promedioTramite,
     conteoPorEstado,
     maxConteo,
@@ -56,9 +58,24 @@ export default function PanelCompania({
         <div className="card p-3 text-sm text-red-600 border-red-200 bg-red-50">{error}</div>
       )}
 
+      <form className="card p-4 flex flex-wrap gap-3 items-end" method="get">
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Mes/año de ingreso</label>
+          <input type="month" name="mes" defaultValue={mesFiltro ?? ""} className="input" />
+        </div>
+        <button className="btn-secondary" type="submit">
+          Filtrar
+        </button>
+        {mesFiltro && (
+          <Link href="/panel" className="btn-secondary">
+            Quitar filtro
+          </Link>
+        )}
+      </form>
+
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard label="Casos abiertos" value={casosAbiertos} />
-        <StatCard label="Cerrados este mes" value={casosCerradosEsteMes} />
+        <StatCard label={casosCerradosLabel} value={casosCerrados} />
         <StatCard
           label="Tiempo promedio de trámite"
           value={promedioTramite !== null ? promedioTramite : "—"}

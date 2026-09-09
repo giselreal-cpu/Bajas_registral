@@ -39,9 +39,17 @@ export async function GET(
     usuarioActual?.rol === "administrador" ||
     (!!usuarioActual && usuarioActual.id === caso?.responsable_id);
 
-  const dataFiltrada = (data ?? []).map((ev) =>
-    ev.es_interna && !puedeVerInternas ? { ...ev, observacion: null } : ev
-  );
+  // Además, el texto libre de observación (interna o no) es siempre
+  // coordinación operativa de Oltra — nombres, montos, gestiones
+  // internas — así que "compania" nunca lo recibe, ni siquiera el de
+  // eventos no marcados como internos. Solo se le manda el tipo de
+  // evento, fechas y estado de completado.
+  const esCompania = usuarioActual?.rol === "compania";
+
+  const dataFiltrada = (data ?? []).map((ev) => {
+    if (esCompania) return { ...ev, observacion: null };
+    return ev.es_interna && !puedeVerInternas ? { ...ev, observacion: null } : ev;
+  });
 
   return NextResponse.json({ data: dataFiltrada });
 }

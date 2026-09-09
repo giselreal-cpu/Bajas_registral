@@ -619,8 +619,10 @@ export interface VencimientoCompaniaRow {
 
 export interface DatosPanelCompania {
   error: string | null;
+  mesFiltro: string | null;
   casosAbiertos: number;
-  casosCerradosEsteMes: number;
+  casosCerradosLabel: string;
+  casosCerrados: number;
   promedioTramite: number | null;
   conteoPorEstado: Record<string, number>;
   maxConteo: number;
@@ -635,17 +637,33 @@ export interface DatosPanelCompania {
 // RLS (0004_roles.sql) para quedar automáticamente scopeadas a la
 // aseguradora del usuario, sin necesitar filtrar aseguradora_id a
 // mano como sí hace `obtenerDatosPanel`.
-export async function obtenerDatosPanelCompania(): Promise<DatosPanelCompania> {
+//
+// `mes` (formato "AAAA-MM", igual al filtro del panel interno) filtra
+// toda la cartera por fecha de ingreso — cuando está activo, "Cerrados
+// este mes" pasa a ser "Cerrados" sobre ese recorte (cuántos de los
+// casos ingresados ese mes ya están cerrados), en vez del mes
+// calendario real, para no mezclar dos criterios de fecha distintos.
+export async function obtenerDatosPanelCompania(mes?: string): Promise<DatosPanelCompania> {
   const supabase = createClient();
+
+  let casosQuery = supabase
+    .from("casos")
+    .select("id, estado, numero_siniestro, fecha_ingreso, fecha_cierre, tipo_baja:tipos_baja(nombre)");
+  if (mes) {
+    const [anio, mesNum] = mes.split("-").map(Number);
+    const desde = `${mes}-01`;
+    const hasta = new Date(anio, mesNum, 1).toISOString().slice(0, 10);
+    casosQuery = casosQuery.gte("fecha_ingreso", desde).lt("fecha_ingreso", hasta);
+  }
 
   const [{ data: casos, error: errorCasos }, { data: actividad }, { data: vencimientos }] =
     await Promise.all([
-      supabase
-        .from("casos")
-        .select("id, estado, numero_siniestro, fecha_ingreso, fecha_cierre, tipo_baja:tipos_baja(nombre)"),
+      casosQuery,
       supabase
         .from("bitacora")
-        .select("id, caso_id, tipo_evento, created_at, caso:casos(numero_siniestro, vehiculo:vehiculos(dominio))")
+        .select(
+          "id, caso_id, tipo_evento, created_at, caso:casos(numero_siniestro, vehiculo:vehiculos(dominio))"
+        )
         .eq("es_interna", false)
         .order("created_at", { ascending: false })
         .limit(8),
@@ -671,12 +689,20 @@ export async function obtenerDatosPanelCompania(): Promise<DatosPanelCompania> {
 
   const casosAbiertos = casosTyped.filter((c) => c.estado !== "cerrado").length;
 
-  const inicioMes = new Date();
-  inicioMes.setDate(1);
-  inicioMes.setHours(0, 0, 0, 0);
-  const casosCerradosEsteMes = casosTyped.filter(
-    (c) => c.estado === "cerrado" && c.fecha_cierre && new Date(c.fecha_cierre) >= inicioMes
-  ).length;
+  let casosCerradosLabel: string;
+  let casosCerrados: number;
+  if (mes) {
+    casosCerradosLabel = "Cerrados de ese ingreso";
+    casosCerrados = casosTyped.filter((c) => c.estado === "cerrado").length;
+  } else {
+    const inicioMes = new Date();
+    inicioMes.setDate(1);
+    inicioMes.setHours(0, 0, 0, 0);
+    casosCerradosLabel = "Cerrados este mes";
+    casosCerrados = casosTyped.filter(
+      (c) => c.estado === "cerrado" && c.fecha_cierre && new Date(c.fecha_cierre) >= inicioMes
+    ).length;
+  }
 
   const diasTramite = casosTyped
     .filter((c) => c.estado === "cerrado" && c.fecha_cierre)
@@ -732,8 +758,10 @@ export async function obtenerDatosPanelCompania(): Promise<DatosPanelCompania> {
 
   return {
     error: errorCasos?.message ?? null,
+    mesFiltro: mes ?? null,
     casosAbiertos,
-    casosCerradosEsteMes,
+    casosCerradosLabel,
+    casosCerrados,
     promedioTramite: promedioTramiteCompania,
     conteoPorEstado,
     maxConteo,

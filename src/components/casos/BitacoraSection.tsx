@@ -998,6 +998,7 @@ export default function BitacoraSection({
                       🔒 Observación interna (visible solo para el responsable del caso)
                     </p>
                   ) : (
+                    !soloLectura &&
                     ev.observacion && (
                       <p className="text-slate-600 whitespace-pre-wrap">{ev.observacion}</p>
                     )

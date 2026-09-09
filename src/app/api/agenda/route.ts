@@ -48,6 +48,7 @@ export async function GET(request: NextRequest) {
 
   const usuarioActual = await getUsuarioActual();
   const enmascarados = activos?.map((ev: any) => {
+    if (usuarioActual?.rol === "compania") return { ...ev, observacion: null };
     const puedeVer =
       usuarioActual?.rol === "administrador" ||
       ev.caso?.responsable?.id === usuarioActual?.id;

@@ -17,7 +17,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
   const usuarioActual = await getUsuarioActual();
 
   if (usuarioActual?.rol === "compania") {
-    const datosCompania = await obtenerDatosPanelCompania();
+    const datosCompania = await obtenerDatosPanelCompania(searchParams.mes);
     return <PanelCompania datos={datosCompania} primerNombre={usuarioActual?.nombre?.split(" ")[0] ?? ""} />;
   }
 

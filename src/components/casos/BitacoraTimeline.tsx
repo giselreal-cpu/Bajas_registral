@@ -143,7 +143,7 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
                     </span>
                   )}
                 </div>
-                {ev?.observacion && (
+                {!soloLectura && ev?.observacion && (
                   <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-700)" }}>
                     {ev.observacion}
                   </p>
