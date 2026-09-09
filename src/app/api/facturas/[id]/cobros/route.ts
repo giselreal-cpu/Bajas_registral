@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
-import { recalcularEstadoFactura } from "@/lib/facturas";
+import { recalcularEstadoFactura, obtenerCuentaContableDeFactura } from "@/lib/facturas";
 import { obtenerCajaPesosId, obtenerMonedaCaja } from "@/lib/cajaPesos";
 import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
@@ -39,6 +39,8 @@ export async function POST(
   // Libro de movimientos ni de Liquidez por falta de caja asignada).
   const cajaFinal = caja_id || (await obtenerCajaPesosId(supabase));
   const moneda = await obtenerMonedaCaja(supabase, cajaFinal);
+  const cuentaContableFinal =
+    cuenta_contable_id || (await obtenerCuentaContableDeFactura(supabase, params.id));
 
   const { data: cobro, error: errorCobro } = await supabase
     .from("cobros")
@@ -50,7 +52,7 @@ export async function POST(
       observacion: observacion || null,
       caja_id: cajaFinal,
       moneda,
-      cuenta_contable_id: cuenta_contable_id || null
+      cuenta_contable_id: cuentaContableFinal
     })
     .select()
     .single();

@@ -49,3 +49,27 @@ export async function saldoPendienteFactura(facturaId: string): Promise<number> 
 
   return Math.max(0, Number(factura?.monto_total ?? 0) - cubierto);
 }
+
+// Cuenta contable por defecto para un cobro: la de los movimientos de
+// ingreso que se agruparon en la factura (p. ej. "Cobro al desarmadero"
+// contra 4.1.2) — así el Libro de movimientos (que para ingresos solo
+// mira la cuenta contable del cobro, no la del movimiento) puede
+// mostrar la plata ya cobrada bajo la misma cuenta que el Resumen por
+// cuenta, sin que el usuario tenga que elegirla a mano. Si la factura
+// agrupa movimientos con cuentas distintas (o ninguna), no se puede
+// inferir una sola y se deja sin asignar.
+export async function obtenerCuentaContableDeFactura(
+  supabase: ReturnType<typeof createClient>,
+  facturaId: string
+): Promise<string | null> {
+  const { data: movimientos } = await supabase
+    .from("movimientos_caso")
+    .select("cuenta_contable_id")
+    .eq("factura_id", facturaId);
+
+  const cuentas = new Set(
+    (movimientos ?? []).map((m) => m.cuenta_contable_id).filter((id): id is string => !!id)
+  );
+
+  return cuentas.size === 1 ? [...cuentas][0] : null;
+}
