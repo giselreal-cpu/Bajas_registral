@@ -33,7 +33,10 @@ interface FacturaConDetalle {
   fecha_emision: string;
   cobros: Cobro[] | null;
   notas_credito: NotaCredito[] | null;
-  caso: { numero_siniestro: string; vehiculo: { dominio: string } | null } | null;
+  caso: {
+    numero_siniestro: string;
+    vehiculo: { dominio: string; marca: string | null; modelo: string | null } | null;
+  } | null;
   movimientos_caso: { concepto: { nombre: string } | null }[] | null;
 }
 
@@ -64,7 +67,7 @@ export default async function CuentaCorrientePage() {
     supabase
       .from("facturas")
       .select(
-        "*, cobros(*), notas_credito(*), caso:casos(numero_siniestro, vehiculo:vehiculos(dominio)), movimientos_caso(concepto:conceptos_movimiento(nombre))"
+        "*, cobros(*), notas_credito(*), caso:casos(numero_siniestro, vehiculo:vehiculos(dominio, marca, modelo)), movimientos_caso(concepto:conceptos_movimiento(nombre))"
       )
       .order("fecha_emision", { ascending: false }),
     supabase.from("aseguradoras").select("id, nombre"),
@@ -218,7 +221,9 @@ export default async function CuentaCorrientePage() {
                                   href={`/casos/${f.caso_id}`}
                                   className="text-brand-600 hover:underline"
                                 >
-                                  {f.caso?.numero_siniestro ?? "—"}
+                                  {[f.caso?.vehiculo?.marca, f.caso?.vehiculo?.modelo]
+                                    .filter(Boolean)
+                                    .join(" ") || f.caso?.numero_siniestro || "—"}
                                 </Link>
                                 {f.caso?.vehiculo?.dominio && (
                                   <span className="text-slate-400"> · {f.caso.vehiculo.dominio}</span>

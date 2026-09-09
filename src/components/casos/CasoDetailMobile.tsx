@@ -100,8 +100,7 @@ export default function CasoDetailMobile(props: Props) {
               {caso.vehiculo?.dominio ?? "—"}
             </div>
             <div className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-600)" }}>
-              {caso.numero_caso === 0 ? "DEMO" : `N° ${caso.numero_caso}`} ·{" "}
-              {[caso.vehiculo?.marca, caso.vehiculo?.modelo].filter(Boolean).join(" ") || "—"}
+              {caso.numero_caso === 0 ? "DEMO" : `N° ${caso.numero_caso}`} · {caso.numero_siniestro}
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5 shrink-0">
