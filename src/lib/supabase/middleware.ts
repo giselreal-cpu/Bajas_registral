@@ -62,6 +62,10 @@ export async function updateSession(request: NextRequest) {
     pathname.startsWith("/api/manifest-gestor-hub/") ||
     pathname.startsWith("/api/manifest-formulario-baja/") ||
     pathname.startsWith("/api/manifest-desarmadero-hub/");
+  // Política de privacidad: pública, la pide Google como requisito para
+  // publicar la app de OAuth (además de ser información que cualquiera
+  // debería poder leer sin cuenta).
+  const esPrivacidadPublica = pathname.startsWith("/privacidad");
 
   if (!user) {
     if (
@@ -72,7 +76,8 @@ export async function updateSession(request: NextRequest) {
       esGestorHubPublico ||
       esDesarmaderoPublico ||
       esDesarmaderoHubPublico ||
-      esManifestPublico
+      esManifestPublico ||
+      esPrivacidadPublica
     ) {
       return response;
     }
