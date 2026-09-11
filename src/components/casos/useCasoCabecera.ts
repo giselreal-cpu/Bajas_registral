@@ -76,6 +76,8 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
   const [copiado, setCopiado] = useState(false);
   const [regenerando, setRegenerando] = useState(false);
   const [notificarGestor, setNotificarGestor] = useState<CasoConRelaciones | null>(null);
+  const [copiadoDesarmadero, setCopiadoDesarmadero] = useState(false);
+  const [regenerandoDesarmadero, setRegenerandoDesarmadero] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -225,6 +227,36 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
     }
   }
 
+  const enlaceDesarmadero = origin ? `${origin}/d/${caso.token_desarmadero}` : "";
+
+  async function copiarMensajeDesarmadero() {
+    const mensaje = [
+      `Te llega un vehículo por el caso ${caso.numero_siniestro}.`,
+      `Dominio: ${caso.vehiculo?.dominio ?? "—"}`,
+      `Podés seguir el estado del trámite acá: ${enlaceDesarmadero}`
+    ].join("\n");
+
+    await navigator.clipboard.writeText(mensaje);
+    setCopiadoDesarmadero(true);
+    setTimeout(() => setCopiadoDesarmadero(false), 2000);
+  }
+
+  async function regenerarEnlaceDesarmadero() {
+    if (!confirm("¿Regenerar el enlace? El enlace anterior va a dejar de funcionar para el desarmadero.")) {
+      return;
+    }
+
+    setRegenerandoDesarmadero(true);
+    const res = await fetch(`/api/casos/${caso.id}/regenerar-enlace-desarmadero`, {
+      method: "POST"
+    });
+    setRegenerandoDesarmadero(false);
+
+    if (res.ok) {
+      router.refresh();
+    }
+  }
+
   const registrosPorProvincia = (() => {
     const grupos = new Map<string, RegistroAutomotor[]>();
     for (const r of registros) {
@@ -254,6 +286,11 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
     enlaceGestor,
     copiarMensajeGestor,
     regenerarEnlaceGestor,
+    enlaceDesarmadero,
+    copiadoDesarmadero,
+    regenerandoDesarmadero,
+    copiarMensajeDesarmadero,
+    regenerarEnlaceDesarmadero,
     registrosPorProvincia,
     soloLectura
   };

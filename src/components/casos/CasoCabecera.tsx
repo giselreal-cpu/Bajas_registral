@@ -29,6 +29,11 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
     enlaceGestor,
     copiarMensajeGestor,
     regenerarEnlaceGestor,
+    enlaceDesarmadero,
+    copiadoDesarmadero,
+    regenerandoDesarmadero,
+    copiarMensajeDesarmadero,
+    regenerarEnlaceDesarmadero,
     registrosPorProvincia
   } = useCasoCabecera(props);
 
@@ -483,6 +488,31 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
 
           <Field label="Desarmadero">{caso.desarmadero?.nombre ?? "—"}</Field>
         </div>
+
+        {!soloLectura && !editing && caso.desarmadero_id && (
+          <div className="mt-4 bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-2">
+            <div className="text-slate-500">
+              Enlace para que {caso.desarmadero?.nombre} vea el estado del trámite, sin necesitar
+              cuenta:
+            </div>
+            <div className="font-mono text-xs text-slate-700 break-all">
+              {enlaceDesarmadero || "Generando..."}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              <button type="button" className="btn-secondary" onClick={copiarMensajeDesarmadero}>
+                {copiadoDesarmadero ? "¡Copiado!" : "Copiar mensaje"}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary"
+                disabled={regenerandoDesarmadero}
+                onClick={regenerarEnlaceDesarmadero}
+              >
+                {regenerandoDesarmadero ? "Regenerando..." : "Regenerar enlace"}
+              </button>
+            </div>
+          </div>
+        )}
       </Section>
       </div>
 

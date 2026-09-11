@@ -29,6 +29,11 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
     enlaceGestor,
     copiarMensajeGestor,
     regenerarEnlaceGestor,
+    enlaceDesarmadero,
+    copiadoDesarmadero,
+    regenerandoDesarmadero,
+    copiarMensajeDesarmadero,
+    regenerarEnlaceDesarmadero,
     registrosPorProvincia
   } = useCasoCabecera(props);
 
@@ -351,9 +356,34 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
               caso.vehiculo?.anio || "—"
             )}
           </Row>
-          <Row label="Desarmadero" last>
+          <Row label="Desarmadero" last={!(!soloLectura && !editing && caso.desarmadero_id)}>
             {caso.desarmadero?.nombre ?? "—"}
           </Row>
+
+          {!soloLectura && !editing && caso.desarmadero_id && (
+            <div className="pt-3 pb-1 text-sm space-y-2">
+              <div style={{ color: "var(--mv-neutral-700)" }}>
+                Enlace para que {caso.desarmadero?.nombre} vea el estado del trámite, sin
+                necesitar cuenta:
+              </div>
+              <div className="text-xs break-all" style={{ fontFamily: "ui-monospace, monospace", color: "var(--mv-neutral-800)" }}>
+                {enlaceDesarmadero || "Generando..."}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <button type="button" className="mv-btn mv-btn-secondary text-xs px-3 py-1.5" onClick={copiarMensajeDesarmadero}>
+                  {copiadoDesarmadero ? "¡Copiado!" : "Copiar mensaje"}
+                </button>
+                <button
+                  type="button"
+                  className="mv-btn mv-btn-secondary text-xs px-3 py-1.5"
+                  disabled={regenerandoDesarmadero}
+                  onClick={regenerarEnlaceDesarmadero}
+                >
+                  {regenerandoDesarmadero ? "Regenerando..." : "Regenerar enlace"}
+                </button>
+              </div>
+            </div>
+          )}
         </MobileSection>
 
         <MobileSection title="Gestor de campo">

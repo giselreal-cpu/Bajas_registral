@@ -98,6 +98,7 @@ export interface Desarmadero {
   contacto: string | null;
   direccion: string | null;
   provincia: string | null;
+  token_acceso: string | null;
 }
 
 export interface RegistroAutomotor {
@@ -155,6 +156,7 @@ export interface Caso {
   responsable_id: string | null;
   gestor_id: string | null;
   token_gestor: string;
+  token_desarmadero: string;
   estado: Estado;
   rama: Rama | null;
   tipo_tramite: TipoTramite | null;
