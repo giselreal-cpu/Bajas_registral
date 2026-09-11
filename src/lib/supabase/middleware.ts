@@ -51,11 +51,17 @@ export async function updateSession(request: NextRequest) {
   // Hub público del gestor (histórico de todas sus asignaciones), token
   // propio de la persona, separado del token por caso de arriba.
   const esGestorHubPublico = pathname.startsWith("/gestor/");
+  // Enlace público del desarmadero: por caso (/d/<token_desarmadero>,
+  // solo lectura) y hub con todos sus casos asignados
+  // (/desarmadero/<token_acceso>) — mismo patrón que gestor, sin login.
+  const esDesarmaderoPublico = pathname.startsWith("/d/");
+  const esDesarmaderoHubPublico = pathname.startsWith("/desarmadero/");
   // Manifest de PWA por token para los enlaces públicos de arriba: el
   // navegador los pide sin cookies de sesión al instalar el ícono.
   const esManifestPublico =
     pathname.startsWith("/api/manifest-gestor-hub/") ||
-    pathname.startsWith("/api/manifest-formulario-baja/");
+    pathname.startsWith("/api/manifest-formulario-baja/") ||
+    pathname.startsWith("/api/manifest-desarmadero-hub/");
 
   if (!user) {
     if (
@@ -64,6 +70,8 @@ export async function updateSession(request: NextRequest) {
       esFormularioBajaPublico ||
       esEncuestaPublica ||
       esGestorHubPublico ||
+      esDesarmaderoPublico ||
+      esDesarmaderoHubPublico ||
       esManifestPublico
     ) {
       return response;

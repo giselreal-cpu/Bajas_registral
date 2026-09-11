@@ -405,6 +405,9 @@ siguiendo el `CLAUDE.md` del proyecto.
     puede tocar catálogos. Esto se aplica con RLS en la base de datos
     (`0004_roles.sql`), no solo en la interfaz — un usuario compañía no
     puede ver otros casos ni editar nada aunque llame directo a la API.
+    Tiene su propia vista de Panel (ver "Panel de compañía" más abajo) y
+    no ve **Agenda**, **Exportar**, **Caja**, ni ningún texto de
+    observación de bitácora, esté marcado como interno o no.
 - **Rediseño visual**: paleta de dos tonos — navy (`brand`, estructura,
   header, links, marca) + verde (`accent`, botones de acción principal),
   tipografía Poppins bold para títulos (`font-heading`) + Inter para el
@@ -570,12 +573,163 @@ siguiendo el `CLAUDE.md` del proyecto.
     movimiento queda `aprobado: false` hasta que alguien lo apruebe
     desde `/caja` o desde la ficha del caso.
 
-No incluido todavía (a propósito, según el `CLAUDE.md`): las fases 3-4 del
-módulo financiero recién descriptas, y roles separados internos
+- **Plan de cuentas real y movimientos generales** (`0042`-`0047`):
+  - El plan de cuentas de `/catalogos/cuentas-contables` pasó de un
+    catálogo simple ingreso/egreso a las **224 cuentas reales** del
+    usuario, con jerarquía completa (`codigo_padre`): Activo, Pasivo,
+    Patrimonio Neto y Resultados (que sigue separado en
+    ingreso/egreso). Las **8 cajas reales** (Caja pesos, Caja en
+    Financiera, Caja en USD, Caja de Seguridad en USD/$, Fondo Fijos en
+    pesos, Banco Galicia CTa Cte, Caja Chica) reemplazan a las
+    genéricas que se habían sembrado antes, cada una con su **moneda**
+    (`cajas.moneda`, ARS o USD) — necesario para no sumar cajas en
+    distinta moneda en "Disponible total". Los conceptos de movimiento
+    existentes quedaron mapeados a una cuenta por defecto.
+  - **Movimientos generales** (`/administracion` → pestaña "Movimientos
+    generales"): tabla separada (`movimientos_generales`) para
+    ingresos/egresos que **no son de un caso puntual** — sueldos,
+    hosting, alquiler, gastos bancarios, etc. — porque `movimientos_caso`
+    exige un `caso_id`. Comparte cajas/cuentas contables con el resto
+    del módulo, así el **Libro de movimientos** y **Liquidez** de
+    `/administracion` suman ambas fuentes en un solo reporte.
+  - **Cobros con cuenta contable propia** (`cobros.cuenta_contable_id`,
+    `0046`): al registrar un cobro se infiere sola de los movimientos de
+    ingreso agrupados en la factura si todos comparten una misma cuenta
+    (`obtenerCuentaContableDeFactura` en `src/lib/facturas.ts`) —así el
+    Libro de movimientos (que para ingresos mira la cuenta del *cobro*,
+    no la del movimiento) puede coincidir con el "Resumen por cuenta"
+    para la plata ya cobrada, sin que haya que elegirla a mano cada vez.
+  - **"Caja pesos" por defecto**: todo egreso que se carga ya pagado, y
+    todo cobro, sin caja elegida explícitamente, va a "Caja pesos" en
+    vez de quedar afuera del Libro de movimientos y de Liquidez
+    (`src/lib/cajaPesos.ts` → `obtenerCajaPesosId`).
+- **Auditoría de la contabilidad**: 8 mejoras de control sobre el
+  módulo financiero (a partir de una revisión completa pedida por el
+  usuario, priorizadas y aprobadas por él una por una):
+  1. **Ganancia neta unificada en base caja** (`0048` + código): la
+     ficha del caso, `/casos/[id]/rentabilidad`, `/analisis` y el Panel
+     ahora calculan "Ingresos" siempre igual — cobros + notas de
+     crédito reales — y "Egresos" solo sobre lo efectivamente
+     **pagado** (antes en algunos lugares se sumaba todo egreso
+     aprobado, pagado o no). El Panel muestra además, por separado, una
+     tabla "Ganancia neta por mes" en base **devengada** (a propósito,
+     con su propia leyenda aclarando el criterio) para no perder esa
+     mirada. Los **anticipos** ahora también llevan `caja_id`/
+     `cuenta_contable_id` opcionales, así entran al Libro de
+     movimientos y a Liquidez como plata real (`AnticipoForm.tsx`).
+  2. **Anulación en vez de borrado físico** (`0050`): un egreso ya
+     pagado, un cobro, una nota de crédito o un movimiento general ya
+     no se pueden borrar — se **anulan** con motivo obligatorio
+     (`anulado`/`anulado_motivo`/`anulado_at`/`anulado_por`), quedan
+     tachados en pantalla con el motivo visible, y se excluyen de
+     **todas** las sumas financieras de la app (Panel, Análisis,
+     Cuenta corriente, Seguimiento financiero, Resumen por cuenta,
+     Libro de movimientos, Rentabilidad del caso). Un movimiento
+     todavía pendiente de pago/cobro se puede seguir borrando
+     directamente, porque no representa plata real todavía.
+  3. **Auditoría de movimientos generales** (`0049`): tabla
+     `historial_movimientos_generales` (append-only, mismo criterio que
+     `historial_cambios`) que registra alta/anulación de cada
+     movimiento general, con quién y cuándo.
+  4. **Aprobar/marcar pagado, solo administrador**: los botones para
+     aprobar un gasto de campo o cambiar el estado pagado/pendiente de
+     un movimiento ahora requieren rol administrador, tanto en pantalla
+     como en el servidor (antes cualquier operador podía tocarlos).
+  5. **Cierre de período** (`0051`, pestaña "Cierre de período" en
+     `/administracion`): un administrador puede cerrar un mes
+     puntual — desde ese momento, crear, editar, anular o borrar
+     cualquier movimiento financiero (de caso, general, cobro, nota de
+     crédito o factura) con fecha dentro de ese mes queda bloqueado
+     **para cualquiera**, hasta reabrirlo (`src/lib/cierrePeriodo.ts` →
+     `periodoCerrado`, verificado en cada endpoint de escritura
+     financiera).
+  6. **Moneda por movimiento** (`0052`): `movimientos_caso`,
+     `movimientos_generales`, `cobros` y `anticipos` heredan
+     automáticamente la moneda de la caja elegida (nunca se elige
+     aparte). Los totales en base caja (Panel, Análisis, Rentabilidad
+     del caso) filtran solo ARS, y muestran aparte una nota con lo que
+     hay en USD para no mezclarlas en una sola cifra sin sentido.
+  7. **Presupuesto vs. real** (`0053`, pestaña "Presupuesto" en
+     `/administracion`): un administrador carga un monto presupuestado
+     por cuenta contable y mes; se compara contra lo realmente cargado
+     ese mes (devengado, aprobado, no anulado, solo ARS), con
+     diferencia y % ejecutado.
+  8. **"Resumen por cuenta"** (pestaña en `/administracion`): totaliza
+     todo lo cargado (devengado, aprobado, no anulado) por cuenta del
+     plan, agrupado por tipo (Activo/Pasivo/PN/Ingresos/Egresos), con un
+     aviso explícito de que **no es un balance contable formal** — el
+     sistema es de partida simple (cada movimiento toca una sola
+     cuenta), no garantiza Activo = Pasivo + PN. Queda **pendiente a
+     propósito** (decisión explícita del usuario) que "caso saldado"
+     exija además que los egresos aprobados estén pagados, no solo que
+     el caso esté cobrado.
+- **Cuenta corriente — ajustes**: la tabla de facturas por tercero
+  ahora excluye cobros/notas de crédito **anulados** también en el
+  total por factura individual (el total por tercero ya lo hacía, pero
+  el detalle por factura no, así que un cobro anulado y reemplazado por
+  uno nuevo se contaba dos veces). Cada factura pendiente o con cobro
+  parcial tiene un botón **"Aplicar anticipo"** inline (antes esto solo
+  se podía hacer entrando al caso puntual en Rentabilidad, poco práctico
+  para una vista que junta facturas de varios casos) — reusa
+  `POST /api/facturas/[id]/aplicar-anticipo`, ya existente. La columna
+  "Caso" muestra marca y modelo del vehículo junto al dominio, en vez
+  del número de siniestro.
+
+- **Panel de compañía**: el rol compañía ya no ve una versión recortada
+  del panel interno — tiene su propia vista ejecutiva de su cartera
+  (`src/components/panel/PanelCompania.tsx` +
+  `obtenerDatosPanelCompania` en `src/lib/panelData.ts`, todo scopeado
+  automáticamente por RLS a su aseguradora): casos abiertos, cerrados
+  (con filtro por mes/año de ingreso), tiempo promedio de trámite,
+  avance de su cartera por etapa, vencimientos de la semana, casos con
+  actividad reciente (sin el texto de la observación, ver abajo) y su
+  cartera por tipo de baja. Quedan afuera a propósito las señales
+  puramente internas de gestión de Oltra ("casos que piden atención",
+  "eventos sin completar"). **Agenda**, **Exportar** y, en el nav
+  inferior mobile, **Caja** y el botón de "Carga rápida" (foto/
+  observación) quedan ocultos para compañía — son de uso interno o
+  acciones de escritura que de todos modos le bloquearía la base.
+- **Observaciones — nunca visibles para compañía, aunque no sean
+  internas**: a diferencia del resto del equipo, el rol compañía no ve
+  el texto libre de ningún evento de bitácora, esté marcado como
+  interno o no (suele contener coordinación operativa, montos, nombres
+  de contacto) — se filtra tanto en pantalla
+  (`BitacoraSection.tsx`/`BitacoraTimeline.tsx`) como en el servidor
+  (`GET /api/casos/[id]/bitacora` y `GET /api/agenda`, por si se llama
+  la API directo).
+- **Bitácora — edición desde el celular**: el timeline mobile
+  (`BitacoraTimeline.tsx`) ahora tiene un botón **"Editar"** por evento
+  (observación, fecha, vencimiento, completado, interna) — antes solo
+  se podía marcar como completado o agregar una observación nueva, no
+  corregir un evento ya cargado. También pasa a listar los eventos
+  sueltos de tipo **"Observaciones"** (antes solo aparecían en la
+  bitácora de escritorio, nunca en el timeline mobile, que solo
+  mostraba los 11 pasos fijos del checklist).
+- **Frontend público para desarmaderos, sin login** (`0054`): mismo
+  patrón que gestores — un **hub** (`/desarmadero/<token_acceso>`) con
+  todos los casos asignados a ese desarmadero, cada uno linkeando a su
+  enlace puntual (`/d/<token_desarmadero>`). El caso puntual muestra
+  solo datos básicos (aseguradora, tipo de baja, vehículo, registro) y
+  la bitácora como **tracker puro** — los 11 pasos con su fecha, sin
+  ningún texto de observación (ni de eventos comunes, ni sueltas, ni
+  internas): el desarmadero solo necesita saber qué se completó y
+  cuándo. No incluye datos del asegurado ni nada financiero, ni carga
+  ni descarga de documentos (a diferencia del enlace de gestor). Desde
+  la ficha del caso (desktop y mobile, sección Vehículo), un bloque
+  "Enlace para el desarmadero" — copiar mensaje y regenerar enlace,
+  solo visible para operador/administrador cuando el caso ya tiene
+  desarmadero asignado.
+
+No incluido todavía (a propósito, según el `CLAUDE.md`): RBAC granular
+(Fase 3 del módulo financiero) y notificaciones automáticas
+WhatsApp/Email (Fase 4), y roles separados internos
 (gestor/tramitador dentro del equipo propio — distinto de los roles de
 acceso operador/administrador/compañía, que sí están implementados, y
-también distinto del "Gestor de campo" de arriba, que es una persona
-externa sin cuenta en el sistema, no un rol interno del equipo).
+también distinto del "Gestor de campo" o el "Desarmadero" de arriba,
+que son personas/empresas externas sin cuenta en el sistema, no un rol
+interno del equipo). También queda pendiente, por decisión explícita
+del usuario, que "caso saldado" exija egresos pagados y no solo
+cobrados (ver punto 8 de la auditoría contable arriba).
 
 ## Puesta en marcha
 
@@ -685,6 +839,53 @@ externa sin cuenta en el sistema, no un rol interno del equipo).
      `cuenta_contable_id` opcionales en `movimientos_caso`, `caja_id`
      opcional en `cobros`, mapeo por defecto en `conceptos_movimiento`,
      y la categoría de documento `comprobante_gasto` — ver más abajo)
+   - `supabase/migrations/0042_plan_de_cuentas_real.sql` (importa el
+     plan de cuentas real del usuario — 224 cuentas, jerarquía
+     Activo/Pasivo/Patrimonio Neto/Resultados con `codigo_padre` — y
+     reemplaza las cajas genéricas sembradas antes por las 8 reales,
+     cada una con su `moneda`; mapea los conceptos de movimiento
+     existentes a una cuenta por defecto)
+   - `supabase/migrations/0043_movimientos_generales.sql` (tabla nueva
+     `movimientos_generales`: ingresos/egresos que no son de un caso
+     puntual — sueldos, hosting, alquiler, etc. — comparte cajas/cuentas
+     contables con `movimientos_caso`)
+   - `supabase/migrations/0044_migrar_cuenta_contable_historicos.sql` y
+     `0045_asignar_caja_historicos.sql` (backfill único: le asignan
+     cuenta contable y, para tres conceptos puntuales confirmados por el
+     usuario, caja a los movimientos de caso ya cargados antes de que
+     existieran esos campos)
+   - `supabase/migrations/0046_cobros_cuenta_contable.sql`
+     (`cobros.cuenta_contable_id`, para poder imputar contablemente la
+     plata que efectivamente entra por un cobro, no solo el movimiento
+     de ingreso devengado)
+   - `supabase/migrations/0047_caja_pesos_default_pagado_cobrado.sql`
+     (backfill único: asigna "Caja pesos" a los egresos ya pagados y
+     cobros ya cargados que no tenían caja — de acá en más la app lo
+     hace sola, ver `src/lib/cajaPesos.ts`)
+   - `supabase/migrations/0048_anticipos_caja_cuenta.sql` (`caja_id`/
+     `cuenta_contable_id` en `anticipos`, para que un anticipo recibido
+     entre al Libro de movimientos y a Liquidez como cualquier otro
+     cobro real)
+   - `supabase/migrations/0049_historial_movimientos_generales.sql`
+     (tabla de auditoría `historial_movimientos_generales`, mismo
+     criterio que `historial_cambios` pero para movimientos generales)
+   - `supabase/migrations/0050_anulacion_movimientos.sql` (columnas
+     `anulado`/`anulado_motivo`/`anulado_at`/`anulado_por` en
+     `movimientos_caso`, `movimientos_generales`, `cobros` y
+     `notas_credito` — reemplaza el borrado físico de lo que ya
+     representa plata real)
+   - `supabase/migrations/0051_cierres_mensuales.sql` (tabla
+     `cierres_mensuales`: bloquea crear/editar/anular/borrar cualquier
+     movimiento financiero con fecha dentro de un mes ya cerrado)
+   - `supabase/migrations/0052_moneda_movimientos.sql` (columna
+     `moneda` en `movimientos_caso`, `movimientos_generales`, `cobros` y
+     `anticipos`, heredada automáticamente de la caja elegida)
+   - `supabase/migrations/0053_presupuestos.sql` (tabla `presupuestos`:
+     monto presupuestado por cuenta contable y mes, comparado contra lo
+     realmente cargado)
+   - `supabase/migrations/0054_desarmaderos_token_acceso.sql`
+     (`desarmaderos.token_acceso` y `casos.token_desarmadero`, para el
+     enlace público del desarmadero — ver más abajo)
 3. Copiá la **Project URL** y la **anon/publishable key** desde
    Project Settings → API. Copiá también la **service_role key** (misma
    pantalla, es secreta) — la necesita el enlace público del gestor.
@@ -842,6 +1043,12 @@ Supabase. El código ya está listo (botón "Continuar con Google" en
   reasignar a otro gestor se regenera solo. El `token_acceso` del hub
   (`/gestor/<token>`) es un token distinto, por persona — no se toca al
   regenerar el enlace de un caso puntual.
+- **Enlace del desarmadero**: mismo patrón que el del gestor
+  (`/d/<token_desarmadero>` por caso + `/desarmadero/<token_acceso>` como
+  hub por desarmadero), pero de solo lectura — no tiene forma de subir
+  archivos ni cargar observaciones, y la bitácora que ve es un tracker
+  sin ningún texto. Se genera solo al asignar `desarmadero_id` al caso
+  (no hace falta ningún paso manual).
 - Los tipos TypeScript en `src/types/database.ts` están escritos a mano; si
   se modifica el esquema SQL hay que actualizarlos (o generarlos con
   `supabase gen types typescript`).
