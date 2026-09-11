@@ -33,10 +33,125 @@ interface Props {
   soloLectura?: boolean;
 }
 
+interface EditFormState {
+  observacion: string;
+  es_interna: boolean;
+  completado: boolean;
+  fecha_inicio: string;
+  fecha_fin: string;
+}
+
+function formVacio(ev: BitacoraEvento): EditFormState {
+  return {
+    observacion: ev.observacion ?? "",
+    es_interna: ev.es_interna,
+    completado: ev.completado,
+    fecha_inicio: ev.fecha_inicio,
+    fecha_fin: ev.fecha_fin ?? ""
+  };
+}
+
+// Componente propio (no anidado en el render del padre): si se define
+// adentro de BitacoraTimeline, React lo trata como un tipo nuevo en
+// cada re-render (p. ej. cada tecla tipeada en la observación) y
+// desmonta/remonta el formulario entero, dejando "Guardar" con un
+// listener sobre un nodo del DOM ya descartado — el click deja de
+// hacer nada, sin ningún error visible.
+function EditForm({
+  editForm,
+  setEditForm,
+  saving,
+  onCancelar,
+  onGuardar
+}: {
+  editForm: EditFormState;
+  setEditForm: (updater: (f: EditFormState) => EditFormState) => void;
+  saving: boolean;
+  onCancelar: () => void;
+  onGuardar: () => void;
+}) {
+  return (
+    <div
+      className="mt-1.5 p-2.5 space-y-2"
+      style={{ background: "var(--mv-neutral-100)", borderRadius: "var(--mv-radius-md)" }}
+    >
+      <textarea
+        className="mv-input"
+        rows={2}
+        placeholder="Observación"
+        value={editForm.observacion}
+        onChange={(e) => setEditForm((f) => ({ ...f, observacion: e.target.value }))}
+      />
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <label className="text-[11px]" style={{ color: "var(--mv-neutral-600)" }}>
+            Fecha
+          </label>
+          <input
+            type="date"
+            className="mv-input"
+            value={editForm.fecha_inicio}
+            onChange={(e) => setEditForm((f) => ({ ...f, fecha_inicio: e.target.value }))}
+          />
+        </div>
+        <div className="flex-1">
+          <label className="text-[11px]" style={{ color: "var(--mv-neutral-600)" }}>
+            Vence (opcional)
+          </label>
+          <input
+            type="date"
+            className="mv-input"
+            value={editForm.fecha_fin}
+            onChange={(e) => setEditForm((f) => ({ ...f, fecha_fin: e.target.value }))}
+          />
+        </div>
+      </div>
+      <div className="flex items-center gap-4">
+        <label className="flex items-center gap-1.5 text-xs" style={{ color: "var(--mv-neutral-700)" }}>
+          <input
+            type="checkbox"
+            checked={editForm.completado}
+            onChange={(e) => setEditForm((f) => ({ ...f, completado: e.target.checked }))}
+          />
+          Completado
+        </label>
+        <label className="flex items-center gap-1.5 text-xs" style={{ color: "var(--mv-neutral-700)" }}>
+          <input
+            type="checkbox"
+            checked={editForm.es_interna}
+            onChange={(e) => setEditForm((f) => ({ ...f, es_interna: e.target.checked }))}
+          />
+          Interna
+        </label>
+      </div>
+      <div className="flex gap-2 pt-0.5">
+        <button
+          type="button"
+          className="mv-btn mv-btn-secondary text-xs px-3 py-1.5 flex-1"
+          onClick={onCancelar}
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          className="mv-btn mv-btn-primary text-xs px-3 py-1.5 flex-1"
+          disabled={saving}
+          onClick={onGuardar}
+        >
+          {saving ? "Guardando..." : "Guardar"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
   const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingLabel, setSavingLabel] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditFormState | null>(null);
+  const [savingEdicion, setSavingEdicion] = useState(false);
 
   async function load() {
     try {
@@ -89,6 +204,47 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
     }
   }
 
+  function empezarEdicion(ev: BitacoraEvento) {
+    setError(null);
+    setEditingId(ev.id);
+    setEditForm(formVacio(ev));
+  }
+
+  function cancelarEdicion() {
+    setEditingId(null);
+    setEditForm(null);
+  }
+
+  async function guardarEdicion(id: string) {
+    if (!editForm) return;
+    setError(null);
+    setSavingEdicion(true);
+    try {
+      const res = await fetch(`/api/bitacora/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          observacion: editForm.observacion,
+          es_interna: editForm.es_interna,
+          completado: editForm.completado,
+          fecha_inicio: editForm.fecha_inicio,
+          fecha_fin: editForm.fecha_fin || null
+        })
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error);
+        return;
+      }
+      cancelarEdicion();
+      load();
+    } catch {
+      setError("No se pudo conectar con el servidor.");
+    } finally {
+      setSavingEdicion(false);
+    }
+  }
+
   if (!eventos) {
     return <p className="text-sm text-slate-500 p-1">Cargando bitácora...</p>;
   }
@@ -124,6 +280,7 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
           const completado = !!ev?.completado;
           const bloqueo = !completado ? motivoBloqueo(paso.label, eventos) : null;
           const esUltimo = i === PASOS.length - 1;
+          const enEdicion = ev && editingId === ev.id;
 
           return (
             <div key={paso.value} className="flex gap-3">
@@ -140,7 +297,7 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
                   <span className="flex-1 w-px my-1" style={{ background: "var(--mv-divider)" }} />
                 )}
               </div>
-              <div className={`min-w-0 ${esUltimo ? "pb-1" : "pb-4"}`}>
+              <div className={`min-w-0 flex-1 ${esUltimo ? "pb-1" : "pb-4"}`}>
                 <div className="flex items-baseline justify-between gap-2">
                   <span className="mv-heading text-[15px] tracking-tight">{paso.label}</span>
                   {ev && (
@@ -149,26 +306,46 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
                     </span>
                   )}
                 </div>
-                {!soloLectura && ev?.observacion && (
+                {!soloLectura && !enEdicion && ev?.observacion && (
                   <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-700)" }}>
                     {ev.observacion}
                   </p>
                 )}
-                {!completado && !soloLectura && (
-                  <div className="mt-1.5 flex items-center gap-2">
-                    {bloqueo ? (
-                      <span className="text-xs" style={{ color: "var(--mv-neutral-500)" }}>
-                        {bloqueo}
-                      </span>
-                    ) : (
+                {enEdicion && ev && editForm ? (
+                  <EditForm
+                    editForm={editForm}
+                    setEditForm={(updater) => setEditForm((f) => (f ? updater(f) : f))}
+                    saving={savingEdicion}
+                    onCancelar={cancelarEdicion}
+                    onGuardar={() => guardarEdicion(ev.id)}
+                  />
+                ) : (
+                  <div className="mt-1.5 flex items-center gap-3">
+                    {!completado &&
+                      !soloLectura &&
+                      (bloqueo ? (
+                        <span className="text-xs" style={{ color: "var(--mv-neutral-500)" }}>
+                          {bloqueo}
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={savingLabel === paso.label}
+                          onClick={() => completar(paso.label, ev)}
+                          className="mv-heading text-xs px-2.5 py-1 rounded-md disabled:opacity-50"
+                          style={{ border: "1px solid var(--mv-accent)", color: "var(--mv-accent-700)" }}
+                        >
+                          {savingLabel === paso.label ? "Guardando..." : "Marcar completado"}
+                        </button>
+                      ))}
+                    {!soloLectura && ev && (
                       <button
                         type="button"
-                        disabled={savingLabel === paso.label}
-                        onClick={() => completar(paso.label, ev)}
-                        className="mv-heading text-xs px-2.5 py-1 rounded-md disabled:opacity-50"
-                        style={{ border: "1px solid var(--mv-accent)", color: "var(--mv-accent-700)" }}
+                        className="text-xs"
+                        style={{ color: "var(--mv-neutral-500)" }}
+                        onClick={() => empezarEdicion(ev)}
                       >
-                        {savingLabel === paso.label ? "Guardando..." : "Marcar completado"}
+                        Editar
                       </button>
                     )}
                   </div>
@@ -185,18 +362,41 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
             Observaciones
           </p>
           <div className="flex flex-col gap-3">
-            {observaciones.map((ev) => (
-              <div key={ev.id}>
-                <span className="text-[11.5px] tabular-nums" style={{ color: "var(--mv-neutral-600)" }}>
-                  {new Date(ev.fecha_inicio + "T00:00:00").toLocaleDateString("es-AR")}
-                </span>
-                {!soloLectura && ev.observacion && (
-                  <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-700)" }}>
-                    {ev.observacion}
-                  </p>
-                )}
-              </div>
-            ))}
+            {observaciones.map((ev) => {
+              const enEdicion = editingId === ev.id;
+              return (
+                <div key={ev.id}>
+                  <span className="text-[11.5px] tabular-nums" style={{ color: "var(--mv-neutral-600)" }}>
+                    {new Date(ev.fecha_inicio + "T00:00:00").toLocaleDateString("es-AR")}
+                  </span>
+                  {!soloLectura && !enEdicion && ev.observacion && (
+                    <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-700)" }}>
+                      {ev.observacion}
+                    </p>
+                  )}
+                  {enEdicion && editForm ? (
+                    <EditForm
+                      editForm={editForm}
+                      setEditForm={(updater) => setEditForm((f) => (f ? updater(f) : f))}
+                      saving={savingEdicion}
+                      onCancelar={cancelarEdicion}
+                      onGuardar={() => guardarEdicion(ev.id)}
+                    />
+                  ) : (
+                    !soloLectura && (
+                      <button
+                        type="button"
+                        className="text-xs mt-1"
+                        style={{ color: "var(--mv-neutral-500)" }}
+                        onClick={() => empezarEdicion(ev)}
+                      >
+                        Editar
+                      </button>
+                    )
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
