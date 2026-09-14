@@ -9,7 +9,7 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
 
   const { data, error } = await supabase
     .from("encuestas_satisfaccion")
-    .update({ ultimo_contacto_at: new Date().toISOString() })
+    .update({ ultimo_contacto_at: new Date().toISOString(), recordatorio_enviado: true })
     .eq("id", params.id)
     .select("id, token")
     .single();

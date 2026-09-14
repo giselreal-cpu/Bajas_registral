@@ -57,6 +57,7 @@ export interface EncuestaRow {
   calificacion_gestoria: number | null;
   comentario: string | null;
   respondida: boolean;
+  recordatorio_enviado: boolean;
   ultimo_contacto_at: string;
   created_at: string;
   caso: {
@@ -342,7 +343,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
           .select(
             `
             id, token, calificacion_contacto, calificacion_traslado, calificacion_gestoria,
-            comentario, respondida, ultimo_contacto_at, created_at,
+            comentario, respondida, recordatorio_enviado, ultimo_contacto_at, created_at,
             caso:casos(id, numero_siniestro, vehiculo:vehiculos(dominio), asegurado:asegurados(nombre, telefono))
           `
           )
@@ -404,10 +405,18 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     .sort((a, b) => (b.created_at > a.created_at ? 1 : -1))
     .slice(0, 5);
   const ahora = new Date();
+  // Sin respuesta y sin recordatorio todavía: aparece a partir de las 48hs
+  // hábiles (primer aviso). Sin respuesta y con recordatorio ya reenviado
+  // una vez: se le da una segunda ventana hasta las 96hs hábiles desde ese
+  // reenvío — pasado ese plazo, se da por perdida y deja de aparecer acá
+  // (ya no tiene sentido seguir mostrándola si no respondió ni al segundo
+  // aviso). El botón "Reenviar recordatorio" reinicia el conteo cada vez,
+  // así que solo se "pierde" definitivamente tras el segundo silencio.
   const encuestasPendientesRecordatorio = encuestasRows
     .filter((e) => !e.respondida)
     .map((e) => ({ ...e, horasHabiles: horasHabilesTranscurridas(e.ultimo_contacto_at, ahora) }))
     .filter((e) => e.horasHabiles >= 48)
+    .filter((e) => !(e.recordatorio_enviado && e.horasHabiles >= 96))
     .sort((a, b) => b.horasHabiles - a.horasHabiles);
 
   // Ingresos cobrados (para "Rentabilidad": cash-basis, solo plata
