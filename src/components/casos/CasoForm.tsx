@@ -47,9 +47,18 @@ export default function CasoForm() {
 
   useEffect(() => {
     fetch("/api/catalogos")
-      .then((r) => r.json())
-      .then((data) => setCatalogos(data))
-      .catch(() => setError("No se pudieron cargar los catálogos."));
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "No se pudieron cargar los catálogos.");
+        setCatalogos(data);
+      })
+      .catch((e) =>
+        setError(
+          e instanceof Error
+            ? `No se pudieron cargar los catálogos (${e.message}). Recargá la página para reintentar.`
+            : "No se pudieron cargar los catálogos. Recargá la página para reintentar."
+        )
+      );
   }, []);
 
   function update<K extends keyof typeof form>(key: K, value: string) {
