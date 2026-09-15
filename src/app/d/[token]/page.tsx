@@ -2,6 +2,14 @@ import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import InstallBanner from "@/components/InstallBanner";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
+import { obtenerUrlFirmada } from "@/lib/documentosStorage";
+
+function normalizar(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
+    .toLowerCase();
+}
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +44,6 @@ interface CasoParaDesarmadero {
   id: string;
   numero_siniestro: string;
   desarmadero_id: string | null;
-  aseguradora: { nombre: string } | null;
   vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
   registro: { numero: string; seccional: string | null; provincia: string | null } | null;
   tipo_baja: { nombre: string } | null;
@@ -46,6 +53,12 @@ interface EventoTracker {
   tipo_evento: string;
   completado: boolean;
   fecha_inicio: string;
+}
+
+interface DocumentoConUrl {
+  id: string;
+  nombre: string;
+  url_firmada: string | null;
 }
 
 export default async function EnlaceDesarmaderoPage({ params }: { params: { token: string } }) {
@@ -58,7 +71,6 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
       id,
       numero_siniestro,
       desarmadero_id,
-      aseguradora:aseguradoras(nombre),
       vehiculo:vehiculos(dominio, marca, modelo, anio),
       registro:registros_automotores(numero, seccional, provincia),
       tipo_baja:tipos_baja(nombre)
@@ -89,6 +101,29 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
   const eventos = (eventosRaw ?? []) as EventoTracker[];
   const completados = PASOS.filter((p) => eventos.some((e) => e.tipo_evento === p.label && e.completado)).length;
 
+  // El desarmadero solo puede ver 4 tipos de documentación (informe de
+  // dominio, fotos del vehículo, y comprobantes de multas/patentes) — sin
+  // importar en qué categoría interna esté archivado cada uno, salvo las
+  // fotos que sí tienen su propia categoría fija (imagen_dominio).
+  const { data: documentosRaw } = await supabase
+    .from("documentos")
+    .select("id, nombre, url, categoria")
+    .eq("caso_id", caso.id)
+    .order("created_at", { ascending: false });
+
+  const todos = documentosRaw ?? [];
+  const firmar = async (docs: typeof todos): Promise<DocumentoConUrl[]> =>
+    Promise.all(
+      docs.map(async (d) => ({ id: d.id, nombre: d.nombre, url_firmada: await obtenerUrlFirmada(d.url) }))
+    );
+
+  const documentacion = {
+    informeDominio: await firmar(todos.filter((d) => normalizar(d.nombre).includes("informe de dominio"))),
+    fotos: await firmar(todos.filter((d) => d.categoria === "imagen_dominio")),
+    multas: await firmar(todos.filter((d) => normalizar(d.nombre).includes("multa"))),
+    patentes: await firmar(todos.filter((d) => normalizar(d.nombre).includes("patente")))
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div>
@@ -101,7 +136,6 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Datos del caso</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-          <Campo label="Aseguradora">{caso.aseguradora?.nombre ?? "—"}</Campo>
           <Campo label="Tipo de baja">{caso.tipo_baja?.nombre ?? "—"}</Campo>
           <Campo label="Vehículo">
             {caso.vehiculo?.dominio ?? "—"}
@@ -156,6 +190,42 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
           })}
         </div>
       </section>
+
+      <section className="card p-4">
+        <h2 className="font-medium text-slate-800 mb-3">Documentación</h2>
+        <div className="space-y-4">
+          <GrupoDocumentos titulo="Informe de dominio" documentos={documentacion.informeDominio} />
+          <GrupoDocumentos titulo="Fotos" documentos={documentacion.fotos} />
+          <GrupoDocumentos titulo="Multas" documentos={documentacion.multas} />
+          <GrupoDocumentos titulo="Patentes" documentos={documentacion.patentes} />
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function GrupoDocumentos({ titulo, documentos }: { titulo: string; documentos: DocumentoConUrl[] }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase text-slate-500 mb-1">{titulo}</p>
+      {documentos.length === 0 ? (
+        <p className="text-sm text-slate-400">Sin documentos todavía.</p>
+      ) : (
+        <ul className="space-y-1 text-sm">
+          {documentos.map((d) => (
+            <li key={d.id}>
+              <a
+                href={d.url_firmada ?? "#"}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand-600 hover:underline"
+              >
+                {d.nombre}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
