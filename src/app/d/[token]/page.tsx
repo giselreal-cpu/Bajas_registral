@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import InstallBanner from "@/components/InstallBanner";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
@@ -101,6 +102,12 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
   const eventos = (eventosRaw ?? []) as EventoTracker[];
   const completados = PASOS.filter((p) => eventos.some((e) => e.tipo_evento === p.label && e.completado)).length;
 
+  const { data: desarmadero } = await supabase
+    .from("desarmaderos")
+    .select("token_acceso")
+    .eq("id", caso.desarmadero_id)
+    .maybeSingle();
+
   // El desarmadero solo puede ver 4 tipos de documentación (informe de
   // dominio, fotos del vehículo, y comprobantes de multas/patentes) — sin
   // importar en qué categoría interna esté archivado cada uno, salvo las
@@ -130,6 +137,16 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
         <h1 className="text-xl font-semibold text-slate-900">Caso {caso.numero_siniestro}</h1>
         <p className="text-sm text-slate-500">Estado del trámite de este caso.</p>
       </div>
+
+      {desarmadero?.token_acceso && (
+        <Link
+          href={`/desarmadero/${desarmadero.token_acceso}`}
+          className="card p-3 flex items-center justify-between gap-2 hover:border-brand-400 text-sm"
+        >
+          <span className="text-slate-700">Ver todos tus casos y los formularios pendientes</span>
+          <span className="text-brand-600 font-medium shrink-0">Ir →</span>
+        </Link>
+      )}
 
       <InstallBanner />
 
