@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { CATEGORIAS_GESTOR, Documento } from "@/types/database";
 
-const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania"; label: string }[] = [
+const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania" | "anexo04_rudac"; label: string }[] = [
   { value: "imagen_dominio", label: "Imágenes del dominio" },
-  { value: "documento_compania", label: "Documentos para la Cía" }
+  { value: "documento_compania", label: "Documentos para la Cía" },
+  { value: "anexo04_rudac", label: "Anexo 04 (Piezas RUDAC)" }
 ];
 
 const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR];

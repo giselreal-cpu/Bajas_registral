@@ -81,6 +81,10 @@ export interface Asegurado {
   partido: string | null;
 }
 
+export type TipoVehiculo = "Auto/Sedán" | "Pickup" | "SUV/Furgón" | "Camión";
+
+export const TIPOS_VEHICULO: TipoVehiculo[] = ["Auto/Sedán", "Pickup", "SUV/Furgón", "Camión"];
+
 export interface Vehiculo {
   id: string;
   dominio: string;
@@ -89,6 +93,7 @@ export interface Vehiculo {
   anio: number | null;
   chasis: string | null;
   motor: string | null;
+  tipo_vehiculo: TipoVehiculo | null;
 }
 
 export interface Desarmadero {
@@ -221,7 +226,8 @@ export type CategoriaDocumento =
   | "recibos_gestor"
   | "otros_gestor"
   | "formulario_baja"
-  | "comprobante_gasto";
+  | "comprobante_gasto"
+  | "anexo04_rudac";
 
 export const CATEGORIAS_GESTOR: { value: CategoriaDocumento; label: string }[] = [
   { value: "turno_registro", label: "Turno en Registro" },

@@ -108,10 +108,11 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     .eq("id", caso.desarmadero_id)
     .maybeSingle();
 
-  // El desarmadero solo puede ver 4 tipos de documentación (informe de
-  // dominio, fotos del vehículo, y comprobantes de multas/patentes) — sin
-  // importar en qué categoría interna esté archivado cada uno, salvo las
-  // fotos que sí tienen su propia categoría fija (imagen_dominio).
+  // El desarmadero solo puede ver 5 tipos de documentación (informe de
+  // dominio, fotos del vehículo, comprobantes de multas/patentes, y el
+  // Anexo 04 de piezas RUDAC) — sin importar en qué categoría interna
+  // esté archivado cada uno, salvo fotos y anexo04 que sí tienen su
+  // propia categoría fija (imagen_dominio / anexo04_rudac).
   const { data: documentosRaw } = await supabase
     .from("documentos")
     .select("id, nombre, url, categoria")
@@ -128,7 +129,8 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     informeDominio: await firmar(todos.filter((d) => normalizar(d.nombre).includes("informe de dominio"))),
     fotos: await firmar(todos.filter((d) => d.categoria === "imagen_dominio")),
     multas: await firmar(todos.filter((d) => normalizar(d.nombre).includes("multa"))),
-    patentes: await firmar(todos.filter((d) => normalizar(d.nombre).includes("patente")))
+    patentes: await firmar(todos.filter((d) => normalizar(d.nombre).includes("patente"))),
+    anexo04: await firmar(todos.filter((d) => d.categoria === "anexo04_rudac"))
   };
 
   return (
@@ -215,6 +217,7 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
           <GrupoDocumentos titulo="Fotos" documentos={documentacion.fotos} />
           <GrupoDocumentos titulo="Multas" documentos={documentacion.multas} />
           <GrupoDocumentos titulo="Patentes" documentos={documentacion.patentes} />
+          <GrupoDocumentos titulo="Anexo 04 (Piezas RUDAC)" documentos={documentacion.anexo04} />
         </div>
       </section>
     </div>

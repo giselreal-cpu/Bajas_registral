@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { CATEGORIAS_GESTOR, Documento } from "@/types/database";
 import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
-const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania"; label: string }[] = [
+const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania" | "anexo04_rudac"; label: string }[] = [
   { value: "imagen_dominio", label: "Imagen del dominio" },
-  { value: "documento_compania", label: "Documento para la compañía" }
+  { value: "documento_compania", label: "Documento para la compañía" },
+  { value: "anexo04_rudac", label: "Anexo 04 (Piezas RUDAC)" }
 ];
 
 const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR];
@@ -161,7 +162,8 @@ export default function DocumentosSection({
   const grupos = {
     imagen_dominio: documentos?.filter((d) => d.categoria === "imagen_dominio") ?? [],
     documento_compania:
-      documentos?.filter((d) => d.categoria === "documento_compania") ?? []
+      documentos?.filter((d) => d.categoria === "documento_compania") ?? [],
+    anexo04_rudac: documentos?.filter((d) => d.categoria === "anexo04_rudac") ?? []
   };
 
   const documentosGestor = documentos?.filter((d) =>

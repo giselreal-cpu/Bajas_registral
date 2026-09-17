@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     productor_nombre,
     productor_contacto,
     asegurado, // { nombre, dni, telefono, email, direccion, localidad, provincia, entre_calles, partido }
-    vehiculo, // { dominio, marca, modelo, anio, chasis, motor }
+    vehiculo, // { dominio, marca, modelo, anio, chasis, motor, tipo_vehiculo }
     observaciones,
     notificar // ("tramitador" | "productor" | "asegurado")[]
   } = body;
@@ -115,7 +115,8 @@ export async function POST(request: NextRequest) {
         modelo: vehiculo.modelo ?? null,
         anio: vehiculo.anio ?? null,
         chasis: vehiculo.chasis ?? null,
-        motor: vehiculo.motor ?? null
+        motor: vehiculo.motor ?? null,
+        tipo_vehiculo: vehiculo.tipo_vehiculo ?? null
       })
       .select()
       .single();
@@ -150,6 +151,26 @@ export async function POST(request: NextRequest) {
 
   if (errCaso) {
     return NextResponse.json({ error: errCaso.message }, { status: 500 });
+  }
+
+  // 3b. Si el vehículo ya tiene tipo de vehículo (nuevo o reutilizado),
+  // auto-completa el checklist del Anexo 04 desde las reglas generales
+  // (mismo criterio que PUT /api/casos/[id]/anexo04/tipo-vehiculo).
+  if (vehiculo.tipo_vehiculo) {
+    const { data: reglas } = await supabase
+      .from("reglas_piezas_rudac")
+      .select("codigo, decision")
+      .eq("tipo_vehiculo", vehiculo.tipo_vehiculo)
+      .in("decision", ["SI", "NO"]);
+
+    if (reglas && reglas.length > 0) {
+      await supabase
+        .from("caso_piezas_rudac")
+        .upsert(
+          reglas.map((r) => ({ caso_id: caso.id, codigo: r.codigo, decision: r.decision })),
+          { onConflict: "caso_id,codigo", ignoreDuplicates: true }
+        );
+    }
   }
 
   // 4. Primer evento de bitácora automático

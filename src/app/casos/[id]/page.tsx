@@ -130,6 +130,20 @@ export default async function CasoDetallePage({
         </div>
       </section>
 
+      {!soloLectura && (
+        <section className="card p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-medium text-slate-800">Anexo 04 (Piezas RUDAC)</h2>
+            <p className="text-sm text-slate-500">
+              Checklist de piezas autorizadas a desarmar, según el tipo de vehículo del caso.
+            </p>
+          </div>
+          <Link href={`/casos/${caso.id}/anexo04`} className="btn-secondary">
+            Ver checklist →
+          </Link>
+        </section>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
         <BitacoraSection
           casoId={caso.id}

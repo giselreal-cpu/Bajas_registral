@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Aseguradora, TipoBaja, Usuario } from "@/types/database";
+import { Aseguradora, TipoBaja, TIPOS_VEHICULO, Usuario } from "@/types/database";
 import { DESTINATARIOS, Destinatario } from "@/lib/email/notificacionesCaso";
 
 interface Catalogos {
@@ -42,7 +42,8 @@ export default function CasoForm() {
     vehiculo_dominio: "",
     vehiculo_marca: "",
     vehiculo_modelo: "",
-    vehiculo_anio: ""
+    vehiculo_anio: "",
+    vehiculo_tipo: ""
   });
 
   useEffect(() => {
@@ -113,7 +114,8 @@ export default function CasoForm() {
         dominio: form.vehiculo_dominio.toUpperCase(),
         marca: form.vehiculo_marca || null,
         modelo: form.vehiculo_modelo || null,
-        anio: form.vehiculo_anio ? Number(form.vehiculo_anio) : null
+        anio: form.vehiculo_anio ? Number(form.vehiculo_anio) : null,
+        tipo_vehiculo: form.vehiculo_tipo || null
       }
     };
 
@@ -385,6 +387,22 @@ export default function CasoForm() {
               value={form.vehiculo_modelo}
               onChange={(e) => update("vehiculo_modelo", e.target.value)}
             />
+          </div>
+          <div>
+            <label className="label">Tipo de vehículo</label>
+            <select
+              className="input"
+              value={form.vehiculo_tipo}
+              onChange={(e) => update("vehiculo_tipo", e.target.value)}
+            >
+              <option value="">Sin elegir</option>
+              {TIPOS_VEHICULO.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-slate-400 mt-1">Se usa para el Anexo 04 (Piezas RUDAC).</p>
           </div>
         </div>
       </section>

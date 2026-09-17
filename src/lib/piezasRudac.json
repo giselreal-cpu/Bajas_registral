@@ -1,0 +1,1146 @@
+[
+  {
+    "codigo": "310",
+    "descripcion": "ALFOMBRAS DE CABINA",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 308.0
+  },
+  {
+    "codigo": "320",
+    "descripcion": "ALFORJAS CABINA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 374.0
+  },
+  {
+    "codigo": "331",
+    "descripcion": "AMORTIGUADOR DE CAPOT DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 440.0
+  },
+  {
+    "codigo": "332",
+    "descripcion": "AMORTIGUADOR DE CAPOT IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 506.0
+  },
+  {
+    "codigo": "341",
+    "descripcion": "AMORTIGUADOR TAPA BAUL DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 571.5
+  },
+  {
+    "codigo": "342",
+    "descripcion": "AMORTIGUADOR TAPA BAUL IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 637.25
+  },
+  {
+    "codigo": "350",
+    "descripcion": "ANTENA",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 703.5
+  },
+  {
+    "codigo": "360",
+    "descripcion": "BARRA ANTIVUELCO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 0,
+    "yPt": 769.5
+  },
+  {
+    "codigo": "370",
+    "descripcion": "BARRA DE IMPACTO DELANTERA",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 0,
+    "yPt": 835.5
+  },
+  {
+    "codigo": "380",
+    "descripcion": "BOMBA HIDRAULICA",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 901.0
+  },
+  {
+    "codigo": "390",
+    "descripcion": "BOMBA SERVO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 0,
+    "yPt": 966.5
+  },
+  {
+    "codigo": "400",
+    "descripcion": "CAJA DE CARGA",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 1032.5
+  },
+  {
+    "codigo": "410",
+    "descripcion": "CAJAS PORTA OBJETOS",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 1098.75
+  },
+  {
+    "codigo": "420",
+    "descripcion": "CAMARA TRASERA",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 1165.0
+  },
+  {
+    "codigo": "430",
+    "descripcion": "CAMAS DE CABINA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 1230.5
+  },
+  {
+    "codigo": "440",
+    "descripcion": "CAÑO DE ESCAPE",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 1296.0
+  },
+  {
+    "codigo": "450",
+    "descripcion": "CAÑOS AIRE ACONDICIONADO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 1362.0
+  },
+  {
+    "codigo": "460",
+    "descripcion": "CAÑOS DE INTERCOOLER",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 1428.0
+  },
+  {
+    "codigo": "470",
+    "descripcion": "CAÑOS DE INYECTORES",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 0,
+    "yPt": 1494.0
+  },
+  {
+    "codigo": "481",
+    "descripcion": "CARDAN CORTO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 0,
+    "yPt": 1560.25
+  },
+  {
+    "codigo": "482",
+    "descripcion": "CARDAN LARGO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 0,
+    "yPt": 1626.0
+  },
+  {
+    "codigo": "490",
+    "descripcion": "CHUPADOR DE UREA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 116.5
+  },
+  {
+    "codigo": "500",
+    "descripcion": "CHUPADORES DE COMBUSTIBLE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 182.5
+  },
+  {
+    "codigo": "510",
+    "descripcion": "CLIMATIZADORES BIZONA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 248.5
+  },
+  {
+    "codigo": "520",
+    "descripcion": "COBERTORES DE CAJA",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 314.75
+  },
+  {
+    "codigo": "530",
+    "descripcion": "COLUMNA DE DIRECCION",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 381.0
+  },
+  {
+    "codigo": "540",
+    "descripcion": "COMANDO DE LUCES Y LIMPIA PARABRISAS",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 446.5
+  },
+  {
+    "codigo": "550",
+    "descripcion": "CONTACTORES DE ARRANQUE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 512.0
+  },
+  {
+    "codigo": "560",
+    "descripcion": "CUBRE VOLANTE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 578.0
+  },
+  {
+    "codigo": "570",
+    "descripcion": "CUNA DE MOTOR",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 644.0
+  },
+  {
+    "codigo": "580",
+    "descripcion": "CUNAS DE PLATO DE ENGANCHE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 710.25
+  },
+  {
+    "codigo": "590",
+    "descripcion": "DEPOSITO HIDRAULICO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 776.5
+  },
+  {
+    "codigo": "600",
+    "descripcion": "DEPOSITO LAVAPARABRISAS",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 842.0
+  },
+  {
+    "codigo": "610",
+    "descripcion": "DEPOSITO REFRIGERANTE",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 907.5
+  },
+  {
+    "codigo": "621",
+    "descripcion": "DIFERENCIAL DELANTERO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 973.5
+  },
+  {
+    "codigo": "622",
+    "descripcion": "DIFERENCIAL TRASERO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 1039.5
+  },
+  {
+    "codigo": "630",
+    "descripcion": "DOBLE DIFERENCIAL SISTEMA COMPLETO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 1105.5
+  },
+  {
+    "codigo": "640",
+    "descripcion": "EJE TRASERO (SIN PUNTA Y SIN SISTEMA DE FRENO)",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 1171.75
+  },
+  {
+    "codigo": "651",
+    "descripcion": "ELASTICO DELANTERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 1237.5
+  },
+  {
+    "codigo": "652",
+    "descripcion": "ELASTICO DELANTERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 1303.0
+  },
+  {
+    "codigo": "653",
+    "descripcion": "ELASTICO TRASERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 1369.0
+  },
+  {
+    "codigo": "654",
+    "descripcion": "ELASTICO TRASERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 1,
+    "yPt": 1435.0
+  },
+  {
+    "codigo": "660",
+    "descripcion": "ELECTROVALVULAS",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 1501.0
+  },
+  {
+    "codigo": "670",
+    "descripcion": "EMBUDO DE CAJA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 1566.5
+  },
+  {
+    "codigo": "680",
+    "descripcion": "EQUIPO DE SONIDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 1,
+    "yPt": 1632.25
+  },
+  {
+    "codigo": "690",
+    "descripcion": "ESPEJO INTERIOR",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 149.0
+  },
+  {
+    "codigo": "701",
+    "descripcion": "ESPEJO EXTERIOR DERECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 214.5
+  },
+  {
+    "codigo": "702",
+    "descripcion": "ESPEJO EXTERIOR IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 280.25
+  },
+  {
+    "codigo": "711",
+    "descripcion": "ESTRIBO DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 346.5
+  },
+  {
+    "codigo": "712",
+    "descripcion": "ESTRIBO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 412.5
+  },
+  {
+    "codigo": "721",
+    "descripcion": "FARO AUX TRASERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 478.5
+  },
+  {
+    "codigo": "722",
+    "descripcion": "FARO AUX TRASERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 544.0
+  },
+  {
+    "codigo": "731",
+    "descripcion": "FARO AUXILIAR DELANTERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 609.5
+  },
+  {
+    "codigo": "732",
+    "descripcion": "FARO AUXILIAR DELANTERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 675.5
+  },
+  {
+    "codigo": "741",
+    "descripcion": "FARO TRASERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 741.75
+  },
+  {
+    "codigo": "742",
+    "descripcion": "FARO TRASERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 808.0
+  },
+  {
+    "codigo": "750",
+    "descripcion": "FILTRO DE SISTEMA DE AIRE ACONDICIONADO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 873.5
+  },
+  {
+    "codigo": "760",
+    "descripcion": "FRENO DE MOTOR",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 939.0
+  },
+  {
+    "codigo": "770",
+    "descripcion": "FRENO DE TAMBOR",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 1005.0
+  },
+  {
+    "codigo": "780",
+    "descripcion": "FRENTE",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 1071.0
+  },
+  {
+    "codigo": "790",
+    "descripcion": "FUSIBLERAS",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 1137.25
+  },
+  {
+    "codigo": "801",
+    "descripcion": "GUARDABARRO TRASERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 1203.5
+  },
+  {
+    "codigo": "802",
+    "descripcion": "GUARDABARRO TRASERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 2,
+    "yPt": 1269.0
+  },
+  {
+    "codigo": "811",
+    "descripcion": "GUARDAPLAST DELANTERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 1334.5
+  },
+  {
+    "codigo": "812",
+    "descripcion": "GUARDAPLAST DELANTERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 1400.5
+  },
+  {
+    "codigo": "813",
+    "descripcion": "GUARDAPLAST TRASERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 1466.5
+  },
+  {
+    "codigo": "814",
+    "descripcion": "GUARDAPLAST TRASERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 1532.5
+  },
+  {
+    "codigo": "820",
+    "descripcion": "INSIGNIAS Y LETRAS",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 2,
+    "yPt": 1598.75
+  },
+  {
+    "codigo": "830",
+    "descripcion": "INYECTORES DE COMBUSTIBLE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 149.0
+  },
+  {
+    "codigo": "840",
+    "descripcion": "INYECTORES DE UREA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 214.5
+  },
+  {
+    "codigo": "851",
+    "descripcion": "LEVANTA CRISTALES ELECTRICO DELANTERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 280.25
+  },
+  {
+    "codigo": "852",
+    "descripcion": "LEVANTA CRISTALES ELECTRICO DELANTERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 346.5
+  },
+  {
+    "codigo": "853",
+    "descripcion": "LEVANTA CRISTALES ELECTRICO TRASERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 412.5
+  },
+  {
+    "codigo": "854",
+    "descripcion": "LEVANTA CRISTALES MANUAL DELANTERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 478.5
+  },
+  {
+    "codigo": "855",
+    "descripcion": "LEVANTA CRISTALES ELECTRICO TRASERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 544.0
+  },
+  {
+    "codigo": "856",
+    "descripcion": "LEVANTA CRISTALES MANUAL DELANTERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 609.5
+  },
+  {
+    "codigo": "857",
+    "descripcion": "LEVANTA CRISTALES MANUAL TRASERO DERECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 675.5
+  },
+  {
+    "codigo": "858",
+    "descripcion": "LEVANTA CRISTALES MANUAL TRASERO IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 741.75
+  },
+  {
+    "codigo": "860",
+    "descripcion": "LLAVE DE CONTACTO Y ARRANQUE",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 808.0
+  },
+  {
+    "codigo": "870",
+    "descripcion": "MANGUERAS",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 873.5
+  },
+  {
+    "codigo": "880",
+    "descripcion": "MANIJAS Y TECLAS",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 939.0
+  },
+  {
+    "codigo": "890",
+    "descripcion": "MECANISMO APERTURA TECHO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1005.0
+  },
+  {
+    "codigo": "900",
+    "descripcion": "MODULO DE ABS",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 3,
+    "yPt": 1071.0
+  },
+  {
+    "codigo": "910",
+    "descripcion": "MODULO DE CONFORT",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1137.25
+  },
+  {
+    "codigo": "920",
+    "descripcion": "MODULO ELECTRONICO DE ASISTENTE DE MANEJO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1203.5
+  },
+  {
+    "codigo": "930",
+    "descripcion": "MODULO ELECTRONICO DE SUSPENSION NEUMATICA INTEL",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1269.0
+  },
+  {
+    "codigo": "940",
+    "descripcion": "MODULOS ELECTRONICOS DE CABINA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1334.5
+  },
+  {
+    "codigo": "950",
+    "descripcion": "MODULOS ELECTRONICOS DE ESTABILIDAD",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1400.5
+  },
+  {
+    "codigo": "960",
+    "descripcion": "MOTOR DE CALEFACCION",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1466.5
+  },
+  {
+    "codigo": "970",
+    "descripcion": "MULTIPLE DE ADMISION",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1532.5
+  },
+  {
+    "codigo": "980",
+    "descripcion": "MULTIPLE DE ESCAPE",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 3,
+    "yPt": 1598.75
+  },
+  {
+    "codigo": "991",
+    "descripcion": "OPTICA DERECHA",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 142.0
+  },
+  {
+    "codigo": "992",
+    "descripcion": "OPTICA IZQUIERDA",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 208.25
+  },
+  {
+    "codigo": "1000",
+    "descripcion": "PALANCA DE CAMBIOS",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 274.5
+  },
+  {
+    "codigo": "1010",
+    "descripcion": "PALANCA DE FRENO DE MANO CON CABLE ACERO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 340.0
+  },
+  {
+    "codigo": "1020",
+    "descripcion": "PANEL DE COLA",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 405.5
+  },
+  {
+    "codigo": "1030",
+    "descripcion": "PANTALLA DE NAVEGACION",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 471.5
+  },
+  {
+    "codigo": "1041",
+    "descripcion": "PARAGOLPES DELANTERO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 537.5
+  },
+  {
+    "codigo": "1042",
+    "descripcion": "PARAGOLPES TRASERO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 603.5
+  },
+  {
+    "codigo": "1051",
+    "descripcion": "PARANTE CENTRAL DERECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 669.25
+  },
+  {
+    "codigo": "1052",
+    "descripcion": "PARANTE CENTRAL IZQUIERDO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 735.0
+  },
+  {
+    "codigo": "1060",
+    "descripcion": "PARANTE DELANTERO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 801.0
+  },
+  {
+    "codigo": "1070",
+    "descripcion": "PARASOLES",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 867.0
+  },
+  {
+    "codigo": "1080",
+    "descripcion": "PARLANTES",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 933.0
+  },
+  {
+    "codigo": "1090",
+    "descripcion": "PISO DE BAUL",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 998.5
+  },
+  {
+    "codigo": "1100",
+    "descripcion": "PLACA Y DISCO DE EMBRAGUE",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 1064.25
+  },
+  {
+    "codigo": "1110",
+    "descripcion": "PORTA FILTRO DE COMBUSTIBLE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 1130.5
+  },
+  {
+    "codigo": "1120",
+    "descripcion": "PORTA FILTROS",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 1196.5
+  },
+  {
+    "codigo": "1130",
+    "descripcion": "PORTA FILTROS DE AIRE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 1262.5
+  },
+  {
+    "codigo": "1140",
+    "descripcion": "RAMAL ELECTRICO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 4,
+    "yPt": 1328.0
+  },
+  {
+    "codigo": "1150",
+    "descripcion": "RAMPA DE INYECTORES",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 1393.5
+  },
+  {
+    "codigo": "1170",
+    "descripcion": "REJILLA BAJO PARABRISA",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 1459.5
+  },
+  {
+    "codigo": "1180",
+    "descripcion": "SELECTORAS DE CAJA DE CAMBIO AUTOMATICA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 4,
+    "yPt": 1525.75
+  },
+  {
+    "codigo": "1190",
+    "descripcion": "SENSORES DE ASISTENTE DE MANEJO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 109.25
+  },
+  {
+    "codigo": "1201",
+    "descripcion": "SENSORES DE ESTACIONAMIENTO DELANTERO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 5,
+    "yPt": 160.0
+  },
+  {
+    "codigo": "1202",
+    "descripcion": "SENSORES DE ESTACIONAMIENTO TRASERO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 5,
+    "yPt": 210.25
+  },
+  {
+    "codigo": "1210",
+    "descripcion": "SERPENTINAS ENFRIADORAS DE AIRE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 260.5
+  },
+  {
+    "codigo": "1220",
+    "descripcion": "SERVO EMBRAGUE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 311.25
+  },
+  {
+    "codigo": "1230",
+    "descripcion": "SISTEMA DE ACOPLE ELECTRICO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 362.25
+  },
+  {
+    "codigo": "1240",
+    "descripcion": "SISTEMA DE ACOPLE NEUMATICO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 412.5
+  },
+  {
+    "codigo": "1251",
+    "descripcion": "SISTEMA DE AMORTIGUACION DE CABINA DELANTERO DERECHO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 462.75
+  },
+  {
+    "codigo": "1252",
+    "descripcion": "SISTEMA DE AMORTIGUACION DE CABINA DELANTERO IZQUIERDO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 510.5
+  },
+  {
+    "codigo": "1253",
+    "descripcion": "SISTEMA DE AMORTIGUACION DE CABINA TRASERO DERECHO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 566.25
+  },
+  {
+    "codigo": "1254",
+    "descripcion": "SISTEMA DE AMORTIGUACION DE CABINA TRASERO IZQUIERDO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 632.5
+  },
+  {
+    "codigo": "1260",
+    "descripcion": "SISTEMA DE CALIBRACION DE NEUMATICOS AUTONOMO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 698.5
+  },
+  {
+    "codigo": "1270",
+    "descripcion": "SISTEMA DE UREA (CONTROL DE EMISIONES DE CO2)",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 764.5
+  },
+  {
+    "codigo": "1280",
+    "descripcion": "SOPORTE RUEDA DE AUXILIO",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 830.0
+  },
+  {
+    "codigo": "1290",
+    "descripcion": "SOPORTES DE MOTOR Y CAJA",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 5,
+    "yPt": 895.5
+  },
+  {
+    "codigo": "1300",
+    "descripcion": "SOPORTES DE TANQUE DE COMBUSTIBLE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 961.5
+  },
+  {
+    "codigo": "1310",
+    "descripcion": "TANQUE DE COMBUSTIBLE",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 5,
+    "yPt": 1027.75
+  },
+  {
+    "codigo": "1320",
+    "descripcion": "TANQUES DE ALUMINIO",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 1094.0
+  },
+  {
+    "codigo": "1330",
+    "descripcion": "TANQUES DE UREA",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 1159.5
+  },
+  {
+    "codigo": "1340",
+    "descripcion": "TAPA INTERIOR DE BAUL",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 1225.0
+  },
+  {
+    "codigo": "1350",
+    "descripcion": "TAPIZADOS INTERIORES",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 1291.0
+  },
+  {
+    "codigo": "1360",
+    "descripcion": "TECHO",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 5,
+    "yPt": 1357.0
+  },
+  {
+    "codigo": "1370",
+    "descripcion": "TRAMO DE CHASIS CAMION",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 1423.0
+  },
+  {
+    "codigo": "1380",
+    "descripcion": "VALVULAS DE AIRE",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 1488.75
+  },
+  {
+    "codigo": "1390",
+    "descripcion": "VALVULAS DE CALEFACCION",
+    "categoria": "C",
+    "requierePerito": false,
+    "page": 5,
+    "yPt": 1554.5
+  },
+  {
+    "codigo": "1400",
+    "descripcion": "VOLANTE DE DIRECCION",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 6,
+    "yPt": 116.5
+  },
+  {
+    "codigo": "1411",
+    "descripcion": "ZOCALOS DERECHOS",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 6,
+    "yPt": 182.5
+  },
+  {
+    "codigo": "1412",
+    "descripcion": "ZOCALOS IZQUIERDOS",
+    "categoria": "APC",
+    "requierePerito": true,
+    "page": 6,
+    "yPt": 248.5
+  },
+  {
+    "codigo": "1421",
+    "descripcion": "PORTON TRASERO DERECHO (SIN CERRADURA Y SIN TRABA)",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 6,
+    "yPt": 314.75
+  },
+  {
+    "codigo": "1422",
+    "descripcion": "PORTON TRASERO IZQUIERDO (SIN CERRADURA Y SIN TRABA)",
+    "categoria": "APC",
+    "requierePerito": false,
+    "page": 6,
+    "yPt": 381.0
+  }
+]

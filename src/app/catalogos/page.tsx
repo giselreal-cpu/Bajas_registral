@@ -49,6 +49,12 @@ const CATALOGOS = [
     href: "/catalogos/usuarios",
     title: "Usuarios",
     description: "Personas del equipo que pueden ser responsables de un caso."
+  },
+  {
+    href: "/catalogos/reglas-piezas-rudac",
+    title: "Reglas — Anexo 04 (Piezas RUDAC)",
+    description: "Qué piezas se autoriza a desarmar por tipo de vehículo. Solo administradores.",
+    ocultarParaCompania: true
   }
 ];
 
