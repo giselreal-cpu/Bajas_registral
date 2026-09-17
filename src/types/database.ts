@@ -106,6 +106,7 @@ export interface RegistroAutomotor {
   numero: string;
   seccional: string | null;
   provincia: string | null;
+  tipo: "automotor" | "motovehiculo";
 }
 
 export interface TipoBaja {
