@@ -4,6 +4,8 @@ import { createServiceClient } from "@/lib/supabase/serviceClient";
 import InstallBanner from "@/components/InstallBanner";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
+import { PIEZAS_RUDAC } from "@/lib/anexo04";
+import Anexo04Form from "./Anexo04Form";
 
 function normalizar(s: string): string {
   return s
@@ -45,7 +47,13 @@ interface CasoParaDesarmadero {
   id: string;
   numero_siniestro: string;
   desarmadero_id: string | null;
-  vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
+  vehiculo: {
+    dominio: string;
+    marca: string | null;
+    modelo: string | null;
+    anio: number | null;
+    tipo_vehiculo: string | null;
+  } | null;
   registro: { numero: string; seccional: string | null; provincia: string | null } | null;
   tipo_baja: { nombre: string } | null;
 }
@@ -72,7 +80,7 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
       id,
       numero_siniestro,
       desarmadero_id,
-      vehiculo:vehiculos(dominio, marca, modelo, anio),
+      vehiculo:vehiculos(dominio, marca, modelo, anio, tipo_vehiculo),
       registro:registros_automotores(numero, seccional, provincia),
       tipo_baja:tipos_baja(nombre)
     `
@@ -132,6 +140,20 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     patentes: await firmar(todos.filter((d) => normalizar(d.nombre).includes("patente"))),
     anexo04: await firmar(todos.filter((d) => d.categoria === "anexo04_rudac"))
   };
+
+  const { data: decisionesRaw } = await supabase
+    .from("caso_piezas_rudac")
+    .select("codigo, decision")
+    .eq("caso_id", caso.id);
+
+  const decisionesPorCodigo = new Map((decisionesRaw ?? []).map((d) => [d.codigo, d.decision]));
+  const piezasConDecision = PIEZAS_RUDAC.map((p) => ({
+    codigo: p.codigo,
+    descripcion: p.descripcion,
+    categoria: p.categoria,
+    requierePerito: p.requierePerito,
+    decision: (decisionesPorCodigo.get(p.codigo) ?? null) as "SI" | "NO" | null
+  }));
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -209,6 +231,12 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
           })}
         </div>
       </section>
+
+      <Anexo04Form
+        token={params.token}
+        tipoVehiculo={caso.vehiculo?.tipo_vehiculo ?? null}
+        piezas={piezasConDecision}
+      />
 
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Documentación</h2>
