@@ -1,9 +1,8 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { Anticipo, Cobro, EstadoFactura, ESTADOS_FACTURA, NotaCredito } from "@/types/database";
 import AnticipoForm from "@/components/cuentaCorriente/AnticipoForm";
-import AplicarAnticipoButton from "@/components/cuentaCorriente/AplicarAnticipoButton";
+import FacturasTable from "@/components/cuentaCorriente/FacturasTable";
 
 export const dynamic = "force-dynamic";
 
@@ -187,75 +186,35 @@ export default async function CuentaCorrientePage() {
                   cuentas={cuentas ?? []}
                 />
 
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="text-left text-slate-500">
-                      <tr>
-                        <th className="py-1 pr-4 font-medium">N° factura</th>
-                        <th className="py-1 pr-4 font-medium">Caso</th>
-                        <th className="py-1 pr-4 font-medium">Servicio</th>
-                        <th className="py-1 pr-4 font-medium">Fecha</th>
-                        <th className="py-1 pr-4 font-medium">Total</th>
-                        <th className="py-1 pr-4 font-medium">Cobrado</th>
-                        <th className="py-1 pr-4 font-medium">Saldo</th>
-                        <th className="py-1 pr-4 font-medium">Estado</th>
-                        <th className="py-1 pr-4 font-medium"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {t.facturas
-                        .sort((a, b) => (a.fecha_emision < b.fecha_emision ? 1 : -1))
-                        .map((f) => {
-                          const cobradoFactura =
-                            (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0) +
-                            (f.notas_credito ?? [])
-                              .filter((n) => !n.anulado)
-                              .reduce((acc, n) => acc + Number(n.monto), 0);
-                          const saldoFactura = f.monto_total - cobradoFactura;
-                          const anticiposTercero = anticiposDisponiblesDe(t.tipo, t.id);
-                          return (
-                            <tr key={f.id} className="border-t border-slate-100">
-                              <td className="py-1.5 pr-4">N° {f.numero_factura}</td>
-                              <td className="py-1.5 pr-4">
-                                <Link
-                                  href={`/casos/${f.caso_id}`}
-                                  className="text-brand-600 hover:underline"
-                                >
-                                  {[f.caso?.vehiculo?.marca, f.caso?.vehiculo?.modelo]
-                                    .filter(Boolean)
-                                    .join(" ") || f.caso?.numero_siniestro || "—"}
-                                </Link>
-                                {f.caso?.vehiculo?.dominio && (
-                                  <span className="text-slate-400"> · {f.caso.vehiculo.dominio}</span>
-                                )}
-                              </td>
-                              <td className="py-1.5 pr-4 text-slate-600">{serviciosDe(f)}</td>
-                              <td className="py-1.5 pr-4 text-slate-500">
-                                {new Date(f.fecha_emision + "T00:00:00").toLocaleDateString("es-AR")}
-                              </td>
-                              <td className="py-1.5 pr-4">{formatCurrency(f.monto_total)}</td>
-                              <td className="py-1.5 pr-4">{formatCurrency(cobradoFactura)}</td>
-                              <td className="py-1.5 pr-4">{formatCurrency(saldoFactura)}</td>
-                              <td className="py-1.5 pr-4">
-                                <span className={`badge ${estadoFacturaBadgeClass(f.estado)}`}>
-                                  {ESTADOS_FACTURA.find((e) => e.value === f.estado)?.label ?? f.estado}
-                                </span>
-                              </td>
-                              <td className="py-1.5 pr-4">
-                                {saldoFactura > 0 && anticiposTercero.length > 0 && (
-                                  <AplicarAnticipoButton
-                                    facturaId={f.id}
-                                    saldoPendiente={saldoFactura}
-                                    anticipos={anticiposTercero}
-                                  />
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </table>
-                </div>
+                <FacturasTable
+                  anticipos={anticiposDisponiblesDe(t.tipo, t.id)}
+                  facturas={[...t.facturas]
+                    .sort((a, b) => (a.fecha_emision < b.fecha_emision ? 1 : -1))
+                    .map((f) => {
+                      const cobradoFactura =
+                        (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0) +
+                        (f.notas_credito ?? [])
+                          .filter((n) => !n.anulado)
+                          .reduce((acc, n) => acc + Number(n.monto), 0);
+                      return {
+                        id: f.id,
+                        numero_factura: f.numero_factura,
+                        caso_id: f.caso_id,
+                        casoTexto:
+                          [f.caso?.vehiculo?.marca, f.caso?.vehiculo?.modelo].filter(Boolean).join(" ") ||
+                          f.caso?.numero_siniestro ||
+                          "—",
+                        dominio: f.caso?.vehiculo?.dominio ?? null,
+                        servicios: serviciosDe(f),
+                        fecha: f.fecha_emision,
+                        total: Number(f.monto_total),
+                        cobrado: cobradoFactura,
+                        saldo: Number(f.monto_total) - cobradoFactura,
+                        estadoLabel: ESTADOS_FACTURA.find((e) => e.value === f.estado)?.label ?? f.estado,
+                        estadoClase: estadoFacturaBadgeClass(f.estado)
+                      };
+                    })}
+                />
               </div>
             </details>
           );
