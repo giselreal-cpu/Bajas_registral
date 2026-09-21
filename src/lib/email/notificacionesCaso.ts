@@ -55,7 +55,7 @@ export function asuntoYCuerpo(
     contacto_asegurado: `Le informamos que se contactó al asegurado ${nombreAsegurado} para coordinar los próximos pasos de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}). Se comunicó estado de multas por ${formatMoneda(
       caso.deuda_multas
     )} y patentes por ${formatMoneda(caso.deuda_patentes)}.`,
-    gestor_asignado: `Le informamos que se asignó un gestor de campo (${gestor}) para continuar los trámites de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}).`,
+    gestor_asignado: `Le informamos que se asignó un gestor de campo (${gestor}) para continuar los trámites de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}). Este tomará contacto con el asegurado o asegurada a la brevedad, y continuará con el proceso de presentación de la baja ante el registro automotor de radicación.`,
     traslado: `Le informamos que se trasladó la unidad dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) hacia el desarmadero asignado.`,
     presentacion_baja: `Le informamos que se presentó la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) en el registro automotor.`
   };
