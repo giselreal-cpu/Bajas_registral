@@ -188,14 +188,12 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
 
       {(errores.errorCasos ||
         errores.errorVenc ||
-        errores.errorMov ||
         errores.errorCerrados ||
         errores.errorPresentacion ||
         errores.errorContactos) && (
         <div className="card p-3 text-sm text-red-600 border-red-200 bg-red-50">
           {errores.errorCasos?.message ||
             errores.errorVenc?.message ||
-            errores.errorMov?.message ||
             errores.errorCerrados?.message ||
             errores.errorPresentacion?.message ||
             errores.errorContactos?.message}

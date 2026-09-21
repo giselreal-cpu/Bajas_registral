@@ -107,6 +107,22 @@ export const nombreMes = (mesKey: string) => {
   return texto.charAt(0).toUpperCase() + texto.slice(1);
 };
 
+// PostgREST corta cada consulta en 1000 filas: bitácora e historial ya lo
+// superan, y al quedar afuera las filas más nuevas de algunos casos, el
+// panel los daba por "sin movimiento". Se pide por páginas hasta traerlo todo.
+async function traerTodo<T>(
+  pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null }>
+): Promise<T[]> {
+  const TAM = 1000;
+  const todo: T[] = [];
+  for (let desde = 0; ; desde += TAM) {
+    const { data } = await pagina(desde, desde + TAM - 1);
+    todo.push(...(data ?? []));
+    if (!data || data.length < TAM) break;
+  }
+  return todo;
+}
+
 export async function obtenerDatosPanel(filtros: PanelFiltros) {
   const supabase = createClient();
 
@@ -153,7 +169,8 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   const [
     { data: casos, error: errorCasos },
     { data: vencimientos, error: errorVenc },
-    { data: movimientos, error: errorMov },
+    movimientos,
+    cambiosHistorial,
     { data: casosCerradosConFechas, error: errorCerrados },
     { data: eventosPresentacion, error: errorPresentacion },
     { data: contactosExistentes, error: errorContactos },
@@ -173,7 +190,12 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
       .not("fecha_fin", "is", null)
       .order("fecha_fin", { ascending: true })
       .limit(8),
-    supabase.from("bitacora").select("caso_id, created_at"),
+    traerTodo((d, h) =>
+      supabase.from("bitacora").select("caso_id, created_at, fecha_inicio, fecha_fin").order("id").range(d, h)
+    ),
+    traerTodo((d, h) =>
+      supabase.from("historial_cambios").select("caso_id, created_at").order("id").range(d, h)
+    ),
     casosCerradosQuery,
     supabase
       .from("bitacora")
@@ -201,12 +223,24 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
 
+  // Hubo movimiento si se cargó, completó o editó cualquier evento de
+  // bitácora (queda en historial_cambios) o si algún evento tiene fecha de
+  // inicio/fin reciente — no solo cuando se crea la fila.
   const ultimoMovimientoPorCaso = new Map<string, string>();
-  for (const m of movimientos ?? []) {
-    const actual = ultimoMovimientoPorCaso.get(m.caso_id);
-    if (!actual || m.created_at > actual) {
-      ultimoMovimientoPorCaso.set(m.caso_id, m.created_at);
+  const registrarMovimiento = (casoId: string, fecha: string | null | undefined) => {
+    if (!fecha) return;
+    const actual = ultimoMovimientoPorCaso.get(casoId);
+    if (!actual || new Date(fecha).getTime() > new Date(actual).getTime()) {
+      ultimoMovimientoPorCaso.set(casoId, fecha);
     }
+  };
+  for (const m of movimientos ?? []) {
+    registrarMovimiento(m.caso_id, m.created_at);
+    registrarMovimiento(m.caso_id, m.fecha_inicio);
+    registrarMovimiento(m.caso_id, m.fecha_fin);
+  }
+  for (const h of cambiosHistorial ?? []) {
+    registrarMovimiento(h.caso_id, h.created_at);
   }
 
   const casosSinMovimiento = ((casos as CasoResumen[] | null) ?? [])
@@ -567,7 +601,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   const itemsAtencionLimitados = itemsAtencion.slice(0, 10);
 
   return {
-    errores: { errorCasos, errorVenc, errorMov, errorCerrados, errorPresentacion, errorContactos },
+    errores: { errorCasos, errorVenc, errorCerrados, errorPresentacion, errorContactos },
     aseguradoras: aseguradoras ?? [],
     tiposBaja: tiposBaja ?? [],
     hayFiltrosPanel,
