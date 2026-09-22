@@ -235,17 +235,20 @@ export async function generarAutorizacionPdf(datos: DatosAutorizacion): Promise<
     ["Modelo", datos.vehiculoModelo],
     ["Dominio", datos.vehiculoDominio]
   ]);
+  campo(w, "Titular", null);
+  campo(w, "Teléfono de contacto", null);
+  w.espacio();
   w.parrafo("Ubicación actual de la unidad:");
   campo(w, "Domicilio", null);
   campo(w, "Entre calles", null);
-  camposEnLinea(w, [
-    ["Localidad", null],
-    ["Partido", null],
-    ["Provincia", null]
+  campo(w, "Localidad", null);
+  campo(w, "Partido", null);
+  campo(w, "Provincia", null);
+  w.espacio();
+  w.linea([
+    { text: "Datos de tercero autorizado de quien hará entrega del vehículo: ", bold: true },
+    { text: "(Completar si es un tercero quien entrega)", bold: true }
   ]);
-  campo(w, "Titular / contacto en el domicilio", null);
-  campo(w, "Teléfono de contacto", null);
-  w.parrafo("Datos de quien hará entrega del vehículo:");
   campo(w, "Nombre y apellido", null);
   campo(w, "DNI", null);
   campo(w, "Teléfono", null);
