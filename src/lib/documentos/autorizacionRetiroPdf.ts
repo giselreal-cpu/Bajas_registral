@@ -236,15 +236,15 @@ export async function generarAutorizacionPdf(datos: DatosAutorizacion): Promise<
     ["Dominio", datos.vehiculoDominio]
   ]);
   w.parrafo("Ubicación actual de la unidad:");
-  campo(w, "Domicilio", datos.aseguradoDireccion);
-  campo(w, "Entre calles", datos.aseguradoEntreCalles);
+  campo(w, "Domicilio", null);
+  campo(w, "Entre calles", null);
   camposEnLinea(w, [
-    ["Localidad", datos.aseguradoLocalidad],
-    ["Partido", datos.aseguradoPartido],
-    ["Provincia", datos.aseguradoProvincia]
+    ["Localidad", null],
+    ["Partido", null],
+    ["Provincia", null]
   ]);
-  campo(w, "Titular / contacto en el domicilio", datos.aseguradoNombre);
-  campo(w, "Teléfono de contacto", datos.aseguradoTelefono);
+  campo(w, "Titular / contacto en el domicilio", null);
+  campo(w, "Teléfono de contacto", null);
   w.parrafo("Datos de quien hará entrega del vehículo:");
   campo(w, "Nombre y apellido", null);
   campo(w, "DNI", null);

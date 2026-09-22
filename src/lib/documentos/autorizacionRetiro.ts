@@ -179,15 +179,15 @@ export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buf
       ["Dominio", datos.vehiculoDominio]
     ]),
     parrafo([texto("Ubicación actual de la unidad:")]),
-    campo("Domicilio", datos.aseguradoDireccion),
-    campo("Entre calles", datos.aseguradoEntreCalles),
+    campo("Domicilio", null),
+    campo("Entre calles", null),
     camposEnLinea([
-      ["Localidad", datos.aseguradoLocalidad],
-      ["Partido", datos.aseguradoPartido],
-      ["Provincia", datos.aseguradoProvincia]
+      ["Localidad", null],
+      ["Partido", null],
+      ["Provincia", null]
     ]),
-    campo("Titular / contacto en el domicilio", datos.aseguradoNombre),
-    campo("Teléfono de contacto", datos.aseguradoTelefono),
+    campo("Titular / contacto en el domicilio", null),
+    campo("Teléfono de contacto", null),
     parrafo([texto("Datos de quien hará entrega del vehículo:")]),
     campo("Nombre y apellido", null),
     campo("DNI", null),

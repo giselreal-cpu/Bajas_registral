@@ -173,12 +173,17 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 4. Primer evento de bitácora automático
+  // 4. Primer evento de bitácora automático. Si no se notificó a nadie
+  // (nadie tildado en "notificar" al cargar el caso), queda pendiente en
+  // vez de completado — así se puede completar después desde la bitácora,
+  // que ya ofrece elegir a quién notificar al completar "Ingreso de caso"
+  // (ver EVENTO_A_NOTIFICACION en BitacoraSection.tsx).
+  const seNotifico = Array.isArray(notificar) && notificar.length > 0;
   await supabase.from("bitacora").insert({
     caso_id: caso.id,
     tipo_evento: "Ingreso de caso",
     observacion: "Caso creado a partir del pedido de la aseguradora.",
-    completado: true,
+    completado: seNotifico,
     creado_por: responsable_id ?? null
   });
 
@@ -187,7 +192,7 @@ export async function POST(request: NextRequest) {
   // Notificación por mail (best-effort, no bloquea la creación del caso
   // si falla). A esta altura puede haber mail de tramitador, productor
   // y/o asegurado, si se cargaron en el formulario de alta.
-  if (Array.isArray(notificar) && notificar.length > 0) {
+  if (seNotifico) {
     const casoConRelaciones = caso as unknown as CasoConRelaciones;
     const disponibles = destinatariosDisponibles(casoConRelaciones);
     const { subject, text } = asuntoYCuerpo("ingreso_caso", casoConRelaciones);
