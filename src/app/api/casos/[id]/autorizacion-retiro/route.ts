@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generarAutorizacion } from "@/lib/documentos/autorizacionRetiro";
 import { generarAutorizacionPdf } from "@/lib/documentos/autorizacionRetiroPdf";
 import { descargarLogoBytes } from "@/lib/logoAseguradora";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 
 const LOGO_OLTRA_PATH = path.join(process.cwd(), "public", "logo-oltra.jpg");
 
@@ -12,6 +13,11 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const usuarioActual = await getUsuarioActual();
+  if (usuarioActual?.rol === "compania") {
+    return NextResponse.json({ error: "No autorizado." }, { status: 403 });
+  }
+
   const supabase = createClient();
 
   const { data: caso, error } = await supabase

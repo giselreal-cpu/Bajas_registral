@@ -46,8 +46,13 @@ export async function GET(
   // evento, fechas y estado de completado.
   const esCompania = usuarioActual?.rol === "compania";
 
+  // El teléfono del gruero o de quien completa el Formulario de Baja
+  // tampoco es para compañía — son contactos operativos de Oltra, no
+  // información del trámite en sí.
   const dataFiltrada = (data ?? []).map((ev) => {
-    if (esCompania) return { ...ev, observacion: null };
+    if (esCompania) {
+      return { ...ev, observacion: null, gruero_contacto: null, formulario_baja_contacto: null };
+    }
     return ev.es_interna && !puedeVerInternas ? { ...ev, observacion: null } : ev;
   });
 

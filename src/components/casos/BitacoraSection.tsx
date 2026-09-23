@@ -1006,13 +1006,13 @@ export default function BitacoraSection({
                   {ev.tipo_evento === "Traslado" && ev.gruero_nombre && (
                     <p className="text-slate-500">
                       🚚 Gruero: {ev.gruero_nombre}
-                      {ev.gruero_contacto && ` · ${ev.gruero_contacto}`}
+                      {!soloLectura && ev.gruero_contacto && ` · ${ev.gruero_contacto}`}
                     </p>
                   )}
                   {ev.tipo_evento === "Formulario de Baja" && ev.formulario_baja_nombre && (
                     <p className="text-slate-500">
                       📄 Formulario de Baja: {ev.formulario_baja_nombre}
-                      {ev.formulario_baja_contacto && ` · ${ev.formulario_baja_contacto}`}
+                      {!soloLectura && ev.formulario_baja_contacto && ` · ${ev.formulario_baja_contacto}`}
                     </p>
                   )}
                   {ev.tipo_evento === EVENTO_ASIGNACION_DESARMADERO && ev.desarmadero_id && (

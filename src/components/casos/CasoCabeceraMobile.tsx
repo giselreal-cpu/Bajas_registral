@@ -498,12 +498,14 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
             <a href={`tel:${caso.asegurado?.telefono ?? ""}`} className="mv-btn mv-btn-primary flex-1 py-3">
               Llamar al asegurado
             </a>
-            <a
-              href={`/api/casos/${caso.id}/autorizacion-retiro?formato=pdf`}
-              className="mv-btn mv-btn-secondary flex-1 py-3"
-            >
-              Autorización .pdf
-            </a>
+            {!soloLectura && (
+              <a
+                href={`/api/casos/${caso.id}/autorizacion-retiro?formato=pdf`}
+                className="mv-btn mv-btn-secondary flex-1 py-3"
+              >
+                Autorización .pdf
+              </a>
+            )}
           </div>
         )}
       </div>

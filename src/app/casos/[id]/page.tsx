@@ -110,25 +110,27 @@ export default async function CasoDetallePage({
         esAdministrador={esAdministrador}
       />
 
-      <section className="card p-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="font-medium text-slate-800">Documento generado</h2>
-          <p className="text-sm text-slate-500">
-            Autorización de retiro y traslado, con los datos del caso ya completados.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <a href={`/api/casos/${caso.id}/autorizacion-retiro`} className="btn-secondary">
-            Descargar (.docx)
-          </a>
-          <a
-            href={`/api/casos/${caso.id}/autorizacion-retiro?formato=pdf`}
-            className="btn-secondary"
-          >
-            Descargar (PDF)
-          </a>
-        </div>
-      </section>
+      {!soloLectura && (
+        <section className="card p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-medium text-slate-800">Documento generado</h2>
+            <p className="text-sm text-slate-500">
+              Autorización de retiro y traslado, con los datos del caso ya completados.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <a href={`/api/casos/${caso.id}/autorizacion-retiro`} className="btn-secondary">
+              Descargar (.docx)
+            </a>
+            <a
+              href={`/api/casos/${caso.id}/autorizacion-retiro?formato=pdf`}
+              className="btn-secondary"
+            >
+              Descargar (PDF)
+            </a>
+          </div>
+        </section>
+      )}
 
       {!soloLectura && (
         <section className="card p-4 flex flex-wrap items-center justify-between gap-3">
