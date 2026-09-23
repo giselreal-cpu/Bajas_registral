@@ -37,6 +37,11 @@ export default async function ExportarPage() {
           href="/api/export/documentos"
         />
         <ExportCard
+          titulo="Casos por gestor (CSV)"
+          descripcion="Un renglón por caso asignado a un gestor de campo, con el último evento cargado en su bitácora, su fecha y su observación."
+          href="/api/export/casos-por-gestor"
+        />
+        <ExportCard
           titulo="Backup completo (JSON)"
           descripcion="Volcado completo de todas las tablas tal cual están en la base (incluyendo catálogos). Pensado como respaldo íntegro, no para abrir en Excel."
           href="/api/export/completo"
