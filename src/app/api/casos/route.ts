@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { enviarEmail } from "@/lib/email/enviarEmail";
 import { asuntoYCuerpo, destinatariosDisponibles, Destinatario } from "@/lib/email/notificacionesCaso";
+import { resolverTramitadorId } from "@/lib/tramitadores";
 import { CasoConRelaciones } from "@/types/database";
 
 const CASO_SELECT = `
@@ -66,7 +67,8 @@ export async function POST(request: NextRequest) {
     asegurado, // { nombre, dni, telefono, email, direccion, localidad, provincia, entre_calles, partido }
     vehiculo, // { dominio, marca, modelo, anio, chasis, motor, tipo_vehiculo }
     observaciones,
-    notificar // ("tramitador" | "productor" | "asegurado")[]
+    notificar, // ("tramitador" | "productor" | "asegurado")[]
+    confirmarDuplicado // true -> el usuario ya vio el aviso de dominio repetido y quiere crear igual
   } = body;
 
   if (!numero_siniestro || !aseguradora_id || !asegurado?.nombre || !vehiculo?.dominio) {
@@ -74,6 +76,35 @@ export async function POST(request: NextRequest) {
       { error: "Faltan campos obligatorios: número de siniestro, aseguradora, asegurado y dominio del vehículo." },
       { status: 400 }
     );
+  }
+
+  // 0. Avisar si el dominio ya tiene casos cargados, salvo que el usuario
+  // ya haya confirmado que quiere crear otro igual (ej. un siniestro
+  // nuevo sobre la misma unidad).
+  if (!confirmarDuplicado) {
+    const { data: vehiculoDominio } = await supabase
+      .from("vehiculos")
+      .select("id")
+      .eq("dominio", vehiculo.dominio)
+      .maybeSingle();
+
+    if (vehiculoDominio) {
+      const { data: casosExistentes } = await supabase
+        .from("casos")
+        .select("id, numero_siniestro, estado, aseguradora:aseguradoras(nombre)")
+        .eq("vehiculo_id", vehiculoDominio.id);
+
+      if (casosExistentes && casosExistentes.length > 0) {
+        return NextResponse.json(
+          {
+            error: "dominio_duplicado",
+            dominio: vehiculo.dominio,
+            casos: casosExistentes
+          },
+          { status: 409 }
+        );
+      }
+    }
   }
 
   // 1. Crear asegurado
@@ -127,6 +158,8 @@ export async function POST(request: NextRequest) {
     vehiculoId = nuevoVehiculo.id;
   }
 
+  const tramitadorId = await resolverTramitadorId(supabase, tramitador_nombre, tramitador_email);
+
   // 3. Crear el caso
   const { data: caso, error: errCaso } = await supabase
     .from("casos")
@@ -143,6 +176,7 @@ export async function POST(request: NextRequest) {
       observaciones: observaciones ?? null,
       tramitador_nombre: tramitador_nombre ?? null,
       tramitador_email: tramitador_email ?? null,
+      tramitador_id: tramitadorId,
       productor_nombre: productor_nombre ?? null,
       productor_contacto: productor_contacto ?? null
     })

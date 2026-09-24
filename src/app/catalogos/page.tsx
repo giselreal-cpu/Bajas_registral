@@ -28,6 +28,12 @@ const CATALOGOS = [
     description: "Catálogo abierto: 04D, 04C, 04 Digital, etc."
   },
   {
+    href: "/catalogos/tramitadores",
+    title: "Trámitadores",
+    description: "Personas de la compañía que gestionan el caso de su lado.",
+    ocultarParaCompania: true
+  },
+  {
     href: "/catalogos/conceptos-movimiento",
     title: "Conceptos de movimiento",
     description: "Rubros de ingreso/egreso para la rentabilidad de los casos.",

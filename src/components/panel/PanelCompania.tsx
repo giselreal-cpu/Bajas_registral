@@ -31,6 +31,8 @@ export default function PanelCompania({
   const {
     error,
     mesFiltro,
+    tramitadorFiltro,
+    tramitadores,
     casosAbiertos,
     casosCerradosLabel,
     casosCerrados,
@@ -63,12 +65,23 @@ export default function PanelCompania({
           <label className="label">Mes/año de ingreso</label>
           <input type="month" name="mes" defaultValue={mesFiltro ?? ""} className="input" />
         </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Trámitador</label>
+          <select name="tramitador_id" defaultValue={tramitadorFiltro ?? ""} className="input">
+            <option value="">Todos</option>
+            {tramitadores.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
         <button className="btn-secondary" type="submit">
           Filtrar
         </button>
-        {mesFiltro && (
+        {(mesFiltro || tramitadorFiltro) && (
           <Link href="/panel" className="btn-secondary">
-            Quitar filtro
+            Quitar filtros
           </Link>
         )}
       </form>

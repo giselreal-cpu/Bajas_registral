@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Aseguradora, TipoBaja, TIPOS_VEHICULO, Usuario } from "@/types/database";
+import Link from "next/link";
+import { Aseguradora, ESTADOS, TipoBaja, TIPOS_VEHICULO, Usuario } from "@/types/database";
 import { DESTINATARIOS, Destinatario } from "@/lib/email/notificacionesCaso";
 
 interface Catalogos {
@@ -17,6 +18,10 @@ export default function CasoForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notificar, setNotificar] = useState<Set<Destinatario>>(new Set());
+  const [duplicado, setDuplicado] = useState<{
+    dominio: string;
+    casos: { id: string; numero_siniestro: string; estado: string; aseguradora: { nombre: string } | null }[];
+  } | null>(null);
 
   const [form, setForm] = useState({
     numero_siniestro: "",
@@ -83,8 +88,13 @@ export default function CasoForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    await enviar(false);
+  }
+
+  async function enviar(confirmarDuplicado: boolean) {
     setLoading(true);
     setError(null);
+    if (!confirmarDuplicado) setDuplicado(null);
 
     const payload = {
       numero_siniestro: form.numero_siniestro,
@@ -116,7 +126,8 @@ export default function CasoForm() {
         modelo: form.vehiculo_modelo || null,
         anio: form.vehiculo_anio ? Number(form.vehiculo_anio) : null,
         tipo_vehiculo: form.vehiculo_tipo || null
-      }
+      },
+      confirmarDuplicado
     };
 
     const res = await fetch("/api/casos", {
@@ -129,6 +140,10 @@ export default function CasoForm() {
     setLoading(false);
 
     if (!res.ok) {
+      if (res.status === 409 && json.error === "dominio_duplicado") {
+        setDuplicado({ dominio: json.dominio, casos: json.casos ?? [] });
+        return;
+      }
       setError(json.error ?? "Ocurrió un error al crear el caso.");
       return;
     }
@@ -141,6 +156,48 @@ export default function CasoForm() {
       {error && (
         <div className="card p-3 text-sm text-red-600 border-red-200 bg-red-50">
           {error}
+        </div>
+      )}
+
+      {duplicado && (
+        <div className="card p-4 text-sm border-amber-200 bg-amber-50 space-y-3">
+          <p className="text-amber-800">
+            El dominio <b>{duplicado.dominio}</b> ya tiene {duplicado.casos.length === 1 ? "un caso cargado" : `${duplicado.casos.length} casos cargados`}:
+          </p>
+          <ul className="space-y-1">
+            {duplicado.casos.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/casos/${c.id}`}
+                  target="_blank"
+                  className="text-brand-600 hover:underline"
+                >
+                  Siniestro {c.numero_siniestro}
+                </Link>
+                <span className="text-slate-500">
+                  {" "}
+                  · {c.aseguradora?.nombre ?? "—"} · {ESTADOS.find((e) => e.value === c.estado)?.label ?? c.estado}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              className="btn-primary text-xs"
+              disabled={loading}
+              onClick={() => enviar(true)}
+            >
+              {loading ? "Creando..." : "Crear igual"}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary text-xs"
+              onClick={() => setDuplicado(null)}
+            >
+              Cancelar, voy a revisar el dominio
+            </button>
+          </div>
         </div>
       )}
 

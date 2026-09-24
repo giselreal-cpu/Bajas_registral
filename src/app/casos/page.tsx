@@ -32,6 +32,7 @@ export default async function CasosPage({
     dominio?: string;
     aseguradora_id?: string;
     tipo_baja_id?: string;
+    tramitador_id?: string;
   };
 }) {
   const supabase = createClient();
@@ -55,12 +56,17 @@ export default async function CasosPage({
   if (searchParams.tipo_baja_id) {
     query = query.eq("tipo_baja_id", searchParams.tipo_baja_id);
   }
+  if (searchParams.tramitador_id) {
+    query = query.eq("tramitador_id", searchParams.tramitador_id);
+  }
 
-  const [{ data: casos, error }, { data: aseguradoras }, { data: tiposBaja }] = await Promise.all([
-    query,
-    supabase.from("aseguradoras").select("id, nombre").order("nombre"),
-    supabase.from("tipos_baja").select("id, nombre").order("nombre")
-  ]);
+  const [{ data: casos, error }, { data: aseguradoras }, { data: tiposBaja }, { data: tramitadores }] =
+    await Promise.all([
+      query,
+      supabase.from("aseguradoras").select("id, nombre").order("nombre"),
+      supabase.from("tipos_baja").select("id, nombre").order("nombre"),
+      supabase.from("tramitadores").select("id, nombre").order("nombre")
+    ]);
 
   const usuarioActual = await getUsuarioActual();
   const esCompania = usuarioActual?.rol === "compania";
@@ -124,6 +130,21 @@ export default async function CasosPage({
           >
             <option value="">Todos</option>
             {tiposBaja?.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="sm:flex-1 sm:min-w-[160px]">
+          <label className="label">Trámitador</label>
+          <select
+            name="tramitador_id"
+            defaultValue={searchParams.tramitador_id ?? ""}
+            className="input"
+          >
+            <option value="">Todos</option>
+            {tramitadores?.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.nombre}
               </option>

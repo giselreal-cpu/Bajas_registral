@@ -15,6 +15,7 @@ export interface PanelFiltros {
   aseguradora_id?: string;
   mes?: string;
   tipo_baja_id?: string;
+  tramitador_id?: string;
 }
 
 interface VencimientoRow {
@@ -138,6 +139,9 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   if (filtros.tipo_baja_id) {
     casosQuery = casosQuery.eq("tipo_baja_id", filtros.tipo_baja_id);
   }
+  if (filtros.tramitador_id) {
+    casosQuery = casosQuery.eq("tramitador_id", filtros.tramitador_id);
+  }
   if (filtros.mes) {
     const [anio, mes] = filtros.mes.split("-").map(Number);
     const desde = `${filtros.mes}-01`;
@@ -158,6 +162,9 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   if (filtros.tipo_baja_id) {
     casosCerradosQuery = casosCerradosQuery.eq("tipo_baja_id", filtros.tipo_baja_id);
   }
+  if (filtros.tramitador_id) {
+    casosCerradosQuery = casosCerradosQuery.eq("tramitador_id", filtros.tramitador_id);
+  }
   if (filtros.mes) {
     const [anio, mes] = filtros.mes.split("-").map(Number);
     const desde = `${filtros.mes}-01`;
@@ -175,7 +182,8 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     { data: eventosPresentacion, error: errorPresentacion },
     { data: contactosExistentes, error: errorContactos },
     { data: aseguradoras },
-    { data: tiposBaja }
+    { data: tiposBaja },
+    { data: tramitadores }
   ] = await Promise.all([
     casosQuery,
     supabase
@@ -204,10 +212,16 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
       .eq("completado", true),
     supabase.from("bitacora").select("caso_id").eq("tipo_evento", "Contacto con el asegurado"),
     supabase.from("aseguradoras").select("id, nombre").order("nombre"),
-    supabase.from("tipos_baja").select("id, nombre").order("nombre")
+    supabase.from("tipos_baja").select("id, nombre").order("nombre"),
+    supabase.from("tramitadores").select("id, nombre").order("nombre")
   ]);
 
-  const hayFiltrosPanel = !!(filtros.aseguradora_id || filtros.mes || filtros.tipo_baja_id);
+  const hayFiltrosPanel = !!(
+    filtros.aseguradora_id ||
+    filtros.mes ||
+    filtros.tipo_baja_id ||
+    filtros.tramitador_id
+  );
 
   const totalCasos = casos?.length ?? 0;
   const casosAbiertos = casos?.filter((c) => c.estado !== "cerrado").length ?? 0;
@@ -604,6 +618,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     errores: { errorCasos, errorVenc, errorCerrados, errorPresentacion, errorContactos },
     aseguradoras: aseguradoras ?? [],
     tiposBaja: tiposBaja ?? [],
+    tramitadores: tramitadores ?? [],
     hayFiltrosPanel,
     totalCasos,
     casosAbiertos,
@@ -663,6 +678,8 @@ export interface VencimientoCompaniaRow {
 export interface DatosPanelCompania {
   error: string | null;
   mesFiltro: string | null;
+  tramitadorFiltro: string | null;
+  tramitadores: { id: string; nombre: string }[];
   casosAbiertos: number;
   casosCerradosLabel: string;
   casosCerrados: number;
@@ -686,7 +703,10 @@ export interface DatosPanelCompania {
 // este mes" pasa a ser "Cerrados" sobre ese recorte (cuántos de los
 // casos ingresados ese mes ya están cerrados), en vez del mes
 // calendario real, para no mezclar dos criterios de fecha distintos.
-export async function obtenerDatosPanelCompania(mes?: string): Promise<DatosPanelCompania> {
+export async function obtenerDatosPanelCompania(
+  mes?: string,
+  tramitadorId?: string
+): Promise<DatosPanelCompania> {
   const supabase = createClient();
 
   let casosQuery = supabase
@@ -698,9 +718,16 @@ export async function obtenerDatosPanelCompania(mes?: string): Promise<DatosPane
     const hasta = new Date(anio, mesNum, 1).toISOString().slice(0, 10);
     casosQuery = casosQuery.gte("fecha_ingreso", desde).lt("fecha_ingreso", hasta);
   }
+  if (tramitadorId) {
+    casosQuery = casosQuery.eq("tramitador_id", tramitadorId);
+  }
 
-  const [{ data: casos, error: errorCasos }, { data: actividad }, { data: vencimientos }] =
-    await Promise.all([
+  const [
+    { data: casos, error: errorCasos },
+    { data: actividad },
+    { data: vencimientos },
+    { data: casosConTramitador }
+  ] = await Promise.all([
       casosQuery,
       supabase
         .from("bitacora")
@@ -718,7 +745,11 @@ export async function obtenerDatosPanelCompania(mes?: string): Promise<DatosPane
         .not("fecha_fin", "is", null)
         .lte("fecha_fin", new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10))
         .order("fecha_fin", { ascending: true })
-        .limit(10)
+        .limit(10),
+      // Sin el filtro de mes/trámitador acá a propósito: son las opciones
+      // del desplegable, tienen que quedar completas aunque haya un
+      // filtro aplicado. RLS ya scopea esto a la propia aseguradora.
+      supabase.from("casos").select("tramitador:tramitadores(id, nombre)").not("tramitador_id", "is", null)
     ]);
 
   const casosTyped = (casos ?? []) as unknown as {
@@ -799,9 +830,19 @@ export async function obtenerDatosPanelCompania(mes?: string): Promise<DatosPane
     fechaFin: v.fecha_fin
   }));
 
+  const tramitadoresPorId = new Map<string, string>();
+  for (const c of (casosConTramitador ?? []) as unknown as { tramitador: { id: string; nombre: string } | null }[]) {
+    if (c.tramitador) tramitadoresPorId.set(c.tramitador.id, c.tramitador.nombre);
+  }
+  const tramitadores = Array.from(tramitadoresPorId, ([id, nombre]) => ({ id, nombre })).sort((a, b) =>
+    a.nombre.localeCompare(b.nombre)
+  );
+
   return {
     error: errorCasos?.message ?? null,
     mesFiltro: mes ?? null,
+    tramitadorFiltro: tramitadorId ?? null,
+    tramitadores,
     casosAbiertos,
     casosCerradosLabel,
     casosCerrados,

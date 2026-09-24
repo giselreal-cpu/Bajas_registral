@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { avanzarEstadoAlMenosHasta } from "@/lib/estadoAutomatico";
+import { resolverTramitadorId } from "@/lib/tramitadores";
 
 const CASO_SELECT = `
   *,
@@ -72,6 +73,17 @@ export async function PUT(
   const update: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (field in body) update[field] = body[field];
+  }
+
+  // Mantiene sincronizado el catálogo de trámitadores (y el vínculo
+  // casos.tramitador_id que usan los filtros) sin cambiar el formulario:
+  // se resuelve solo cuando el nombre viene en la edición.
+  if ("tramitador_nombre" in update) {
+    update.tramitador_id = await resolverTramitadorId(
+      supabase,
+      update.tramitador_nombre as string | null,
+      update.tramitador_email as string | null
+    );
   }
 
   // Si se reasigna el gestor (a otro, o se le saca la asignación), el enlace

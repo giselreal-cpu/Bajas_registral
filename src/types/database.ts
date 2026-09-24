@@ -180,8 +180,15 @@ export interface Caso {
   productor_contacto: string | null;
   tramitador_nombre: string | null;
   tramitador_email: string | null;
+  tramitador_id: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Tramitador {
+  id: string;
+  nombre: string;
+  email: string | null;
 }
 
 // Caso con los catálogos relacionados ya resueltos (para la vista de detalle/listado)

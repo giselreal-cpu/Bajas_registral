@@ -17,7 +17,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
   const usuarioActual = await getUsuarioActual();
 
   if (usuarioActual?.rol === "compania") {
-    const datosCompania = await obtenerDatosPanelCompania(searchParams.mes);
+    const datosCompania = await obtenerDatosPanelCompania(searchParams.mes, searchParams.tramitador_id);
     return <PanelCompania datos={datosCompania} primerNombre={usuarioActual?.nombre?.split(" ")[0] ?? ""} />;
   }
 
@@ -30,6 +30,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
     errores,
     aseguradoras,
     tiposBaja,
+    tramitadores,
     hayFiltrosPanel,
     totalCasos,
     casosAbiertos,
@@ -107,6 +108,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
   if (searchParams.aseguradora_id) queryFiltros.set("aseguradora_id", searchParams.aseguradora_id);
   if (searchParams.mes) queryFiltros.set("mes", searchParams.mes);
   if (searchParams.tipo_baja_id) queryFiltros.set("tipo_baja_id", searchParams.tipo_baja_id);
+  if (searchParams.tramitador_id) queryFiltros.set("tramitador_id", searchParams.tramitador_id);
   const qs = queryFiltros.toString();
   const hrefDetalle = (ancla: string) => `/panel/detalle${qs ? `?${qs}` : ""}#${ancla}`;
 
@@ -170,6 +172,21 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
           >
             <option value="">Todos</option>
             {tiposBaja?.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Trámitador</label>
+          <select
+            name="tramitador_id"
+            defaultValue={searchParams.tramitador_id ?? ""}
+            className="input"
+          >
+            <option value="">Todos</option>
+            {tramitadores?.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.nombre}
               </option>
