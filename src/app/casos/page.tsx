@@ -75,7 +75,9 @@ export default async function CasosPage({
   const [{ data: casos, error }, { data: aseguradoras }, { data: tiposBaja }, { data: tramitadores }] =
     await Promise.all([
       query,
-      supabase.from("aseguradoras").select("id, nombre").order("nombre"),
+      esCompania && usuarioActual?.aseguradora_id
+        ? supabase.from("aseguradoras").select("id, nombre").eq("id", usuarioActual.aseguradora_id)
+        : supabase.from("aseguradoras").select("id, nombre").order("nombre"),
       supabase.from("tipos_baja").select("id, nombre").order("nombre"),
       tramitadoresQuery
     ]);
@@ -122,7 +124,7 @@ export default async function CasosPage({
             defaultValue={searchParams.aseguradora_id ?? ""}
             className="input"
           >
-            <option value="">Todas</option>
+            {!esCompania && <option value="">Todas</option>}
             {aseguradoras?.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.nombre}
