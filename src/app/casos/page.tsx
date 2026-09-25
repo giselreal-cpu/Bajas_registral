@@ -60,16 +60,25 @@ export default async function CasosPage({
     query = query.eq("tramitador_id", searchParams.tramitador_id);
   }
 
+  const usuarioActual = await getUsuarioActual();
+  const esCompania = usuarioActual?.rol === "compania";
+
+  // Cada compañía ve solo sus trámitadores (además de RLS, se acota acá).
+  let tramitadoresQuery = supabase
+    .from("tramitadores")
+    .select("id, nombre, aseguradora_id, aseguradora:aseguradoras(nombre)")
+    .order("nombre");
+  if (esCompania && usuarioActual?.aseguradora_id) {
+    tramitadoresQuery = tramitadoresQuery.eq("aseguradora_id", usuarioActual.aseguradora_id);
+  }
+
   const [{ data: casos, error }, { data: aseguradoras }, { data: tiposBaja }, { data: tramitadores }] =
     await Promise.all([
       query,
       supabase.from("aseguradoras").select("id, nombre").order("nombre"),
       supabase.from("tipos_baja").select("id, nombre").order("nombre"),
-      supabase.from("tramitadores").select("id, nombre, aseguradora_id, aseguradora:aseguradoras(nombre)").order("nombre")
+      tramitadoresQuery
     ]);
-
-  const usuarioActual = await getUsuarioActual();
-  const esCompania = usuarioActual?.rol === "compania";
 
   return (
     <div>
@@ -158,7 +167,7 @@ export default async function CasosPage({
               .map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.nombre}
-                  {!searchParams.aseguradora_id && t.aseguradora ? ` — ${t.aseguradora.nombre}` : ""}
+                  {!esCompania && !searchParams.aseguradora_id && t.aseguradora ? ` — ${t.aseguradora.nombre}` : ""}
                 </option>
               ))}
           </select>
