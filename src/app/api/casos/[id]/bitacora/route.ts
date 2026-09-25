@@ -39,11 +39,11 @@ export async function GET(
     usuarioActual?.rol === "administrador" ||
     (!!usuarioActual && usuarioActual.id === caso?.responsable_id);
 
-  // Además, el texto libre de observación (interna o no) es siempre
-  // coordinación operativa de Oltra — nombres, montos, gestiones
-  // internas — así que "compania" nunca lo recibe, ni siquiera el de
-  // eventos no marcados como internos. Solo se le manda el tipo de
-  // evento, fechas y estado de completado.
+  // El texto libre de observación de los hitos del trámite es
+  // coordinación operativa de Oltra (nombres, montos, gestiones
+  // internas), así que "compania" no lo recibe. La excepción son los
+  // eventos "Observaciones" no marcados como internos: esos sí son para
+  // que la compañía los lea.
   const esCompania = usuarioActual?.rol === "compania";
 
   // El teléfono del gruero o de quien completa el Formulario de Baja
@@ -51,7 +51,15 @@ export async function GET(
   // información del trámite en sí.
   const dataFiltrada = (data ?? []).map((ev) => {
     if (esCompania) {
-      return { ...ev, observacion: null, gruero_contacto: null, formulario_baja_contacto: null };
+      // Solo se le muestra el texto de los eventos "Observaciones" que no
+      // están marcados como internos; el de cualquier otro evento no.
+      const observacionVisible = ev.tipo_evento === "Observaciones" && !ev.es_interna;
+      return {
+        ...ev,
+        observacion: observacionVisible ? ev.observacion : null,
+        gruero_contacto: null,
+        formulario_baja_contacto: null
+      };
     }
     return ev.es_interna && !puedeVerInternas ? { ...ev, observacion: null } : ev;
   });

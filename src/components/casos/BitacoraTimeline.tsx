@@ -369,7 +369,7 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
                   <span className="text-[11.5px] tabular-nums" style={{ color: "var(--mv-neutral-600)" }}>
                     {new Date(ev.fecha_inicio + "T00:00:00").toLocaleDateString("es-AR")}
                   </span>
-                  {!soloLectura && !enEdicion && ev.observacion && (
+                  {!enEdicion && ev.observacion && (
                     <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-700)" }}>
                       {ev.observacion}
                     </p>
