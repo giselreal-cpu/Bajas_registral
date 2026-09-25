@@ -12,6 +12,8 @@ export interface LibroFiltros {
   aseguradora_id?: string;
   desde?: string;
   hasta?: string;
+  // "desc" = del más nuevo al más antiguo; cualquier otro valor = cronológico.
+  orden?: string;
 }
 
 export interface FilaLibro {
@@ -239,6 +241,13 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
   const salidas = filasUnificadas
     .filter((f) => f.tipo === "egreso")
     .reduce((a, f) => a + f.monto, 0);
+
+  // El saldo acumulado se calcula siempre en orden cronológico; si se pide
+  // el orden inverso solo se da vuelta la lista (cada fila conserva su saldo).
+  if (filtros.orden === "desc") {
+    filasUnificadas.reverse();
+    filas.reverse();
+  }
 
   return { filasUnificadas, filas, entradas, salidas };
 }

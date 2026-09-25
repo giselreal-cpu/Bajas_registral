@@ -20,6 +20,7 @@ interface SearchParams {
   aseguradora_id?: string;
   desde?: string;
   hasta?: string;
+  orden?: string;
 }
 
 export default async function AdministracionPage({
@@ -284,6 +285,7 @@ export default async function AdministracionPage({
         reporte !== "presupuesto" && (
       <form className="card p-4 mb-6 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap sm:items-end" method="get">
         <input type="hidden" name="reporte" value={reporte} />
+        {searchParams.orden && <input type="hidden" name="orden" value={searchParams.orden} />}
         <div className="sm:flex-1 sm:min-w-[130px]">
           <label className="label">Desde</label>
           <input type="date" name="desde" defaultValue={searchParams.desde ?? ""} className="input" />
@@ -427,7 +429,15 @@ export default async function AdministracionPage({
             <table className="w-full text-sm">
               <thead className="bg-slate-50 text-left text-slate-500">
                 <tr>
-                  <th className="px-4 py-2 font-medium">Fecha</th>
+                  <th className="px-4 py-2 font-medium">
+                    <a
+                      href={qs({ orden: searchParams.orden === "desc" ? undefined : "desc" })}
+                      className="hover:text-brand-700"
+                      title="Cambiar el orden por fecha"
+                    >
+                      Fecha {searchParams.orden === "desc" ? "↓" : "↑"}
+                    </a>
+                  </th>
                   <th className="px-4 py-2 font-medium">Caso</th>
                   <th className="px-4 py-2 font-medium">Descripción</th>
                   <th className="px-4 py-2 font-medium">Cuenta</th>

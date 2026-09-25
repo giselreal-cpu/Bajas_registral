@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
     cuenta_contable_id: searchParams.get("cuenta_contable_id") ?? undefined,
     aseguradora_id: searchParams.get("aseguradora_id") ?? undefined,
     desde: searchParams.get("desde") ?? undefined,
-    hasta: searchParams.get("hasta") ?? undefined
+    hasta: searchParams.get("hasta") ?? undefined,
+    orden: searchParams.get("orden") ?? undefined
   };
 
   const { filas } = await obtenerFilasLibro(filtros);
