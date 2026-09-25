@@ -3,12 +3,13 @@
 import { ESTADOS, RAMAS } from "@/types/database";
 import { estadoBadgeClass } from "@/lib/estadoBadge";
 import { CasoCabeceraProps, formatCurrency, useCasoCabecera } from "./useCasoCabecera";
+import TramitadorSelect from "./TramitadorSelect";
 import SelectorNotificacion from "./SelectorNotificacion";
 import { avanceCaso } from "@/lib/avanceCaso";
 import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
-  const { caso, aseguradoras, registros, tiposBaja, usuarios, gestores, soloLectura, esAdministrador } =
+  const { caso, aseguradoras, registros, tiposBaja, usuarios, gestores, tramitadores = [], soloLectura, esAdministrador } =
     props;
   const {
     editing,
@@ -166,22 +167,22 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
           </Row>
           <Row label="Trámitador de la Cía">
             {editing ? (
-              <input className="mv-input" value={form.tramitador_nombre} onChange={(e) => update("tramitador_nombre", e.target.value)} />
+              <TramitadorSelect
+                aseguradoraId={form.aseguradora_id}
+                tramitadores={tramitadores}
+                value={form.tramitador_id}
+                onChange={(t) => {
+                  update("tramitador_id", t?.id ?? "");
+                  update("tramitador_nombre", t?.nombre ?? "");
+                  update("tramitador_email", t?.email ?? "");
+                }}
+              />
             ) : (
               caso.tramitador_nombre || "—"
             )}
           </Row>
           <Row label="Email del trámitador" last>
-            {editing ? (
-              <input
-                type="email"
-                className="mv-input"
-                value={form.tramitador_email}
-                onChange={(e) => update("tramitador_email", e.target.value)}
-              />
-            ) : (
-              caso.tramitador_email || "—"
-            )}
+            {caso.tramitador_email || "—"}
           </Row>
         </MobileSection>
 

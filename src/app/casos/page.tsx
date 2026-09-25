@@ -65,7 +65,7 @@ export default async function CasosPage({
       query,
       supabase.from("aseguradoras").select("id, nombre").order("nombre"),
       supabase.from("tipos_baja").select("id, nombre").order("nombre"),
-      supabase.from("tramitadores").select("id, nombre").order("nombre")
+      supabase.from("tramitadores").select("id, nombre, aseguradora_id, aseguradora:aseguradoras(nombre)").order("nombre")
     ]);
 
   const usuarioActual = await getUsuarioActual();
@@ -144,11 +144,23 @@ export default async function CasosPage({
             className="input"
           >
             <option value="">Todos</option>
-            {tramitadores?.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.nombre}
-              </option>
-            ))}
+            {(
+              tramitadores as unknown as
+                | {
+                    id: string;
+                    nombre: string;
+                    aseguradora_id: string | null;
+                    aseguradora: { nombre: string } | null;
+                  }[]
+                | null
+            )
+              ?.filter((t) => !searchParams.aseguradora_id || t.aseguradora_id === searchParams.aseguradora_id)
+              .map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.nombre}
+                  {!searchParams.aseguradora_id && t.aseguradora ? ` — ${t.aseguradora.nombre}` : ""}
+                </option>
+              ))}
           </select>
         </div>
         <div className="sm:flex-1 sm:min-w-[140px]">

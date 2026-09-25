@@ -1,44 +1,66 @@
 import { createClient } from "@/lib/supabase/server";
 
-// Busca (sin distinguir mayúsculas/espacios) o crea un trámitador a
-// partir del nombre libre que se carga en el caso, y devuelve su id —
-// así el catálogo (tabla tramitadores) se va completando solo, sin
-// tocar el formulario de alta/edición del caso. No pisa el email de un
-// trámitador ya existente con uno distinto: si hace falta corregirlo,
-// se edita desde /catalogos/tramitadores.
-export async function resolverTramitadorId(
+export interface TramitadorResuelto {
+  id: string;
+  nombre: string;
+  email: string | null;
+}
+
+// Resuelve el trámitador de un caso a partir de lo que mande el cliente:
+// - `tramitadorId` (elegido en el desplegable de la compañía): se toma
+//   tal cual, con su nombre y email del catálogo.
+// - o solo `nombre` (llamadas viejas / API): se busca dentro de esa
+//   aseguradora sin distinguir mayúsculas/espacios, o se crea.
+// Los campos de texto del caso (tramitador_nombre / tramitador_email)
+// se completan siempre desde el resultado, así notificaciones y
+// exports siguen leyéndolos igual.
+export async function resolverTramitador(
   supabase: ReturnType<typeof createClient>,
-  nombre: string | null | undefined,
-  email: string | null | undefined
-): Promise<string | null> {
-  const nombreLimpio = nombre?.trim();
-  if (!nombreLimpio) return null;
+  datos: {
+    tramitadorId?: string | null;
+    nombre?: string | null;
+    email?: string | null;
+    aseguradoraId?: string | null;
+  }
+): Promise<TramitadorResuelto | null> {
+  if (datos.tramitadorId) {
+    const { data } = await supabase
+      .from("tramitadores")
+      .select("id, nombre, email")
+      .eq("id", datos.tramitadorId)
+      .maybeSingle();
+    return data ?? null;
+  }
 
-  const { data: existente } = await supabase
-    .from("tramitadores")
-    .select("id")
-    .ilike("nombre", nombreLimpio)
-    .maybeSingle();
+  const nombreLimpio = datos.nombre?.trim();
+  if (!nombreLimpio || !datos.aseguradoraId) return null;
 
-  if (existente) return existente.id;
+  const buscar = () =>
+    supabase
+      .from("tramitadores")
+      .select("id, nombre, email")
+      .eq("aseguradora_id", datos.aseguradoraId!)
+      .ilike("nombre", nombreLimpio)
+      .maybeSingle();
+
+  const { data: existente } = await buscar();
+  if (existente) return existente;
 
   const { data: nuevo, error } = await supabase
     .from("tramitadores")
-    .insert({ nombre: nombreLimpio, email: email?.trim() || null })
-    .select("id")
+    .insert({
+      nombre: nombreLimpio,
+      email: datos.email?.trim() || null,
+      aseguradora_id: datos.aseguradoraId
+    })
+    .select("id, nombre, email")
     .single();
 
-  // Si otro request lo creó en simultáneo, el unique constraint de
-  // "nombre" hace fallar el insert — se busca de nuevo en vez de romper
-  // la carga del caso por esta carrera.
+  // Carrera con otro request: el índice único hace fallar el insert.
   if (error) {
-    const { data: reintento } = await supabase
-      .from("tramitadores")
-      .select("id")
-      .ilike("nombre", nombreLimpio)
-      .maybeSingle();
-    return reintento?.id ?? null;
+    const { data: reintento } = await buscar();
+    return reintento ?? null;
   }
 
-  return nuevo.id;
+  return nuevo;
 }

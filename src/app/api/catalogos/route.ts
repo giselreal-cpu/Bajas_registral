@@ -11,13 +11,14 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET() {
   const supabase = createClient();
 
-  const [aseguradoras, tiposBaja, usuarios] = await Promise.all([
+  const [aseguradoras, tiposBaja, usuarios, tramitadores] = await Promise.all([
     supabase.from("aseguradoras").select("*").order("nombre"),
     supabase.from("tipos_baja").select("*").order("nombre"),
-    supabase.from("usuarios").select("*").order("nombre")
+    supabase.from("usuarios").select("*").order("nombre"),
+    supabase.from("tramitadores").select("id, nombre, email, aseguradora_id").order("nombre")
   ]);
 
-  const firstError = aseguradoras.error || tiposBaja.error || usuarios.error;
+  const firstError = aseguradoras.error || tiposBaja.error || usuarios.error || tramitadores.error;
 
   if (firstError) {
     return NextResponse.json({ error: firstError.message }, { status: 500 });
@@ -26,6 +27,7 @@ export async function GET() {
   return NextResponse.json({
     aseguradoras: aseguradoras.data,
     tipos_baja: tiposBaja.data,
+    tramitadores: tramitadores.data ?? [],
     // Los usuarios con rol "compania" no son elegibles como responsables
     // de un caso; se filtran acá para no ensuciar los combos de la app.
     usuarios: (usuarios.data ?? []).filter((u: any) => u.rol !== "compania")

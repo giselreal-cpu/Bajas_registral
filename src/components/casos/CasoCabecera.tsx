@@ -1,5 +1,6 @@
 "use client";
 
+import TramitadorSelect from "./TramitadorSelect";
 import { ESTADOS, RAMAS } from "@/types/database";
 import { estadoBadgeClass } from "@/lib/estadoBadge";
 import { CasoCabeceraProps, formatCurrency, useCasoCabecera } from "./useCasoCabecera";
@@ -8,7 +9,7 @@ import { avanceCaso } from "@/lib/avanceCaso";
 import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabecera(props: CasoCabeceraProps) {
-  const { caso, aseguradoras, registros, tiposBaja, usuarios, gestores, soloLectura, esAdministrador } =
+  const { caso, aseguradoras, registros, tiposBaja, usuarios, gestores, tramitadores = [], soloLectura, esAdministrador } =
     props;
   const {
     editing,
@@ -209,28 +210,22 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
 
           <Field label="Trámitador de la compañía">
             {editing ? (
-              <input
-                className="input"
-                value={form.tramitador_nombre}
-                onChange={(e) => update("tramitador_nombre", e.target.value)}
+              <TramitadorSelect
+                aseguradoraId={form.aseguradora_id}
+                tramitadores={tramitadores}
+                value={form.tramitador_id}
+                onChange={(t) => {
+                  update("tramitador_id", t?.id ?? "");
+                  update("tramitador_nombre", t?.nombre ?? "");
+                  update("tramitador_email", t?.email ?? "");
+                }}
               />
             ) : (
               caso.tramitador_nombre || "—"
             )}
           </Field>
 
-          <Field label="Email del trámitador">
-            {editing ? (
-              <input
-                type="email"
-                className="input"
-                value={form.tramitador_email}
-                onChange={(e) => update("tramitador_email", e.target.value)}
-              />
-            ) : (
-              caso.tramitador_email || "—"
-            )}
-          </Field>
+          <Field label="Email del trámitador">{caso.tramitador_email || "—"}</Field>
         </div>
       </Section>
       </div>

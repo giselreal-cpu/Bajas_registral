@@ -9,6 +9,7 @@ import {
   Gestor,
   RegistroAutomotor,
   TipoBaja,
+  Tramitador,
   Usuario
 } from "@/types/database";
 import CasoCabeceraMobile from "./CasoCabeceraMobile";
@@ -26,6 +27,7 @@ interface Props {
   tiposBaja: TipoBaja[];
   usuarios: Usuario[];
   gestores: Gestor[];
+  tramitadores?: Tramitador[];
   soloLectura?: boolean;
   esAdministrador?: boolean;
 }

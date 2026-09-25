@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { avanzarEstadoAlMenosHasta } from "@/lib/estadoAutomatico";
-import { resolverTramitadorId } from "@/lib/tramitadores";
+import { resolverTramitador } from "@/lib/tramitadores";
 
 const CASO_SELECT = `
   *,
@@ -67,7 +67,8 @@ export async function PUT(
     "productor_nombre",
     "productor_contacto",
     "tramitador_nombre",
-    "tramitador_email"
+    "tramitador_email",
+    "tramitador_id"
   ];
 
   const update: Record<string, unknown> = {};
@@ -75,15 +76,29 @@ export async function PUT(
     if (field in body) update[field] = body[field];
   }
 
-  // Mantiene sincronizado el catálogo de trámitadores (y el vínculo
-  // casos.tramitador_id que usan los filtros) sin cambiar el formulario:
-  // se resuelve solo cuando el nombre viene en la edición.
-  if ("tramitador_nombre" in update) {
-    update.tramitador_id = await resolverTramitadorId(
-      supabase,
-      update.tramitador_nombre as string | null,
-      update.tramitador_email as string | null
-    );
+  // El trámitador se elige del desplegable de la compañía (tramitador_id);
+  // nombre y email del caso se completan desde el catálogo para que
+  // notificaciones y exports sigan leyéndolos igual. Si cambia solo el
+  // nombre (llamada vieja), se resuelve dentro de la aseguradora del caso.
+  if ("tramitador_id" in update || "tramitador_nombre" in update) {
+    let aseguradoraId = update.aseguradora_id as string | undefined;
+    if (!aseguradoraId) {
+      const { data: actual } = await supabase
+        .from("casos")
+        .select("aseguradora_id")
+        .eq("id", params.id)
+        .maybeSingle();
+      aseguradoraId = actual?.aseguradora_id;
+    }
+    const tramitador = await resolverTramitador(supabase, {
+      tramitadorId: (update.tramitador_id as string | null) || null,
+      nombre: update.tramitador_nombre as string | null,
+      email: update.tramitador_email as string | null,
+      aseguradoraId
+    });
+    update.tramitador_id = tramitador?.id ?? null;
+    update.tramitador_nombre = tramitador?.nombre ?? null;
+    update.tramitador_email = tramitador?.email ?? null;
   }
 
   // Si se reasigna el gestor (a otro, o se le saca la asignación), el enlace

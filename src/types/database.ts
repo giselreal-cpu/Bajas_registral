@@ -189,6 +189,7 @@ export interface Tramitador {
   id: string;
   nombre: string;
   email: string | null;
+  aseguradora_id: string | null;
 }
 
 // Caso con los catálogos relacionados ya resueltos (para la vista de detalle/listado)

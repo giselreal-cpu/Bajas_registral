@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Aseguradora, ESTADOS, TipoBaja, TIPOS_VEHICULO, Usuario } from "@/types/database";
+import { Aseguradora, ESTADOS, TipoBaja, Tramitador, TIPOS_VEHICULO, Usuario } from "@/types/database";
+import TramitadorSelect from "./TramitadorSelect";
 import { DESTINATARIOS, Destinatario } from "@/lib/email/notificacionesCaso";
 
 interface Catalogos {
   aseguradoras: Aseguradora[];
   tipos_baja: TipoBaja[];
   usuarios: Usuario[];
+  tramitadores: Tramitador[];
 }
 
 export default function CasoForm() {
@@ -31,6 +33,7 @@ export default function CasoForm() {
     tipo_baja_id: "",
     responsable_id: "",
     observaciones: "",
+    tramitador_id: "",
     tramitador_nombre: "",
     tramitador_email: "",
     productor_nombre: "",
@@ -104,8 +107,7 @@ export default function CasoForm() {
       tipo_baja_id: form.tipo_baja_id || null,
       responsable_id: form.responsable_id || null,
       observaciones: form.observaciones || null,
-      tramitador_nombre: form.tramitador_nombre || null,
-      tramitador_email: form.tramitador_email || null,
+      tramitador_id: form.tramitador_id || null,
       productor_nombre: form.productor_nombre || null,
       productor_contacto: form.productor_contacto || null,
       notificar: Array.from(notificar).filter((d) => !!emailDe(d)),
@@ -292,21 +294,20 @@ export default function CasoForm() {
       <section className="card p-4 space-y-4">
         <h2 className="font-medium text-slate-800">Trámitador / Productor</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
+          <div className="sm:col-span-2">
             <label className="label">Trámitador de la compañía</label>
-            <input
-              className="input"
-              value={form.tramitador_nombre}
-              onChange={(e) => update("tramitador_nombre", e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="label">Email del trámitador</label>
-            <input
-              type="email"
-              className="input"
-              value={form.tramitador_email}
-              onChange={(e) => update("tramitador_email", e.target.value)}
+            <TramitadorSelect
+              aseguradoraId={form.aseguradora_id}
+              tramitadores={catalogos?.tramitadores ?? []}
+              value={form.tramitador_id}
+              onChange={(t) =>
+                setForm((f) => ({
+                  ...f,
+                  tramitador_id: t?.id ?? "",
+                  tramitador_nombre: t?.nombre ?? "",
+                  tramitador_email: t?.email ?? ""
+                }))
+              }
             />
           </div>
           <div>

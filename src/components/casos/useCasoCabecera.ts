@@ -6,6 +6,7 @@ import {
   Gestor,
   RegistroAutomotor,
   TipoBaja,
+  Tramitador,
   Usuario
 } from "@/types/database";
 
@@ -16,6 +17,7 @@ export interface CasoCabeceraProps {
   tiposBaja: TipoBaja[];
   usuarios: Usuario[];
   gestores: Gestor[];
+  tramitadores?: Tramitador[];
   soloLectura?: boolean;
   esAdministrador?: boolean;
 }
@@ -52,6 +54,7 @@ function formDesdeCaso(caso: CasoConRelaciones) {
     observaciones: caso.observaciones ?? "",
     productor_nombre: caso.productor_nombre ?? "",
     productor_contacto: caso.productor_contacto ?? "",
+    tramitador_id: caso.tramitador_id ?? "",
     tramitador_nombre: caso.tramitador_nombre ?? "",
     tramitador_email: caso.tramitador_email ?? "",
     asegurado_nombre: caso.asegurado?.nombre ?? "",

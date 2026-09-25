@@ -43,7 +43,8 @@ export default async function CasoDetallePage({
     { data: registros },
     { data: tiposBaja },
     { data: usuarios },
-    { data: gestores }
+    { data: gestores },
+    { data: tramitadores }
   ] = await Promise.all([
     supabase.from("casos").select(CASO_SELECT).eq("id", params.id).single(),
     supabase.from("aseguradoras").select("*").order("nombre"),
@@ -51,7 +52,8 @@ export default async function CasoDetallePage({
     supabase.from("registros_automotores").select("*").order("numero"),
     supabase.from("tipos_baja").select("*").order("nombre"),
     supabase.from("usuarios").select("*").order("nombre"),
-    supabase.from("gestores").select("*").order("nombre")
+    supabase.from("gestores").select("*").order("nombre"),
+    supabase.from("tramitadores").select("id, nombre, email, aseguradora_id").order("nombre")
   ]);
 
   if (error || !caso) {
@@ -93,6 +95,7 @@ export default async function CasoDetallePage({
           tiposBaja={tiposBaja ?? []}
           usuarios={usuarios ?? []}
           gestores={gestores ?? []}
+          tramitadores={tramitadores ?? []}
           soloLectura={soloLectura}
           esAdministrador={esAdministrador}
         />
@@ -106,6 +109,7 @@ export default async function CasoDetallePage({
         tiposBaja={tiposBaja ?? []}
         usuarios={usuarios ?? []}
         gestores={gestores ?? []}
+        tramitadores={tramitadores ?? []}
         soloLectura={soloLectura}
         esAdministrador={esAdministrador}
       />

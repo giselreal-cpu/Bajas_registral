@@ -213,7 +213,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     supabase.from("bitacora").select("caso_id").eq("tipo_evento", "Contacto con el asegurado"),
     supabase.from("aseguradoras").select("id, nombre").order("nombre"),
     supabase.from("tipos_baja").select("id, nombre").order("nombre"),
-    supabase.from("tramitadores").select("id, nombre").order("nombre")
+    supabase.from("tramitadores").select("id, nombre, aseguradora_id, aseguradora:aseguradoras(nombre)").order("nombre")
   ]);
 
   const hayFiltrosPanel = !!(

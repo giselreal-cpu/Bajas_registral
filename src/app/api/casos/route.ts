@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { enviarEmail } from "@/lib/email/enviarEmail";
 import { asuntoYCuerpo, destinatariosDisponibles, Destinatario } from "@/lib/email/notificacionesCaso";
-import { resolverTramitadorId } from "@/lib/tramitadores";
+import { resolverTramitador } from "@/lib/tramitadores";
 import { CasoConRelaciones } from "@/types/database";
 
 const CASO_SELECT = `
@@ -60,6 +60,7 @@ export async function POST(request: NextRequest) {
     aseguradora_id,
     tipo_baja_id,
     responsable_id,
+    tramitador_id,
     tramitador_nombre,
     tramitador_email,
     productor_nombre,
@@ -158,7 +159,12 @@ export async function POST(request: NextRequest) {
     vehiculoId = nuevoVehiculo.id;
   }
 
-  const tramitadorId = await resolverTramitadorId(supabase, tramitador_nombre, tramitador_email);
+  const tramitador = await resolverTramitador(supabase, {
+    tramitadorId: tramitador_id,
+    nombre: tramitador_nombre,
+    email: tramitador_email,
+    aseguradoraId: aseguradora_id
+  });
 
   // 3. Crear el caso
   const { data: caso, error: errCaso } = await supabase
@@ -174,9 +180,9 @@ export async function POST(request: NextRequest) {
       tipo_baja_id: tipo_baja_id ?? null,
       responsable_id: responsable_id ?? null,
       observaciones: observaciones ?? null,
-      tramitador_nombre: tramitador_nombre ?? null,
-      tramitador_email: tramitador_email ?? null,
-      tramitador_id: tramitadorId,
+      tramitador_nombre: tramitador?.nombre ?? null,
+      tramitador_email: tramitador?.email ?? null,
+      tramitador_id: tramitador?.id ?? null,
       productor_nombre: productor_nombre ?? null,
       productor_contacto: productor_contacto ?? null
     })
