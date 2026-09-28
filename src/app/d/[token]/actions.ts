@@ -15,13 +15,60 @@ async function casoDeDesarmadero(token: string) {
   const { data: caso } = await supabase
     .from("casos")
     .select(
-      "id, numero_siniestro, desarmadero_id, vehiculo_id, vehiculo:vehiculos(dominio, tipo_vehiculo)"
+      "id, numero_siniestro, desarmadero_id, vehiculo_id, vehiculo:vehiculos(dominio, tipo_vehiculo), desarmadero:desarmaderos(nombre)"
     )
     .eq("token_desarmadero", token)
     .maybeSingle();
 
   if (!caso || !caso.desarmadero_id) return null;
   return caso;
+}
+
+// Observación cargada por el desarmadero desde su enlace público, sin
+// login. Queda como un evento de bitácora "Observaciones" más (no
+// interna) — la ven ellos mismos (releyendo esta misma página),
+// operador/administrador desde el caso, y nunca compañía (esa
+// redacción ya es una regla dura en toda la app, independiente de
+// es_interna) ni otro desarmadero (cada uno solo entra con el token de
+// SU caso).
+export async function agregarObservacionDesarmadero(
+  token: string,
+  texto: string
+): Promise<{ ok?: true; error?: string }> {
+  const caso = await casoDeDesarmadero(token);
+  if (!caso) {
+    return { error: "Este enlace ya no es válido." };
+  }
+  if (!texto.trim()) {
+    return { error: "Escribí una observación." };
+  }
+
+  const supabase = createServiceClient();
+  const desarmaderoNombre =
+    (caso.desarmadero as unknown as { nombre: string } | null)?.nombre ?? "el desarmadero";
+
+  const { error } = await supabase.from("bitacora").insert({
+    caso_id: caso.id,
+    tipo_evento: "Observaciones",
+    observacion: `Autor: Desarmadero (${desarmaderoNombre})\n${texto.trim()}`,
+    completado: true,
+    fecha_inicio: new Date().toISOString().slice(0, 10),
+    creado_por: null
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await supabase.from("historial_cambios").insert({
+    caso_id: caso.id,
+    usuario_id: null,
+    tipo_cambio: "Agregó una observación",
+    detalle: `Cargada por ${desarmaderoNombre} vía enlace público`
+  });
+
+  revalidatePath(`/d/${token}`);
+  return { ok: true };
 }
 
 // El desarmadero también puede elegir/cambiar el tipo de vehículo del

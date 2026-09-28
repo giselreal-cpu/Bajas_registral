@@ -6,6 +6,7 @@ import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import { PIEZAS_RUDAC } from "@/lib/anexo04";
 import Anexo04Form from "./Anexo04Form";
+import ObservacionesDesarmadero, { ObservacionRow } from "./ObservacionesDesarmadero";
 
 function normalizar(s: string): string {
   return s
@@ -18,10 +19,12 @@ export const dynamic = "force-dynamic";
 
 // Mismo orden que el timeline mobile interno (BitacoraTimeline.tsx) —
 // reordenado solo para mostrarlo como secuencia, sin tocar el
-// catálogo compartido. "Observaciones" queda afuera a propósito: acá
-// no se muestra ningún texto libre, ni de eventos comunes ni de
-// observaciones sueltas, sean internas o no — el desarmadero solo ve
-// que un paso se completó y cuándo.
+// catálogo compartido. "Observaciones" queda afuera de este tracking
+// a propósito (no se mezcla texto libre con los hitos del trámite):
+// tiene su propia sección más abajo, alimentada por
+// ObservacionesDesarmadero — ahí el desarmadero puede leer y cargar
+// observaciones no internas, visibles para ellos y para
+// operador/administrador, nunca para compañía ni otro desarmadero.
 const ORDEN_TIMELINE = [
   "ingreso_caso",
   "peticion_informes",
@@ -141,6 +144,17 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     anexo04: await firmar(todos.filter((d) => d.categoria === "anexo04_rudac"))
   };
 
+  const { data: observacionesRaw } = await supabase
+    .from("bitacora")
+    .select("id, fecha_inicio, observacion, created_at")
+    .eq("caso_id", caso.id)
+    .eq("tipo_evento", "Observaciones")
+    .eq("es_interna", false)
+    .not("observacion", "is", null)
+    .order("created_at", { ascending: false });
+
+  const observaciones = (observacionesRaw ?? []) as unknown as ObservacionRow[];
+
   const { data: decisionesRaw } = await supabase
     .from("caso_piezas_rudac")
     .select("codigo, decision")
@@ -231,6 +245,8 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
           })}
         </div>
       </section>
+
+      <ObservacionesDesarmadero token={params.token} observaciones={observaciones} />
 
       <Anexo04Form
         token={params.token}
