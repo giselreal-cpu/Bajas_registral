@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Caja, CuentaContable, MovimientoGeneral, TipoMovimiento } from "@/types/database";
+import { Caja, CuentaContable, MovimientoGeneral, TipoCuentaContable, TipoMovimiento } from "@/types/database";
+
+const LABEL_TIPO_CUENTA: Record<TipoCuentaContable, string> = {
+  activo: "Activo",
+  pasivo: "Pasivo",
+  pn: "Patrimonio neto",
+  ingreso: "Ingreso",
+  egreso: "Egreso",
+  resultado: "Resultado"
+};
 
 function formatCurrency(value: number, moneda: "ARS" | "USD" = "ARS"): string {
   return value.toLocaleString("es-AR", { style: "currency", currency: moneda });
@@ -55,8 +64,6 @@ export default function MovimientosGeneralesSection({ cajas, cuentas, esAdminist
   useEffect(() => {
     cargar();
   }, []);
-
-  const cuentasDelTipo = cuentas.filter((c) => c.tipo === form.tipo);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -155,9 +162,7 @@ export default function MovimientosGeneralesSection({ cajas, cuentas, esAdminist
             <select
               className="input"
               value={form.tipo}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, tipo: e.target.value as TipoMovimiento, cuenta_contable_id: "" }))
-              }
+              onChange={(e) => setForm((f) => ({ ...f, tipo: e.target.value as TipoMovimiento }))}
             >
               <option value="egreso">Egreso</option>
               <option value="ingreso">Ingreso</option>
@@ -206,11 +211,19 @@ export default function MovimientosGeneralesSection({ cajas, cuentas, esAdminist
               onChange={(e) => setForm((f) => ({ ...f, cuenta_contable_id: e.target.value }))}
             >
               <option value="">Sin asignar</option>
-              {cuentasDelTipo.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.codigo} · {c.nombre}
-                </option>
-              ))}
+              {(Object.keys(LABEL_TIPO_CUENTA) as TipoCuentaContable[]).map((tipo) => {
+                const delTipo = cuentas.filter((c) => c.tipo === tipo);
+                if (delTipo.length === 0) return null;
+                return (
+                  <optgroup key={tipo} label={LABEL_TIPO_CUENTA[tipo]}>
+                    {delTipo.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.codigo} · {c.nombre}
+                      </option>
+                    ))}
+                  </optgroup>
+                );
+              })}
             </select>
           </div>
           <button className="btn-primary col-span-2 sm:col-span-1" disabled={saving} type="submit">

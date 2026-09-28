@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { EstadoFactura, ESTADOS_FACTURA } from "@/types/database";
 import MovimientoPagadoToggle from "@/components/casos/MovimientoPagadoToggle";
+import { obtenerCashFlow } from "@/lib/cashFlow";
 
 export const dynamic = "force-dynamic";
 
@@ -88,7 +89,7 @@ export default async function SeguimientoFinancieroPage() {
 
   const supabase = createClient();
 
-  const [{ data: casos, error }, { data: casosCerrados, error: errorCerrados }] = await Promise.all([
+  const [{ data: casos, error }, { data: casosCerrados, error: errorCerrados }, cashFlow] = await Promise.all([
     supabase
       .from("casos")
       .select(
@@ -114,7 +115,8 @@ export default async function SeguimientoFinancieroPage() {
         movimientos_caso(monto, pagado, aprobado, anulado, concepto:conceptos_movimiento(nombre))
       `
       )
-      .eq("estado", "cerrado")
+      .eq("estado", "cerrado"),
+    obtenerCashFlow()
   ]);
 
   if (error) {
@@ -204,7 +206,7 @@ export default async function SeguimientoFinancieroPage() {
         totalPendienteCobro
       };
     })
-    .filter((c) => c.movimientos_caso.length > 0 || c.facturas.length > 0)
+    .filter((c) => c.totalPendienteCobro > 0 || c.totalPendientePago > 0)
     .sort(
       (a, b) =>
         b.totalPendienteCobro + b.totalPendientePago - (a.totalPendienteCobro + a.totalPendientePago)
@@ -218,9 +220,75 @@ export default async function SeguimientoFinancieroPage() {
     <div>
       <h1 className="text-xl font-semibold text-slate-900 mb-1">Seguimiento financiero</h1>
       <p className="text-sm text-slate-500 mb-6">
-        Por cada caso con movimientos cargados: lo que falta cobrar (facturas sin saldar) y los
-        egresos cargados, marcando cuáles ya se pagaron y cuáles siguen pendientes.
+        Proyección de cobros y pagos, y el detalle por caso de lo que todavía falta cobrar
+        (facturas sin saldar) o pagar (egresos aprobados sin marcar como pagados). Los casos ya
+        saldados no aparecen en el listado de abajo.
       </p>
+
+      <section className="card p-4 mb-6">
+        <h2 className="font-medium text-slate-800 mb-1">Cash flow proyectado</h2>
+        <p className="text-xs text-slate-400 mb-3">
+          Semana a semana, a partir de lo que ya está cargado en el sistema: el saldo de las
+          facturas sin cobrar (por su fecha de vencimiento) y los egresos aprobados sin marcar
+          como pagados (por su fecha). No es una previsión de negocio nuevo, solo distribuye en
+          el tiempo lo que ya se sabe que falta cobrar o pagar. Lo vencido se suma en la semana
+          actual.
+        </p>
+        <div className="flex flex-wrap gap-4 mb-4 text-sm">
+          <div>
+            <span className="text-slate-500">Liquidez actual: </span>
+            <b className="text-slate-800">{formatCurrency(cashFlow.liquidezActual)}</b>
+          </div>
+          {cashFlow.vencidoSinCobrar > 0 && (
+            <div>
+              <span className="text-slate-500">De lo cual vencido sin cobrar: </span>
+              <b className="text-red-700">{formatCurrency(cashFlow.vencidoSinCobrar)}</b>
+            </div>
+          )}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-slate-500">
+              <tr>
+                <th className="py-1 pr-4 font-medium">Semana</th>
+                <th className="py-1 pr-4 font-medium text-right">Por cobrar</th>
+                <th className="py-1 pr-4 font-medium text-right">Por pagar</th>
+                <th className="py-1 pr-4 font-medium text-right">Neto</th>
+                <th className="py-1 pr-4 font-medium text-right">Liquidez proyectada</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cashFlow.semanas.map((s, i) => (
+                <tr key={s.inicio} className="border-t border-slate-100">
+                  <td className="py-1.5 pr-4 whitespace-nowrap">
+                    {i === 0 ? "Esta semana" : `Semana del ${new Date(s.inicio + "T00:00:00").toLocaleDateString("es-AR")}`}
+                  </td>
+                  <td className="py-1.5 pr-4 text-right text-emerald-700">
+                    {s.porCobrar > 0 ? formatCurrency(s.porCobrar) : "—"}
+                  </td>
+                  <td className="py-1.5 pr-4 text-right text-red-700">
+                    {s.porPagar > 0 ? `− ${formatCurrency(s.porPagar)}` : "—"}
+                  </td>
+                  <td
+                    className={`py-1.5 pr-4 text-right font-medium ${
+                      s.neto >= 0 ? "text-slate-700" : "text-red-700"
+                    }`}
+                  >
+                    {formatCurrency(s.neto)}
+                  </td>
+                  <td
+                    className={`py-1.5 pr-4 text-right font-semibold ${
+                      s.liquidezProyectada >= 0 ? "text-slate-800" : "text-red-800"
+                    }`}
+                  >
+                    {formatCurrency(s.liquidezProyectada)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="card p-4 bg-emerald-50 border-emerald-100">
@@ -442,7 +510,7 @@ export default async function SeguimientoFinancieroPage() {
         ))}
         {casosConActividad.length === 0 && (
           <div className="card p-8 text-center text-slate-500">
-            Todavía no hay casos con movimientos o facturas cargadas.
+            No hay casos con movimientos financieros pendientes.
           </div>
         )}
       </div>
