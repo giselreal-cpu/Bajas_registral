@@ -41,6 +41,7 @@ export interface CasoResumen {
   gestor: { nombre: string } | null;
   asegurado: { nombre: string } | null;
   responsable: { nombre: string } | null;
+  vehiculo: { dominio: string; marca: string | null; modelo: string | null } | null;
 }
 
 export interface EventoIncompletoRow {
@@ -130,7 +131,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   let casosQuery = supabase
     .from("casos")
     .select(
-      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, gestor_id, gestor:gestores(nombre), asegurado:asegurados(nombre), responsable:usuarios(nombre)"
+      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, gestor_id, gestor:gestores(nombre), asegurado:asegurados(nombre), responsable:usuarios(nombre), vehiculo:vehiculos(dominio, marca, modelo)"
     );
 
   if (filtros.aseguradora_id) {
@@ -548,32 +549,31 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   const resumenMensual = Array.from(resumenPorMes.values()).sort((a, b) => b.mes.localeCompare(a.mes));
 
   // Agregados de nivel "cartera completa" para las 5 tarjetas del Panel
-  // rediseñado — mismos criterios que ya usa /caja (A cobrar = facturas
-  // a la compañía sin cobrar del todo; A rendir = gastos de campo con
-  // aprobado=false), pero sumados en toda la cartera en vez de por caso.
-  const [{ data: facturasCompaniaPendientes }, { data: movimientosSinAprobar }] = await Promise.all([
+  // rediseñado — A cobrar = todas las facturas sin cobrar del todo, sean
+  // a la compañía o al desarmadero; A rendir = gastos de campo con
+  // aprobado=false — sumados en toda la cartera en vez de por caso.
+  const [{ data: facturasPendientesRaw }, { data: movimientosSinAprobar }] = await Promise.all([
     supabase
       .from("facturas")
       .select("caso_id, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)")
-      .eq("tipo_receptor", "compania")
       .neq("estado", "cobrado_total"),
     supabase.from("movimientos_caso").select("id, monto").eq("aprobado", false).eq("anulado", false)
   ]);
 
-  const facturasCompaniaSaldo = (facturasCompaniaPendientes ?? []) as unknown as {
+  const facturasPendientesSaldo = (facturasPendientesRaw ?? []) as unknown as {
     caso_id: string;
     monto_total: number;
     cobros: { monto: number; anulado: boolean }[];
     notas_credito: { monto: number; anulado: boolean }[];
   }[];
-  const totalACobrarCartera = facturasCompaniaSaldo.reduce((acc, f) => {
+  const totalACobrarCartera = facturasPendientesSaldo.reduce((acc, f) => {
     const saldo =
       f.monto_total -
       f.cobros.filter((c) => !c.anulado).reduce((a, c) => a + Number(c.monto), 0) -
       f.notas_credito.filter((n) => !n.anulado).reduce((a, n) => a + Number(n.monto), 0);
     return acc + Math.max(saldo, 0);
   }, 0);
-  const casosACobrarCartera = new Set(facturasCompaniaSaldo.map((f) => f.caso_id)).size;
+  const casosACobrarCartera = new Set(facturasPendientesSaldo.map((f) => f.caso_id)).size;
 
   const pendienteAprobar = (movimientosSinAprobar ?? []) as unknown as { id: string; monto: number }[];
   const totalPendienteAprobar = pendienteAprobar.reduce((acc, m) => acc + Number(m.monto), 0);

@@ -74,7 +74,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
   const casosQuePidenAtencion = [
     ...casosSinMovimiento.map((c) => ({
       id: c.id,
-      numero_siniestro: c.numero_siniestro,
+      vehiculo: c.vehiculo,
       asegurado: c.asegurado,
       responsable: c.responsable,
       motivo: `${c.dias} días sin movimiento`,
@@ -82,7 +82,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
     })),
     ...casosSinContactar.map((c) => ({
       id: c.id,
-      numero_siniestro: c.numero_siniestro,
+      vehiculo: c.vehiculo,
       asegurado: c.asegurado,
       responsable: c.responsable,
       motivo: "Sin contactar al asegurado",
@@ -230,7 +230,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <StatCard label="Casos abiertos" value={casosAbiertos} />
+        <StatCard label="Casos abiertos" value={casosAbiertos} sub={`${totalCasos} históricos`} />
         <StatCard label="Sin movimiento 7+ días" value={casosSinMovimiento.length} />
         {puedeVerFinanzas && (
           <StatCard label="A cobrar" value={formatCurrency(totalACobrarCartera)} sub={`${casosACobrarCartera} ${casosACobrarCartera === 1 ? "caso" : "casos"}`} />
@@ -261,7 +261,13 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
                     href={`/casos/${c.id}`}
                     className="text-brand-700 font-medium hover:underline text-sm"
                   >
-                    {c.numero_siniestro}
+                    {c.vehiculo?.dominio ?? "—"}
+                    {(c.vehiculo?.marca || c.vehiculo?.modelo) && (
+                      <span className="font-normal text-slate-500">
+                        {" · "}
+                        {[c.vehiculo?.marca, c.vehiculo?.modelo].filter(Boolean).join(" ")}
+                      </span>
+                    )}
                   </Link>
                   <p className="text-xs text-slate-500">
                     {c.asegurado?.nombre} · {c.responsable?.nombre ?? "Sin responsable"}
