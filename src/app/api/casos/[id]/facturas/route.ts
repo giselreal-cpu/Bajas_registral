@@ -11,7 +11,7 @@ export async function GET(
   const supabase = createClient();
   const { data, error } = await supabase
     .from("facturas")
-    .select("*, cobros(*), notas_credito(*)")
+    .select("*, cobros(*), notas_credito(*), cuentas_pago:facturas_cuentas_pago(*)")
     .eq("caso_id", params.id)
     .order("fecha_emision", { ascending: false });
 
@@ -30,7 +30,10 @@ export async function POST(
 ) {
   const supabase = createClient();
   const body = await request.json();
-  const { tipo_receptor, receptor_id, movimiento_ids, fecha_vencimiento, forma_pago } = body;
+  const { tipo_receptor, receptor_id, movimiento_ids, fecha_vencimiento, forma_pago, cuentas_pago } = body;
+  // cuentas_pago: [{ cuenta_bancaria, monto }] — solo tiene sentido cuando
+  // forma_pago es "Transferencia"; una fila = monto completo a una cuenta,
+  // varias filas = fraccionado entre varias cuentas.
 
   if (!tipo_receptor || !receptor_id || !Array.isArray(movimiento_ids) || movimiento_ids.length === 0) {
     return NextResponse.json(
@@ -94,6 +97,22 @@ export async function POST(
 
   if (errorUpdate) {
     return NextResponse.json({ error: errorUpdate.message }, { status: 500 });
+  }
+
+  if (Array.isArray(cuentas_pago) && cuentas_pago.length > 0) {
+    const filas = cuentas_pago
+      .filter((c: { cuenta_bancaria?: string; monto?: number }) => c.cuenta_bancaria?.trim() && Number(c.monto) > 0)
+      .map((c: { cuenta_bancaria: string; monto: number }) => ({
+        factura_id: factura.id,
+        cuenta_bancaria: c.cuenta_bancaria.trim(),
+        monto: Number(c.monto)
+      }));
+    if (filas.length > 0) {
+      const { error: errorCuentas } = await supabase.from("facturas_cuentas_pago").insert(filas);
+      if (errorCuentas) {
+        return NextResponse.json({ error: errorCuentas.message }, { status: 500 });
+      }
+    }
   }
 
   await registrarCambio(

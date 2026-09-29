@@ -78,7 +78,13 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
   const [tipoReceptor, setTipoReceptor] = useState<TipoReceptor>("compania");
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [facturaFechaVencimiento, setFacturaFechaVencimiento] = useState("");
-  const [facturaFormaPago, setFacturaFormaPago] = useState("");
+  const [facturaFormaPagoTipo, setFacturaFormaPagoTipo] = useState("");
+  const [facturaFormaPagoOtro, setFacturaFormaPagoOtro] = useState("");
+  const [facturaCuentasModo, setFacturaCuentasModo] = useState<"completo" | "fraccionado">("completo");
+  const [facturaCuentaCompleta, setFacturaCuentaCompleta] = useState("");
+  const [facturaCuentasFraccionado, setFacturaCuentasFraccionado] = useState<
+    { cuenta_bancaria: string; monto: string }[]
+  >([{ cuenta_bancaria: "", monto: "" }]);
   const [savingFactura, setSavingFactura] = useState(false);
 
   const [cobroFacturaId, setCobroFacturaId] = useState<string | null>(null);
@@ -316,6 +322,24 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
   const movimientosSinFacturar = (movimientos ?? []).filter(
     (m) => !m.factura_id && m.concepto?.tipo === "ingreso" && !m.anulado
   );
+  const montoTotalSeleccionado = movimientosSinFacturar
+    .filter((m) => seleccionados.includes(m.id))
+    .reduce((acc, m) => acc + Number(m.monto), 0);
+  const montoFraccionadoCargado = facturaCuentasFraccionado.reduce(
+    (acc, c) => acc + (Number(c.monto) || 0),
+    0
+  );
+
+  function resetFormFactura() {
+    setSeleccionados([]);
+    setFacturaFechaVencimiento("");
+    setFacturaFormaPagoTipo("");
+    setFacturaFormaPagoOtro("");
+    setFacturaCuentasModo("completo");
+    setFacturaCuentaCompleta("");
+    setFacturaCuentasFraccionado([{ cuenta_bancaria: "", monto: "" }]);
+    setShowFacturaForm(false);
+  }
 
   async function handleGenerarFactura(e: React.FormEvent) {
     e.preventDefault();
@@ -333,6 +357,28 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
       );
       return;
     }
+    const formaPago = facturaFormaPagoTipo === "Otro" ? facturaFormaPagoOtro.trim() : facturaFormaPagoTipo;
+    const esTransferencia = facturaFormaPagoTipo === "Transferencia";
+    if (esTransferencia && facturaCuentasModo === "completo" && !facturaCuentaCompleta.trim()) {
+      setError("Cargá la cuenta bancaria a donde va a transferir.");
+      return;
+    }
+    if (esTransferencia && facturaCuentasModo === "fraccionado") {
+      const validas = facturaCuentasFraccionado.filter((c) => c.cuenta_bancaria.trim() && Number(c.monto) > 0);
+      if (validas.length === 0) {
+        setError("Cargá al menos una cuenta con monto para el pago fraccionado.");
+        return;
+      }
+    }
+
+    const cuentasPago = !esTransferencia
+      ? []
+      : facturaCuentasModo === "completo"
+        ? [{ cuenta_bancaria: facturaCuentaCompleta.trim(), monto: montoTotalSeleccionado }]
+        : facturaCuentasFraccionado
+            .filter((c) => c.cuenta_bancaria.trim() && Number(c.monto) > 0)
+            .map((c) => ({ cuenta_bancaria: c.cuenta_bancaria.trim(), monto: Number(c.monto) }));
+
     setSavingFactura(true);
     try {
       const res = await fetch(`/api/casos/${casoId}/facturas`, {
@@ -343,7 +389,8 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
           receptor_id: receptorId,
           movimiento_ids: seleccionados,
           fecha_vencimiento: facturaFechaVencimiento || null,
-          forma_pago: facturaFormaPago || null
+          forma_pago: formaPago || null,
+          cuentas_pago: cuentasPago
         })
       });
       const json = await res.json();
@@ -351,10 +398,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
         setError(json.error);
         return;
       }
-      setSeleccionados([]);
-      setFacturaFechaVencimiento("");
-      setFacturaFormaPago("");
-      setShowFacturaForm(false);
+      resetFormFactura();
       loadFacturas();
       loadMovimientos();
     } finally {
@@ -939,14 +983,128 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
               </div>
               <div>
                 <label className="label">Forma de pago</label>
-                <input
+                <select
                   className="input"
-                  placeholder="Efectivo, transferencia..."
-                  value={facturaFormaPago}
-                  onChange={(e) => setFacturaFormaPago(e.target.value)}
-                />
+                  value={facturaFormaPagoTipo}
+                  onChange={(e) => setFacturaFormaPagoTipo(e.target.value)}
+                >
+                  <option value="">Sin definir</option>
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Transferencia">Transferencia</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Otro">Otro</option>
+                </select>
               </div>
             </div>
+
+            {facturaFormaPagoTipo === "Otro" && (
+              <div>
+                <label className="label">¿Cuál?</label>
+                <input
+                  className="input"
+                  value={facturaFormaPagoOtro}
+                  onChange={(e) => setFacturaFormaPagoOtro(e.target.value)}
+                />
+              </div>
+            )}
+
+            {facturaFormaPagoTipo === "Transferencia" && (
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-3">
+                <div>
+                  <label className="label">¿A cuántas cuentas transfiere?</label>
+                  <div className="flex gap-4 text-sm">
+                    <label className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        checked={facturaCuentasModo === "completo"}
+                        onChange={() => setFacturaCuentasModo("completo")}
+                      />
+                      Monto completo a una cuenta
+                    </label>
+                    <label className="flex items-center gap-1.5">
+                      <input
+                        type="radio"
+                        checked={facturaCuentasModo === "fraccionado"}
+                        onChange={() => setFacturaCuentasModo("fraccionado")}
+                      />
+                      Fraccionado en varias cuentas
+                    </label>
+                  </div>
+                </div>
+
+                {facturaCuentasModo === "completo" ? (
+                  <div>
+                    <label className="label">Cuenta bancaria destino</label>
+                    <input
+                      className="input"
+                      placeholder="Banco, CBU/alias, titular..."
+                      value={facturaCuentaCompleta}
+                      onChange={(e) => setFacturaCuentaCompleta(e.target.value)}
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Se transfiere el total: {formatCurrency(montoTotalSeleccionado)}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {facturaCuentasFraccionado.map((c, i) => (
+                      <div key={i} className="flex gap-2 items-start">
+                        <input
+                          className="input flex-1"
+                          placeholder="Banco, CBU/alias, titular..."
+                          value={c.cuenta_bancaria}
+                          onChange={(e) =>
+                            setFacturaCuentasFraccionado((filas) =>
+                              filas.map((f, idx) => (idx === i ? { ...f, cuenta_bancaria: e.target.value } : f))
+                            )
+                          }
+                        />
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="input w-32"
+                          placeholder="Monto"
+                          value={c.monto}
+                          onChange={(e) =>
+                            setFacturaCuentasFraccionado((filas) =>
+                              filas.map((f, idx) => (idx === i ? { ...f, monto: e.target.value } : f))
+                            )
+                          }
+                        />
+                        {facturaCuentasFraccionado.length > 1 && (
+                          <button
+                            type="button"
+                            className="text-xs text-slate-400 hover:text-red-600 pt-2.5"
+                            onClick={() =>
+                              setFacturaCuentasFraccionado((filas) => filas.filter((_, idx) => idx !== i))
+                            }
+                          >
+                            Quitar
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      className="text-xs text-brand-600 hover:underline"
+                      onClick={() =>
+                        setFacturaCuentasFraccionado((filas) => [...filas, { cuenta_bancaria: "", monto: "" }])
+                      }
+                    >
+                      + Agregar cuenta
+                    </button>
+                    <p
+                      className={`text-xs ${
+                        montoFraccionadoCargado === montoTotalSeleccionado ? "text-slate-400" : "text-amber-700"
+                      }`}
+                    >
+                      Cargado: {formatCurrency(montoFraccionadoCargado)} de {formatCurrency(montoTotalSeleccionado)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             <button className="btn-primary text-sm" disabled={savingFactura} type="submit">
               {savingFactura ? "Generando..." : "Generar factura"}
             </button>
@@ -1002,7 +1160,17 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                     <> · Notas de crédito: {formatCurrency(acreditadoPorNotas)}</>
                   )}{" "}
                   · Saldo: {formatCurrency(saldo)}
+                  {f.forma_pago && <> · {f.forma_pago}</>}
                 </div>
+                {(f.cuentas_pago ?? []).length > 0 && (
+                  <ul className="mt-1 text-xs text-slate-500 space-y-0.5">
+                    {f.cuentas_pago?.map((c) => (
+                      <li key={c.id}>
+                        Transferir {formatCurrency(c.monto)} a: {c.cuenta_bancaria}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {(f.cobros ?? []).length > 0 && (
                   <ul className="mt-1 text-xs text-slate-500 space-y-0.5">
                     {f.cobros?.map((c) => (

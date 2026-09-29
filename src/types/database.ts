@@ -396,6 +396,15 @@ export interface Factura {
   receptor_nombre?: string;
   cobros?: Cobro[];
   notas_credito?: NotaCredito[];
+  cuentas_pago?: FacturaCuentaPago[];
+}
+
+export interface FacturaCuentaPago {
+  id: string;
+  factura_id: string;
+  cuenta_bancaria: string;
+  monto: number;
+  created_at: string;
 }
 
 export interface Cobro {
