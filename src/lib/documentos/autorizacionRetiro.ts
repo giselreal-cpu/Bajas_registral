@@ -10,7 +10,8 @@ import {
   ImageRun,
   WidthType,
   VerticalAlign,
-  AlignmentType
+  AlignmentType,
+  HeightRule
 } from "docx";
 import { imageSize } from "image-size";
 
@@ -47,6 +48,10 @@ const MESES = [
 // definidos más abajo, en DXA (1440 = 1 pulgada).
 const ANCHO_CONTENIDO_DXA = 12240 - 1350 - 1350;
 const ALTO_LOGO_PX = 55;
+// 1px = 15 twips a 96dpi. Se le da margen de sobra (no solo el exacto de
+// la imagen) para que Word reserve espacio suficiente en la fila de la
+// tabla y el texto de abajo (la fecha) nunca quede pisando el logo.
+const ALTO_FILA_LOGOS_TWIPS = Math.round(ALTO_LOGO_PX * 15 * 1.3);
 
 function fechaLarga(): string {
   const hoy = new Date();
@@ -102,7 +107,7 @@ function logoParagraph(buffer: Buffer | null, alignment: (typeof AlignmentType)[
 // Tabla de 2 columnas sin bordes — se usa tanto para el encabezado con
 // los logos como para la línea "Aseguradora / Oltra" que sigue al
 // "Sres." (mismo layout que el documento de referencia del usuario).
-function filaDosColumnas(izquierda: Paragraph, derecha: Paragraph) {
+function filaDosColumnas(izquierda: Paragraph, derecha: Paragraph, alturaMinimaTwips?: number) {
   const sinBorde = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
   const bordesCelda = { top: sinBorde, bottom: sinBorde, left: sinBorde, right: sinBorde };
   const anchoColumna = ANCHO_CONTENIDO_DXA / 2;
@@ -112,6 +117,9 @@ function filaDosColumnas(izquierda: Paragraph, derecha: Paragraph) {
     borders: { top: sinBorde, bottom: sinBorde, left: sinBorde, right: sinBorde, insideHorizontal: sinBorde, insideVertical: sinBorde },
     rows: [
       new TableRow({
+        ...(alturaMinimaTwips
+          ? { height: { value: alturaMinimaTwips, rule: HeightRule.ATLEAST } }
+          : {}),
         children: [
           new TableCell({
             width: { size: anchoColumna, type: WidthType.DXA },
@@ -141,9 +149,10 @@ export async function generarAutorizacion(datos: DatosAutorizacion): Promise<Buf
     children.push(
       filaDosColumnas(
         logoParagraph(datos.logoAseguradoraBuffer, AlignmentType.LEFT),
-        logoParagraph(datos.logoOltraBuffer, AlignmentType.RIGHT)
+        logoParagraph(datos.logoOltraBuffer, AlignmentType.RIGHT),
+        ALTO_FILA_LOGOS_TWIPS
       ),
-      parrafo([texto(" ")])
+      parrafo([texto(" ")], { spacing: { after: 300 } })
     );
   }
 
