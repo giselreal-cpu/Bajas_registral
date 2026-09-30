@@ -1050,7 +1050,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                     {facturaCuentasFraccionado.map((c, i) => (
                       <div key={i} className="flex gap-2 items-start">
                         <input
-                          className="input flex-1"
+                          className="input flex-1 min-w-0"
                           placeholder="Banco, CBU/alias, titular..."
                           value={c.cuenta_bancaria}
                           onChange={(e) =>
