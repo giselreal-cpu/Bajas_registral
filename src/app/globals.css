@@ -134,30 +134,39 @@ body {
   }
 }
 
-.badge {
-  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium tracking-tight;
-}
+/* En @layer components para que Tailwind las emita ANTES que las
+   utilidades (orden base -> components -> utilities). Sin esto,
+   quedaban como CSS plano después de `@tailwind utilities` y, con la
+   misma especificidad, ganaba la última declarada en el archivo — por
+   ejemplo `.input` (width: 100%) le ganaba a un `w-32` puesto al lado
+   en el mismo elemento, rompiendo cualquier input angosto dentro de
+   una fila flex (ver cuentas de pago fraccionadas en Facturas). */
+@layer components {
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium tracking-tight;
+  }
 
-.card {
-  @apply rounded border border-silver-200 bg-white shadow-[0_1px_2px_rgba(45,43,43,0.14)];
-}
+  .card {
+    @apply rounded border border-silver-200 bg-white shadow-[0_1px_2px_rgba(45,43,43,0.14)];
+  }
 
-.btn {
-  @apply inline-flex items-center justify-center rounded px-3.5 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
-}
+  .btn {
+    @apply inline-flex items-center justify-center rounded px-3.5 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
 
-.btn-primary {
-  @apply btn bg-accent-600 text-white hover:bg-accent-700 shadow-sm;
-}
+  .btn-primary {
+    @apply btn bg-accent-600 text-white hover:bg-accent-700 shadow-sm;
+  }
 
-.btn-secondary {
-  @apply btn bg-white text-brand-700 border border-silver-300 hover:bg-silver-50 hover:border-brand-300;
-}
+  .btn-secondary {
+    @apply btn bg-white text-brand-700 border border-silver-300 hover:bg-silver-50 hover:border-brand-300;
+  }
 
-.input {
-  @apply block w-full rounded border border-silver-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-brand-300 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100;
-}
+  .input {
+    @apply block w-full rounded border border-silver-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-brand-300 focus:border-accent-500 focus:outline-none focus:ring-2 focus:ring-accent-100;
+  }
 
-.label {
-  @apply block text-xs font-semibold uppercase tracking-wide text-brand-400 mb-1.5;
+  .label {
+    @apply block text-xs font-semibold uppercase tracking-wide text-brand-400 mb-1.5;
+  }
 }
