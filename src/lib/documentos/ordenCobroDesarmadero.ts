@@ -16,6 +16,7 @@ export interface DatosOrdenCobro {
   valorMercado: number | null;
   valorOtros: number;
   total: number;
+  cuentasPago: { cuenta_bancaria: string; monto: number }[];
 }
 
 const PAGE_WIDTH = 612;
@@ -34,6 +35,31 @@ function formatearFecha(fecha: string | null): string {
 function formatearMoneda(valor: number | null): string {
   if (valor === null) return "—";
   return valor.toLocaleString("es-AR", { style: "currency", currency: "ARS" });
+}
+
+// Las cuentas bancarias se cargan como texto libre y pueden ser largas
+// (CBU + CUIT + titular + banco en una sola línea) — se parten para
+// que no se corten fuera del margen de la página.
+function partirEnLineas(
+  texto: string,
+  font: import("pdf-lib").PDFFont,
+  size: number,
+  anchoMaximo: number
+): string[] {
+  const palabras = texto.split(" ");
+  const lineas: string[] = [];
+  let actual = "";
+  for (const palabra of palabras) {
+    const candidata = actual ? `${actual} ${palabra}` : palabra;
+    if (font.widthOfTextAtSize(candidata, size) > anchoMaximo && actual) {
+      lineas.push(actual);
+      actual = palabra;
+    } else {
+      actual = candidata;
+    }
+  }
+  if (actual) lineas.push(actual);
+  return lineas;
 }
 
 // Documento corto (lista campo/valor + detalle de servicios), generado
@@ -160,6 +186,33 @@ export async function generarOrdenCobroDesarmadero(datos: DatosOrdenCobro): Prom
 
   fila("Fecha de vencimiento", formatearFecha(datos.fechaVencimiento), true);
   fila("Forma de pago", datos.formaPago ?? "—");
+
+  if (datos.cuentasPago.length > 0) {
+    asegurarEspacio(LINE_HEIGHT + 10);
+    page.drawLine({
+      start: { x: MARGIN_X, y: y + 8 },
+      end: { x: MARGIN_X + CONTENT_WIDTH, y: y + 8 },
+      thickness: 0.5,
+      color: rgb(0.8, 0.8, 0.8)
+    });
+    y -= 10;
+    page.drawText("Cuenta(s) de pago", {
+      x: MARGIN_X,
+      y,
+      size: LABEL_SIZE,
+      font: bold,
+      color: rgb(0.2, 0.2, 0.2)
+    });
+    y -= LINE_HEIGHT;
+    for (const cuenta of datos.cuentasPago) {
+      const texto = `Transferir ${formatearMoneda(cuenta.monto)} a: ${cuenta.cuenta_bancaria}`;
+      for (const linea of partirEnLineas(texto, regular, LABEL_SIZE, CONTENT_WIDTH)) {
+        asegurarEspacio(LINE_HEIGHT);
+        page.drawText(linea, { x: MARGIN_X, y, size: LABEL_SIZE, font: regular, color: rgb(0, 0, 0) });
+        y -= LINE_HEIGHT;
+      }
+    }
+  }
 
   return Buffer.from(await doc.save());
 }

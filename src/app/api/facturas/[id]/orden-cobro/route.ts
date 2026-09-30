@@ -35,12 +35,13 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     );
   }
 
-  const [{ data: desarmadero }, { data: movimientos }] = await Promise.all([
+  const [{ data: desarmadero }, { data: movimientos }, { data: cuentasPago }] = await Promise.all([
     supabase.from("desarmaderos").select("nombre").eq("id", factura.receptor_id).maybeSingle(),
     supabase
       .from("movimientos_caso")
       .select("monto, concepto:conceptos_movimiento(nombre)")
-      .eq("factura_id", params.id)
+      .eq("factura_id", params.id),
+    supabase.from("facturas_cuentas_pago").select("cuenta_bancaria, monto").eq("factura_id", params.id)
   ]);
 
   const movimientosFactura = (movimientos ?? []) as unknown as {
@@ -79,7 +80,8 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
     servicios,
     valorMercado: caso?.valor_infoauto ?? null,
     valorOtros,
-    total: factura.monto_total
+    total: factura.monto_total,
+    cuentasPago: (cuentasPago ?? []).map((c) => ({ cuenta_bancaria: c.cuenta_bancaria, monto: Number(c.monto) }))
   });
 
   return new NextResponse(new Uint8Array(pdf), {
