@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CATEGORIAS_GESTOR, Documento } from "@/types/database";
+import { CATEGORIAS_GESTOR, CATEGORIAS_DESARMADERO, Documento } from "@/types/database";
 
 const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania" | "anexo04_rudac"; label: string }[] = [
   { value: "imagen_dominio", label: "Imágenes del dominio" },
@@ -9,7 +9,12 @@ const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania" | "anex
   { value: "anexo04_rudac", label: "Anexo 04 (Piezas RUDAC)" }
 ];
 
-const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR];
+// Fotos subidas por el desarmadero quedan en 'imagen_dominio' (mismo
+// tile que "Imágenes del dominio" de arriba), así que acá solo se
+// suman las categorías que son exclusivas de su carga.
+const CATEGORIAS_DESARMADERO_PROPIAS = CATEGORIAS_DESARMADERO.filter((c) => c.value !== "imagen_dominio");
+
+const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR, ...CATEGORIAS_DESARMADERO_PROPIAS];
 
 interface Props {
   casoId: string;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CATEGORIAS_GESTOR, Documento } from "@/types/database";
+import { CATEGORIAS_GESTOR, CATEGORIAS_DESARMADERO, Documento } from "@/types/database";
 import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
 const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania" | "anexo04_rudac"; label: string }[] = [
@@ -10,7 +10,12 @@ const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania" | "anex
   { value: "anexo04_rudac", label: "Anexo 04 (Piezas RUDAC)" }
 ];
 
-const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR];
+// Fotos subidas por el desarmadero quedan en 'imagen_dominio', así que
+// ya aparecen en el grupo de arriba junto a las del equipo — acá solo
+// se listan las categorías que son exclusivas de su carga.
+const CATEGORIAS_DESARMADERO_PROPIAS = CATEGORIAS_DESARMADERO.filter((c) => c.value !== "imagen_dominio");
+
+const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR, ...CATEGORIAS_DESARMADERO_PROPIAS];
 
 export default function DocumentosSection({
   casoId,
@@ -168,6 +173,10 @@ export default function DocumentosSection({
 
   const documentosGestor = documentos?.filter((d) =>
     CATEGORIAS_GESTOR.some((c) => c.value === d.categoria)
+  ) ?? [];
+
+  const documentosDesarmadero = documentos?.filter((d) =>
+    CATEGORIAS_DESARMADERO_PROPIAS.some((c) => c.value === d.categoria)
   ) ?? [];
 
   return (
@@ -328,6 +337,48 @@ export default function DocumentosSection({
           </h3>
           {CATEGORIAS_GESTOR.map((c) => {
             const items = documentosGestor.filter((d) => d.categoria === c.value);
+            if (items.length === 0) return null;
+            return (
+              <div key={c.value} className="mb-3">
+                <p className="text-xs text-slate-400 mb-1">{c.label}</p>
+                <ul className="space-y-1">
+                  {items.map((d) => (
+                    <li
+                      key={d.id}
+                      className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-slate-50"
+                    >
+                      <a
+                        href={d.url_firmada ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand-600 hover:underline truncate"
+                      >
+                        {d.nombre}
+                      </a>
+                      {!soloLectura && (
+                        <button
+                          onClick={() => handleDelete(d.id)}
+                          className="text-xs text-slate-400 hover:text-red-600 shrink-0"
+                        >
+                          Eliminar
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {documentosDesarmadero.length > 0 && (
+        <div className="mt-2 pt-4 border-t border-slate-100">
+          <h3 className="text-xs font-semibold uppercase text-slate-500 mb-2">
+            Cargado por el desarmadero
+          </h3>
+          {CATEGORIAS_DESARMADERO_PROPIAS.map((c) => {
+            const items = documentosDesarmadero.filter((d) => d.categoria === c.value);
             if (items.length === 0) return null;
             return (
               <div key={c.value} className="mb-3">
