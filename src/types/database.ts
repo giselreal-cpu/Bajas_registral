@@ -235,13 +235,23 @@ export type CategoriaDocumento =
   | "otros_gestor"
   | "formulario_baja"
   | "comprobante_gasto"
-  | "anexo04_rudac";
+  | "anexo04_rudac"
+  | "multa_desarmadero"
+  | "patente_desarmadero"
+  | "otro_desarmadero";
 
 export const CATEGORIAS_GESTOR: { value: CategoriaDocumento; label: string }[] = [
   { value: "turno_registro", label: "Turno en Registro" },
   { value: "observaciones_gestor", label: "Observaciones" },
   { value: "recibos_gestor", label: "Recibos" },
   { value: "otros_gestor", label: "Otros" }
+];
+
+export const CATEGORIAS_DESARMADERO: { value: CategoriaDocumento; label: string }[] = [
+  { value: "imagen_dominio", label: "Fotos" },
+  { value: "multa_desarmadero", label: "Multas" },
+  { value: "patente_desarmadero", label: "Patentes" },
+  { value: "otro_desarmadero", label: "Otros" }
 ];
 
 export interface Documento {

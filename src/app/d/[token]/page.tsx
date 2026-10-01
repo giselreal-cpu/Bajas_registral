@@ -7,6 +7,7 @@ import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import { PIEZAS_RUDAC } from "@/lib/anexo04";
 import Anexo04Form from "./Anexo04Form";
 import ObservacionesDesarmadero, { ObservacionRow } from "./ObservacionesDesarmadero";
+import UploadFormDesarmadero from "./UploadFormDesarmadero";
 
 function normalizar(s: string): string {
   return s
@@ -139,8 +140,13 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
   const documentacion = {
     informeDominio: await firmar(todos.filter((d) => normalizar(d.nombre).includes("informe de dominio"))),
     fotos: await firmar(todos.filter((d) => d.categoria === "imagen_dominio")),
-    multas: await firmar(todos.filter((d) => normalizar(d.nombre).includes("multa"))),
-    patentes: await firmar(todos.filter((d) => normalizar(d.nombre).includes("patente"))),
+    multas: await firmar(
+      todos.filter((d) => normalizar(d.nombre).includes("multa") || d.categoria === "multa_desarmadero")
+    ),
+    patentes: await firmar(
+      todos.filter((d) => normalizar(d.nombre).includes("patente") || d.categoria === "patente_desarmadero")
+    ),
+    otros: await firmar(todos.filter((d) => d.categoria === "otro_desarmadero")),
     anexo04: await firmar(todos.filter((d) => d.categoria === "anexo04_rudac"))
   };
 
@@ -261,8 +267,10 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
           <GrupoDocumentos titulo="Fotos" documentos={documentacion.fotos} />
           <GrupoDocumentos titulo="Multas" documentos={documentacion.multas} />
           <GrupoDocumentos titulo="Patentes" documentos={documentacion.patentes} />
+          <GrupoDocumentos titulo="Otros" documentos={documentacion.otros} />
           <GrupoDocumentos titulo="Anexo 04 (Piezas RUDAC)" documentos={documentacion.anexo04} />
         </div>
+        <UploadFormDesarmadero token={params.token} />
       </section>
     </div>
   );

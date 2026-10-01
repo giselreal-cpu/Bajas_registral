@@ -5,7 +5,8 @@ import path from "path";
 import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { generarAnexo04, Decisiones } from "@/lib/anexo04";
-import { TIPOS_VEHICULO } from "@/types/database";
+import { TIPOS_VEHICULO, CATEGORIAS_DESARMADERO, CategoriaDocumento } from "@/types/database";
+import { crearSubidaFirmada, validarMetadatosArchivo } from "@/lib/documentosStorage";
 
 const BUCKET = "documentos-casos";
 const TEMPLATE_PATH = path.join(process.cwd(), "public", "anexo04_original.pdf");
@@ -65,6 +66,77 @@ export async function agregarObservacionDesarmadero(
     usuario_id: null,
     tipo_cambio: "Agregó una observación",
     detalle: `Cargada por ${desarmaderoNombre} vía enlace público`
+  });
+
+  revalidatePath(`/d/${token}`);
+  return { ok: true };
+}
+
+// Primer paso de la carga de un documento desde /d/[token]: valida el
+// token y los metadatos del archivo (el archivo en sí todavía no viajó) y
+// devuelve una URL de subida firmada para que el navegador suba directo a
+// Supabase Storage — mismo criterio que iniciarSubidaGestor en
+// src/app/g/[token]/actions.ts (Vercel limita a 4.5MB el body de
+// cualquier Server Action).
+export async function iniciarSubidaDesarmadero(
+  token: string,
+  categoria: CategoriaDocumento,
+  nombreArchivo: string,
+  size: number,
+  type: string
+): Promise<{ path?: string; uploadToken?: string; error?: string }> {
+  const caso = await casoDeDesarmadero(token);
+  if (!caso) {
+    return { error: "Este enlace ya no es válido." };
+  }
+
+  const categoriasValidas = CATEGORIAS_DESARMADERO.map((c) => c.value);
+  if (!categoria || !categoriasValidas.includes(categoria)) {
+    return { error: "Elegí una categoría." };
+  }
+
+  try {
+    validarMetadatosArchivo({ size, type });
+    const subida = await crearSubidaFirmada(caso.id, categoria, nombreArchivo);
+    return { path: subida.path, uploadToken: subida.token };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "No se pudo iniciar la subida." };
+  }
+}
+
+// Segundo paso: el archivo ya se subió directo a Storage con el token de
+// arriba; acá se registra el documento en la base.
+export async function confirmarSubidaDesarmadero(
+  token: string,
+  categoria: CategoriaDocumento,
+  nombreArchivo: string,
+  path: string
+): Promise<{ ok?: true; error?: string }> {
+  const caso = await casoDeDesarmadero(token);
+  if (!caso) {
+    return { error: "Este enlace ya no es válido." };
+  }
+
+  const supabase = createServiceClient();
+  const desarmaderoNombre =
+    (caso.desarmadero as unknown as { nombre: string } | null)?.nombre ?? "el desarmadero";
+
+  const { error } = await supabase.from("documentos").insert({
+    caso_id: caso.id,
+    categoria,
+    nombre: nombreArchivo,
+    url: path
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  await supabase.from("historial_cambios").insert({
+    caso_id: caso.id,
+    usuario_id: null,
+    tipo_cambio: `Agregó documento: ${nombreArchivo}`,
+    detalle: `Cargado por ${desarmaderoNombre} vía enlace público, categoría: ${categoria}`
   });
 
   revalidatePath(`/d/${token}`);
