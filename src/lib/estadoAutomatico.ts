@@ -62,7 +62,7 @@ export async function recalcularEstado(casoId: string) {
   const [{ data: caso, error: errorCaso }, { data: eventos, error: errorEventos }] =
     await Promise.all([
       supabase.from("casos").select("estado, fecha_cierre").eq("id", casoId).maybeSingle(),
-      supabase.from("bitacora").select("tipo_evento, completado").eq("caso_id", casoId)
+      supabase.from("bitacora").select("tipo_evento, completado, fecha_fin").eq("caso_id", casoId)
     ]);
 
   if (errorCaso || !caso) {
@@ -101,17 +101,32 @@ export async function recalcularEstado(casoId: string) {
     }
   }
 
-  if (mejorRank <= rankActual) {
+  // Si el caso queda (o ya estaba) "cerrado" y todavía no tiene
+  // fecha_cierre, la recuperamos del propio evento "Cierre de Caso" de
+  // la bitácora en vez de null para siempre o la fecha de "ahora" — esto
+  // puede pasar con casos que llegaron a "cerrado" por una vía que no
+  // dejó cargada la fecha (edición manual del estado, datos viejos,
+  // etc.), y antes quedaban estancados: como el estado ya no "avanzaba",
+  // nunca se volvía a intentar completar fecha_cierre.
+  const estadoFinal = mejorRank > rankActual ? mejorEstado : (caso.estado as Estado);
+  let fechaCierreFaltante: string | null = null;
+  if (estadoFinal === "cerrado" && !caso.fecha_cierre) {
+    const eventoCierre = (eventos ?? []).find(
+      (ev) => ev.tipo_evento === "Cierre de Caso" && ev.completado
+    );
+    fechaCierreFaltante = eventoCierre?.fecha_fin ?? new Date().toISOString().slice(0, 10);
+  }
+
+  if (mejorRank <= rankActual && !fechaCierreFaltante) {
     return {
       intentado: false,
       motivo: `El estado actual ("${caso.estado}") ya está igual o más avanzado que lo que sugiere la bitácora.`
     };
   }
 
-  const update: Record<string, unknown> = { estado: mejorEstado };
-  if (mejorEstado === "cerrado" && !caso.fecha_cierre) {
-    update.fecha_cierre = new Date().toISOString().slice(0, 10);
-  }
+  const update: Record<string, unknown> = {};
+  if (mejorRank > rankActual) update.estado = mejorEstado;
+  if (fechaCierreFaltante) update.fecha_cierre = fechaCierreFaltante;
 
   const { data: actualizado, error } = await supabase
     .from("casos")
