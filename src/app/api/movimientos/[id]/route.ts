@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { obtenerCajaPesosId, obtenerMonedaCaja } from "@/lib/cajaPesos";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { puedeAprobarMovimiento } from "@/lib/permisosFinancieros";
 import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
 
 const ALLOWED_FIELDS = [
@@ -23,24 +24,42 @@ export async function PUT(
   const supabase = createClient();
   const body = await request.json();
 
+  const { data: existente } = await supabase
+    .from("movimientos_caso")
+    .select("caso_id, factura_id, caja_id, fecha, concepto:conceptos_movimiento(nombre)")
+    .eq("id", params.id)
+    .maybeSingle();
+
   // Aprobar un gasto de campo o marcarlo pagado mueve plata real —
   // reservado a administrador (evita que la misma persona que cargó el
-  // gasto se lo autoapruebe).
+  // gasto se lo autoapruebe). Excepción: operador puede hacerlo con los
+  // pagos de gestoría, tanto si el movimiento ya es de ese concepto como
+  // si en la misma edición se lo cambia a otro.
   if ("aprobado" in body || "pagado" in body) {
     const usuarioActual = await getUsuarioActual();
-    if (usuarioActual?.rol !== "administrador") {
+    const conceptoActual = (existente?.concepto as unknown as { nombre: string } | null)?.nombre;
+    let conceptoFinal = conceptoActual;
+    if (body.concepto_id) {
+      const { data: nuevoConcepto } = await supabase
+        .from("conceptos_movimiento")
+        .select("nombre")
+        .eq("id", body.concepto_id)
+        .maybeSingle();
+      conceptoFinal = nuevoConcepto?.nombre;
+    }
+    if (
+      !puedeAprobarMovimiento(usuarioActual?.rol, conceptoActual) ||
+      !puedeAprobarMovimiento(usuarioActual?.rol, conceptoFinal)
+    ) {
       return NextResponse.json(
-        { error: "Solo un administrador puede aprobar un gasto o marcarlo como pagado." },
+        {
+          error:
+            "Solo un administrador puede aprobar un gasto o marcarlo como pagado (un operador puede hacerlo con los pagos de gestoría)."
+        },
         { status: 403 }
       );
     }
   }
-
-  const { data: existente } = await supabase
-    .from("movimientos_caso")
-    .select("caso_id, factura_id, caja_id, fecha")
-    .eq("id", params.id)
-    .maybeSingle();
 
   if (existente?.factura_id) {
     return NextResponse.json(

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { EstadoFactura, ESTADOS_FACTURA } from "@/types/database";
 import MovimientoPagadoToggle from "@/components/casos/MovimientoPagadoToggle";
+import { puedeAprobarMovimiento } from "@/lib/permisosFinancieros";
 import { obtenerCashFlow } from "@/lib/cashFlow";
 
 export const dynamic = "force-dynamic";
@@ -495,7 +496,7 @@ export default async function SeguimientoFinancieroPage() {
                               <MovimientoPagadoToggle
                                 movimientoId={m.id}
                                 pagado={m.pagado}
-                                esAdministrador={usuarioActual?.rol === "administrador"}
+                                puedeMarcarPagado={puedeAprobarMovimiento(usuarioActual?.rol, m.concepto?.nombre)}
                               />
                             </td>
                           </tr>

@@ -11,8 +11,10 @@ import {
   ESTADOS_FACTURA,
   Factura,
   MovimientoCaso,
+  RolUsuario,
   TipoReceptor
 } from "@/types/database";
+import { puedeAprobarMovimiento } from "@/lib/permisosFinancieros";
 import MovimientoPagadoToggle from "./MovimientoPagadoToggle";
 
 function formatCurrency(value: number | null | undefined): string {
@@ -35,6 +37,7 @@ interface Props {
   casoId: string;
   caso: CasoConRelaciones;
   esAdministrador: boolean;
+  rol?: RolUsuario | null;
 }
 
 interface FormMovimiento {
@@ -59,7 +62,7 @@ function formVacio(): FormMovimiento {
   };
 }
 
-export default function RentabilidadSection({ casoId, caso, esAdministrador }: Props) {
+export default function RentabilidadSection({ casoId, caso, esAdministrador, rol }: Props) {
   const [conceptos, setConceptos] = useState<ConceptoMovimiento[]>([]);
   const [cajas, setCajas] = useState<Caja[]>([]);
   const [cuentas, setCuentas] = useState<CuentaContable[]>([]);
@@ -862,7 +865,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                       <MovimientoPagadoToggle
                         movimientoId={m.id}
                         pagado={m.pagado}
-                        esAdministrador={esAdministrador}
+                        puedeMarcarPagado={puedeAprobarMovimiento(rol, m.concepto?.nombre)}
                         onChange={loadMovimientos}
                       />
                     </span>
@@ -887,7 +890,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador }: P
                   <span className="font-medium text-slate-800">{formatCurrency(m.monto)}</span>
                   {!m.factura_id && (
                     <div className="flex flex-col items-end gap-1">
-                      {!m.aprobado && esAdministrador && (
+                      {!m.aprobado && puedeAprobarMovimiento(rol, m.concepto?.nombre) && (
                         <button
                           className="text-xs text-accent-700 hover:underline"
                           onClick={() => aprobarMovimiento(m.id)}

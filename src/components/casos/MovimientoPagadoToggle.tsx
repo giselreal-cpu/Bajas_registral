@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 interface Props {
   movimientoId: string;
   pagado: boolean;
-  esAdministrador: boolean;
+  puedeMarcarPagado: boolean;
   onChange?: (pagado: boolean) => void;
 }
 
@@ -15,9 +15,10 @@ interface Props {
 // propio estado y refresca por fetch) como en la página de seguimiento
 // financiero (Server Component, que refresca con router.refresh()).
 // Marcar pagado mueve plata real (cuenta para Libro/Liquidez), por eso
-// queda reservado a administrador — para el resto solo es un badge de
-// estado, sin acción.
-export default function MovimientoPagadoToggle({ movimientoId, pagado, esAdministrador, onChange }: Props) {
+// queda reservado a administrador (operador solo en pagos de gestoría,
+// ver permisosFinancieros.ts) — para el resto solo es un badge de estado,
+// sin acción.
+export default function MovimientoPagadoToggle({ movimientoId, pagado, puedeMarcarPagado, onChange }: Props) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
@@ -38,7 +39,7 @@ export default function MovimientoPagadoToggle({ movimientoId, pagado, esAdminis
     }
   }
 
-  if (!esAdministrador) {
+  if (!puedeMarcarPagado) {
     return (
       <span className={`badge ${pagado ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
         {pagado ? "Pagado" : "Pendiente"}

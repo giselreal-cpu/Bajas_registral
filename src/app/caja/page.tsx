@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import AprobarGastoButton from "@/components/caja/AprobarGastoButton";
+import { puedeAprobarMovimiento } from "@/lib/permisosFinancieros";
 
 export const dynamic = "force-dynamic";
 
@@ -153,7 +154,7 @@ export default async function CajaPage() {
             </div>
             <div className="h-px my-3" style={{ background: "var(--mv-divider)" }} />
             <div className="flex items-center gap-2.5">
-              <AprobarGastoButton movimientoId={g.id} esAdministrador={usuarioActual?.rol === "administrador"} />
+              <AprobarGastoButton movimientoId={g.id} puedeAprobar={puedeAprobarMovimiento(usuarioActual?.rol, g.concepto?.nombre)} />
               {g.comprobante_url && (
                 <a
                   href={g.comprobante_url}

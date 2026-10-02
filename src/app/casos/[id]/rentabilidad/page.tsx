@@ -66,6 +66,7 @@ export default async function CasoRentabilidadPage({
         casoId={casoTipado.id}
         caso={casoTipado}
         esAdministrador={usuarioActual?.rol === "administrador"}
+        rol={usuarioActual?.rol}
       />
     </div>
   );
