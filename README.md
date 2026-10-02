@@ -53,7 +53,7 @@ siguiendo el `CLAUDE.md` del proyecto.
   abiertos que todavía no tienen ningún evento "Contacto con el
   asegurado" cargado, ni pendiente ni completado), una lista combinada
   de **"Próximos vencimientos"** que junta los eventos de bitácora con
-  fecha de vencimiento cargada *y* los casos sin movimiento hace 7+ días
+  fecha de vencimiento cargada *y* los casos sin movimiento hace 3+ días
   (los vencidos aparecen primero), la tarjeta de Rentabilidad (ver
   módulo financiero más abajo), y resúmenes compactos —con un link
   **"Ver detalle →"**— de: "Casos por gestor" (total/pendientes/cerrados

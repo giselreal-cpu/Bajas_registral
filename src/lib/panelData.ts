@@ -89,7 +89,7 @@ export interface ItemAtencion {
   prioridad: number;
 }
 
-const DIAS_SIN_MOVIMIENTO = 7;
+const DIAS_SIN_MOVIMIENTO = 3;
 
 export const promedio = (valores: number[]) =>
   valores.length === 0
@@ -612,7 +612,10 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     });
   }
   itemsAtencion.sort((a, b) => a.prioridad - b.prioridad);
-  const itemsAtencionLimitados = itemsAtencion.slice(0, 10);
+  // Los "sin movimiento" no se muestran en esta lista (el Panel los
+  // arma aparte) — se dejan afuera para que, siendo cada vez más con un
+  // umbral corto, no desplacen a los vencimientos del tope de 10.
+  const itemsAtencionLimitados = itemsAtencion.filter((i) => !i.key.startsWith("mov-")).slice(0, 10);
 
   return {
     errores: { errorCasos, errorVenc, errorCerrados, errorPresentacion, errorContactos },

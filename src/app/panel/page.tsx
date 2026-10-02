@@ -88,7 +88,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
       motivo: "Sin contactar al asegurado",
       clase: "bg-sky-100 text-sky-800"
     }))
-  ].slice(0, 10);
+  ].slice(0, 15);
 
   const hoyPanel = new Date();
   hoyPanel.setHours(0, 0, 0, 0);
@@ -231,7 +231,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard label="Casos abiertos" value={casosAbiertos} sub={`${totalCasos} históricos`} />
-        <StatCard label="Sin movimiento 7+ días" value={casosSinMovimiento.length} />
+        <StatCard label="Sin movimiento 3+ días" value={casosSinMovimiento.length} />
         {puedeVerFinanzas && (
           <StatCard label="A cobrar" value={formatCurrency(totalACobrarCartera)} sub={`${casosACobrarCartera} ${casosACobrarCartera === 1 ? "caso" : "casos"}`} />
         )}
