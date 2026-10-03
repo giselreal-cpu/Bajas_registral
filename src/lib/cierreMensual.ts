@@ -131,6 +131,23 @@ export interface MovimientoCajaFila {
   es_transferencia_interna: boolean;
 }
 
+export interface RentabilidadCaso {
+  caso_id: string;
+  aseguradora_id: string | null;
+  ingresos: number;
+  egresos: number;
+  resultado: number;
+}
+
+export interface RentabilidadAseguradora {
+  aseguradora_id: string | null;
+  casos: number;
+  ingresos: number;
+  egresos: number;
+  resultado: number;
+  margen: number | null;
+}
+
 export interface CajaCierre {
   caja_id: string;
   nombre: string;
@@ -193,7 +210,7 @@ export interface ResultadoCierre {
     egresos: FilaDetalle[];
     anteriores: FilaDetalle[];
   };
-  rentabilidad_por_caso: { caso_id: string; ingresos: number; egresos: number; resultado: number }[];
+  rentabilidad_por_caso: RentabilidadCaso[];
   lineas: LineaCierre[];
   movimientos_caja: MovimientoCajaFila[];
 }
@@ -242,7 +259,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   const detEgresos: FilaDetalle[] = [];
   const detAnteriores: FilaDetalle[] = [];
   const lineas: LineaCierre[] = [];
-  const porCaso = new Map<string, { ingresos: number; egresos: number }>();
+  const porCaso = new Map<string, { ingresos: number; egresos: number; aseguradora_id: string | null }>();
 
   const fila = (c: Comprobante, a: Aplicacion | null, aplicado: number, pendiente: number): FilaDetalle => ({
     comprobante_id: c.comprobante_id,
@@ -263,7 +280,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
 
   const sumarCaso = (c: Comprobante, neto: number) => {
     if (!c.caso_id) return;
-    const x = porCaso.get(c.caso_id) ?? { ingresos: 0, egresos: 0 };
+    const x = porCaso.get(c.caso_id) ?? { ingresos: 0, egresos: 0, aseguradora_id: c.aseguradora_id };
     if (c.tipo === "ingreso") x.ingresos += neto;
     else x.egresos += neto;
     porCaso.set(c.caso_id, x);
@@ -454,6 +471,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   const rentabilidad = Array.from(porCaso.entries())
     .map(([caso_id, v]) => ({
       caso_id,
+      aseguradora_id: v.aseguradora_id,
       ingresos: r2(v.ingresos),
       egresos: r2(v.egresos),
       resultado: r2(v.ingresos - v.egresos)
@@ -550,4 +568,52 @@ export function pendienteHoy(mes: string, datos: DatosCierre): { porCobrar: numb
     else porPagar += pendiente;
   }
   return { porCobrar: r2(porCobrar), porPagar: r2(porPagar) };
+}
+
+// Junta la rentabilidad de varios meses (p. ej. los últimos 12): por caso
+// suma lo devengado en cada mes, y de ahí sale el ranking por aseguradora.
+export function combinarRentabilidad(resultados: ResultadoCierre[]): {
+  casos: RentabilidadCaso[];
+  aseguradoras: RentabilidadAseguradora[];
+} {
+  const casos = new Map<string, RentabilidadCaso>();
+  for (const res of resultados) {
+    for (const c of res.rentabilidad_por_caso) {
+      const x = casos.get(c.caso_id) ?? {
+        caso_id: c.caso_id,
+        aseguradora_id: c.aseguradora_id ?? null,
+        ingresos: 0,
+        egresos: 0,
+        resultado: 0
+      };
+      x.ingresos = r2(x.ingresos + c.ingresos);
+      x.egresos = r2(x.egresos + c.egresos);
+      x.resultado = r2(x.ingresos - x.egresos);
+      casos.set(c.caso_id, x);
+    }
+  }
+  const listaCasos = Array.from(casos.values()).sort((a, b) => b.resultado - a.resultado);
+
+  const porAseg = new Map<string, RentabilidadAseguradora>();
+  for (const c of listaCasos) {
+    const clave = c.aseguradora_id ?? "sin";
+    const x = porAseg.get(clave) ?? {
+      aseguradora_id: c.aseguradora_id ?? null,
+      casos: 0,
+      ingresos: 0,
+      egresos: 0,
+      resultado: 0,
+      margen: null
+    };
+    x.casos += 1;
+    x.ingresos = r2(x.ingresos + c.ingresos);
+    x.egresos = r2(x.egresos + c.egresos);
+    x.resultado = r2(x.ingresos - x.egresos);
+    porAseg.set(clave, x);
+  }
+  const aseguradoras = Array.from(porAseg.values())
+    .map((a) => ({ ...a, margen: a.ingresos === 0 ? null : r2((a.resultado / a.ingresos) * 100) }))
+    .sort((a, b) => b.resultado - a.resultado);
+
+  return { casos: listaCasos, aseguradoras };
 }

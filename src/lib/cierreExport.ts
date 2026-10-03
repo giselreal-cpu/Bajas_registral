@@ -1,4 +1,5 @@
 import ExcelJS from "exceljs";
+import { combinarRentabilidad } from "./cierreMensual";
 import type { LineaCierre, ResultadoCierre } from "./cierreMensual";
 
 export interface ContextoExport {
@@ -258,6 +259,28 @@ export async function generarXlsxCierre(r: ResultadoCierre, ctx: ContextoExport)
     });
   });
 
+  // ---- Rentabilidad_por_aseguradora ----
+  const hojaRA = libro.addWorksheet("Rentabilidad_por_aseguradora");
+  encabezado(hojaRA, [
+    { header: "Aseguradora", key: "aseg", width: 32 },
+    { header: "Casos", key: "casos", width: 9 },
+    { header: "Ingresos (neto)", key: "ing", width: 18, numerico: true },
+    { header: "Egresos (neto)", key: "egr", width: 18, numerico: true },
+    { header: "Resultado", key: "res", width: 18, numerico: true },
+    { header: "Margen %", key: "mar", width: 11 }
+  ]);
+  combinarRentabilidad([r]).aseguradoras.forEach((a, i) => {
+    const n = i + 2;
+    hojaRA.addRow({
+      aseg: a.aseguradora_id ? ctx.aseguradoraNombre.get(a.aseguradora_id) ?? "—" : "Sin aseguradora",
+      casos: a.casos,
+      ing: a.ingresos,
+      egr: a.egresos,
+      res: { formula: `C${n}-D${n}`, result: a.resultado },
+      mar: { formula: `IF(C${n}=0,"N/A",ROUND(E${n}/C${n}*100,2))`, result: a.margen ?? "N/A" }
+    });
+  });
+
   // ---- Resumen (fórmulas que leen el detalle) ----
   resumen.columns = [
     { header: "Concepto", key: "a", width: 58 },
@@ -366,7 +389,16 @@ export async function generarXlsxCierre(r: ResultadoCierre, ctx: ContextoExport)
   return Buffer.from(buffer as ArrayBuffer);
 }
 
-export type BloqueCsv = "A" | "B" | "C" | "D" | "conciliacion" | "transferencias" | "comparativo" | "rentabilidad";
+export type BloqueCsv =
+  | "A"
+  | "B"
+  | "C"
+  | "D"
+  | "conciliacion"
+  | "transferencias"
+  | "comparativo"
+  | "rentabilidad"
+  | "rentabilidad_aseguradora";
 
 export function nombreArchivoCierre(mes: string, extension: string, bloque?: string): string {
   const hoy = new Date().toISOString().slice(0, 10);
@@ -475,6 +507,25 @@ export function datosCsvBloque(bloque: BloqueCsv, r: ResultadoCierre, ctx: Conte
           { key: "roi", label: "ROI %" },
           { key: "mar", label: "Margen %" },
           { key: "saldo", label: "Saldo de cajas" }
+        ]
+      };
+    case "rentabilidad_aseguradora":
+      return {
+        rows: combinarRentabilidad([r]).aseguradoras.map((a) => ({
+          aseg: a.aseguradora_id ? ctx.aseguradoraNombre.get(a.aseguradora_id) ?? "—" : "Sin aseguradora",
+          casos: a.casos,
+          ing: a.ingresos,
+          egr: a.egresos,
+          res: a.resultado,
+          mar: a.margen ?? "N/A"
+        })) as Record<string, unknown>[],
+        columns: [
+          { key: "aseg", label: "Aseguradora" },
+          { key: "casos", label: "Casos" },
+          { key: "ing", label: "Ingresos (neto)" },
+          { key: "egr", label: "Egresos (neto)" },
+          { key: "res", label: "Resultado" },
+          { key: "mar", label: "Margen %" }
         ]
       };
     case "rentabilidad":

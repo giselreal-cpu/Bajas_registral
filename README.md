@@ -771,6 +771,13 @@ transferencias internas entre cajas no son cobros ni pagos.
 4. **Reabrir** (solo administrador) exige un motivo y deja el snapshot
    anterior en la bitácora del período.
 
+**Gráficos y rankings.** El comparativo de 12 meses incluye gráficos de
+ganancia, ROI y Saldo de Cajas. El *ranking de rentabilidad* ordena
+aseguradoras y casos (los más y menos rentables) por resultado neto de
+IVA, para el mes o para los últimos 12 meses; solo cuentan comprobantes
+asociados a un caso (los movimientos generales, como sueldos o alquiler,
+entran al resultado del mes pero no a ningún caso).
+
 Un mes cerrado muestra el reporte congelado; el *pendiente al cierre*
 (congelado) se compara con el *pendiente hoy* (en vivo).
 

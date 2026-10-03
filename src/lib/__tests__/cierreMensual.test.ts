@@ -6,6 +6,7 @@ import {
   DatosCierre,
   MovTesoreria,
   calcularCierre,
+  combinarRentabilidad,
   pendienteHoy,
   ultimosMeses
 } from "../cierreMensual";
@@ -363,3 +364,21 @@ describe("las líneas de detalle suman exactamente los totales del resumen", () 
   });
 });
 
+describe("rentabilidad por caso y por aseguradora", () => {
+  it("combina varios meses y agrupa por aseguradora", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "i1", tipo: "ingreso", caso_id: "k1", aseguradora_id: "a1", fecha_devengo: "2026-09-10", monto_total: 1000 }),
+      comp({ comprobante_id: "e1", tipo: "egreso", caso_id: "k1", aseguradora_id: "a1", fecha_devengo: "2026-10-05", monto_total: 300 }),
+      comp({ comprobante_id: "i2", tipo: "ingreso", caso_id: "k2", aseguradora_id: "a2", fecha_devengo: "2026-10-07", monto_total: 500 }),
+      comp({ comprobante_id: "e2", tipo: "egreso", caso_id: "k2", aseguradora_id: "a2", fecha_devengo: "2026-10-07", monto_total: 600 })
+    );
+    const { casos, aseguradoras } = combinarRentabilidad([calcularCierre("2026-09", d), calcularCierre("2026-10", d)]);
+    expect(casos.find((c) => c.caso_id === "k1")?.resultado).toBe(700);
+    expect(casos.find((c) => c.caso_id === "k2")?.resultado).toBe(-100);
+    expect(aseguradoras[0].aseguradora_id).toBe("a1");
+    expect(aseguradoras[0].margen).toBe(70);
+    expect(aseguradoras[1].resultado).toBe(-100);
+    expect(aseguradoras.reduce((a, x) => a + x.resultado, 0)).toBe(600);
+  });
+});

@@ -7,7 +7,7 @@ import { BloqueCsv, datosCsvBloque, generarXlsxCierre, nombreArchivoCierre } fro
 import { armarContexto, resultadoParaExportar } from "@/lib/cierreMensualContexto";
 import { obtenerDatosCierre } from "@/lib/cierreMensualDatos";
 
-const BLOQUES: BloqueCsv[] = ["A", "B", "C", "D", "conciliacion", "transferencias", "comparativo", "rentabilidad"];
+const BLOQUES: BloqueCsv[] = ["A", "B", "C", "D", "conciliacion", "transferencias", "comparativo", "rentabilidad", "rentabilidad_aseguradora"];
 
 // GET /api/cierre-mensual/[mes]/export?formato=xlsx|csv&bloque=...
 // xlsx: libro completo con Resumen (fórmulas SUMIFS sobre el detalle).
