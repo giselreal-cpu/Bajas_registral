@@ -6,6 +6,7 @@ import {
   DatosCierre,
   MovTesoreria,
   calcularCierre,
+  pendienteHoy,
   ultimosMeses
 } from "../cierreMensual";
 
@@ -306,5 +307,15 @@ describe("validaciones", () => {
     expect(m).toHaveLength(12);
     expect(m[0]).toBe("2025-11");
     expect(m[11]).toBe("2026-10");
+  });
+});
+
+describe("pendiente hoy vs pendiente al cierre", () => {
+  it("un cobro posterior al cierre baja el pendiente de hoy pero no el del cierre", () => {
+    const d = datosVacios();
+    d.comprobantes.push(comp({ comprobante_id: "i1", tipo: "ingreso", fecha_devengo: "2026-10-02", monto_total: 1000 }));
+    aplicar(d, "i1", "cobro", "2026-11-15", 1000);
+    expect(calcularCierre("2026-10", d).A2_pendiente_cierre).toBe(1000);
+    expect(pendienteHoy("2026-10", d).porCobrar).toBe(0);
   });
 });

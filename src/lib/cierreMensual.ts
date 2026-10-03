@@ -136,6 +136,9 @@ export interface ResultadoCierre {
   margen: number | null;
   por_cobrar_acumulado: number;
   por_pagar_acumulado: number;
+  // Pendiente BRUTO al cierre de los comprobantes del mes (para compararlo con "hoy")
+  pendiente_cierre_cobrar_bruto: number;
+  pendiente_cierre_pagar_bruto: number;
   // Liquidez
   cajas: CajaCierre[];
   saldo_inicial_total: number;
@@ -193,6 +196,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   let A1 = 0, A2 = 0, A3 = 0, A4 = 0;
   let B1 = 0, B2 = 0, B3 = 0;
   let porCobrar = 0, porPagar = 0;
+  let pendMesCobrar = 0, pendMesPagar = 0;
   const detIngresos: FilaDetalle[] = [];
   const detEgresos: FilaDetalle[] = [];
   const detAnteriores: FilaDetalle[] = [];
@@ -242,6 +246,8 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
       const cobradoMes = suma(apps, (a) => a.clase === clasePago && a.fecha >= desde && a.fecha <= hasta);
       const antes = suma(apps, (a) => a.clase === clasePago && a.fecha < desde);
       const pendiente = pendienteBruto;
+      if (es) pendMesCobrar += pendienteBruto;
+      else pendMesPagar += pendienteBruto;
       if (es) {
         A1 += r2(cobradoMes * k);
         A3 += r2(antes * k);
@@ -391,6 +397,8 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     margen,
     por_cobrar_acumulado: r2(porCobrar),
     por_pagar_acumulado: r2(porPagar),
+    pendiente_cierre_cobrar_bruto: r2(pendMesCobrar),
+    pendiente_cierre_pagar_bruto: r2(pendMesPagar),
     cajas,
     saldo_inicial_total: saldoInicialTotal,
     saldo_cajas_total: saldoCajasTotal,
@@ -413,4 +421,27 @@ export function ultimosMeses(mesFinal: string, n: number): string[] {
     meses.push(d.toISOString().slice(0, 7));
   }
   return meses;
+}
+
+// "Pendiente hoy" de los comprobantes devengados en `mes`: lo que falta
+// cobrar/pagar contando TODAS las aplicaciones registradas hasta ahora
+// (incluso las posteriores al cierre del mes). Se muestra al lado del
+// "pendiente al cierre" (congelado en el snapshot) para ver cuánto se
+// cobró o pagó después.
+export function pendienteHoy(mes: string, datos: DatosCierre): { porCobrar: number; porPagar: number } {
+  const { desde, hasta } = rangoMes(mes);
+  const aplicadoPor = new Map<string, number>();
+  for (const a of datos.aplicaciones) {
+    if (a.anulado) continue;
+    aplicadoPor.set(a.comprobante_id, (aplicadoPor.get(a.comprobante_id) ?? 0) + a.monto);
+  }
+  let porCobrar = 0;
+  let porPagar = 0;
+  for (const c of datos.comprobantes) {
+    if (c.anulado || c.fecha_devengo < desde || c.fecha_devengo > hasta) continue;
+    const pendiente = Math.max(c.monto_total - (aplicadoPor.get(c.comprobante_id) ?? 0), 0);
+    if (c.tipo === "ingreso") porCobrar += pendiente;
+    else porPagar += pendiente;
+  }
+  return { porCobrar: r2(porCobrar), porPagar: r2(porPagar) };
 }

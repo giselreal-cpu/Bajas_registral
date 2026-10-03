@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import MovimientosGeneralesSection from "@/components/administracion/MovimientosGeneralesSection";
 import LibroImportSection from "@/components/administracion/LibroImportSection";
-import CierresMensualesSection from "@/components/administracion/CierresMensualesSection";
 import PresupuestoSection from "@/components/administracion/PresupuestoSection";
 import { obtenerFilasLibro } from "@/lib/libroMovimientos";
 
@@ -259,11 +258,14 @@ export default async function AdministracionPage({
         >
           Movimientos generales
         </Link>
+        <Link href="/administracion/cierre" className="btn-secondary">
+          Cierre mensual
+        </Link>
         <Link
           href={qs({ reporte: "cierres" })}
           className={`btn-secondary ${reporte === "cierres" ? "!bg-brand-900 !text-white" : ""}`}
         >
-          Cierre de período
+          Períodos cerrados
         </Link>
         <Link
           href={qs({ reporte: "cuentas" })}
@@ -397,7 +399,13 @@ export default async function AdministracionPage({
           )}
         </div>
       ) : reporte === "cierres" ? (
-        <CierresMensualesSection esAdministrador={usuarioActual?.rol === "administrador"} />
+        <div className="card p-4 text-sm text-slate-600">
+          Los períodos se cierran y se reabren desde{" "}
+          <Link href="/administracion/cierre" className="text-brand-600 hover:underline">
+            Cierre mensual
+          </Link>
+          , donde también se cargan los saldos reales de cada caja y se congela el reporte del mes.
+        </div>
       ) : reporte === "generales" ? (
         <MovimientosGeneralesSection
           cajas={cajas ?? []}
