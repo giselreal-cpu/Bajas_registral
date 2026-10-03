@@ -9,7 +9,7 @@ interface FacturaSeleccion {
   caso: {
     valor_infoauto: number | null;
     tipo_baja: { nombre: string } | null;
-    vehiculo: { marca: string | null; modelo: string | null; anio: number | null } | null;
+    vehiculo: { dominio: string; marca: string | null; modelo: string | null; anio: number | null } | null;
   } | null;
   cobros: { monto: number; anulado: boolean }[] | null;
   notas_credito: { monto: number; anulado: boolean }[] | null;
@@ -17,7 +17,7 @@ interface FacturaSeleccion {
 
 // GET /api/cuenta-corriente/export-seleccion?ids=<id1>,<id2>,...
 // -> CSV de las facturas elegidas en pantalla (con saldo pendiente): tipo
-// de baja, marca/modelo/año, Valor InfoAuto, % que representa lo facturado
+// de baja, dominio, marca/modelo/año, Valor InfoAuto, % que representa lo facturado
 // sobre el Valor InfoAuto, y saldo a cobrar.
 export async function GET(request: NextRequest) {
   const ids = (request.nextUrl.searchParams.get("ids") ?? "").split(",").filter(Boolean);
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     .select(
       `
       id, numero_factura, monto_total,
-      caso:casos(valor_infoauto, tipo_baja:tipos_baja(nombre), vehiculo:vehiculos(marca, modelo, anio)),
+      caso:casos(valor_infoauto, tipo_baja:tipos_baja(nombre), vehiculo:vehiculos(dominio, marca, modelo, anio)),
       cobros(monto, anulado),
       notas_credito(monto, anulado)
     `
@@ -54,6 +54,7 @@ export async function GET(request: NextRequest) {
         : "";
 
     return {
+      dominio: f.caso?.vehiculo?.dominio ?? "",
       tipo_baja: f.caso?.tipo_baja?.nombre ?? "",
       vehiculo: [f.caso?.vehiculo?.marca, f.caso?.vehiculo?.modelo, f.caso?.vehiculo?.anio]
         .filter(Boolean)
@@ -65,6 +66,7 @@ export async function GET(request: NextRequest) {
   });
 
   const csv = toCsv(filas, [
+    { key: "dominio", label: "Dominio" },
     { key: "tipo_baja", label: "Tipo de Baja" },
     { key: "vehiculo", label: "Marca/Modelo/Año" },
     { key: "valor_infoauto", label: "Valor InfoAuto" },
