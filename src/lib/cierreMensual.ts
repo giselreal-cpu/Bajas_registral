@@ -28,6 +28,10 @@ export interface Comprobante {
   iva: number;
   retenciones: number;
   anulado: boolean;
+  // Comprobante de un caso que todavía no cerró: no tiene mes de devengo
+  // (se devenga al cerrar el caso), así que no entra al resultado de
+  // ningún mes; sí cuenta en el por cobrar / por pagar y en la caja.
+  caso_abierto?: boolean;
 }
 
 export interface Aplicacion {
@@ -195,6 +199,9 @@ export interface ResultadoCierre {
   // Pendiente BRUTO al cierre de los comprobantes del mes (para compararlo con "hoy")
   pendiente_cierre_cobrar_bruto: number;
   pendiente_cierre_pagar_bruto: number;
+  // Devengo diferido: comprobantes de casos aún abiertos (neto de IVA, hasta fin de mes)
+  diferido_ingresos_neto: number;
+  diferido_egresos_neto: number;
   // Liquidez
   cajas: CajaCierre[];
   saldo_inicial_total: number;
@@ -255,6 +262,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   let B1 = 0, B2 = 0, B3 = 0;
   let porCobrar = 0, porPagar = 0;
   let pendMesCobrar = 0, pendMesPagar = 0;
+  let diferidoIng = 0, diferidoEgr = 0;
   const detIngresos: FilaDetalle[] = [];
   const detEgresos: FilaDetalle[] = [];
   const detAnteriores: FilaDetalle[] = [];
@@ -291,7 +299,12 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     const es = c.tipo === "ingreso";
     const clasePago = es ? "cobro" : "pago";
     const k = ratio(c);
-    const enMes = c.fecha_devengo >= desde && c.fecha_devengo <= hasta;
+    const abierto = !!c.caso_abierto;
+    const enMes = !abierto && c.fecha_devengo >= desde && c.fecha_devengo <= hasta;
+    if (abierto && c.fecha_devengo <= hasta) {
+      if (es) diferidoIng += c.monto_neto;
+      else diferidoEgr += c.monto_neto;
+    }
 
     // Saldo pendiente al cierre del mes (as-of fin de mes).
     const aplicadoHastaFin = suma(apps, (a) => (a.clase === clasePago || a.clase === "nota_credito") && a.fecha <= hasta);
@@ -361,7 +374,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     } else {
       // Cobranzas/pagos de este mes de comprobantes de otros períodos: solo
       // caja (con caja asignada; lo aplicado desde un anticipo no mueve caja).
-      const anticipado = c.fecha_devengo > hasta;
+      const anticipado = !abierto && c.fecha_devengo > hasta;
       for (const a of delMesApps) {
         detAnteriores.push(fila(c, a, a.monto, pendienteBruto));
         if (a.caja_id) {
@@ -373,7 +386,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
       }
       // Nota de crédito de este mes sobre un comprobante anterior: ajusta el
       // resultado del mes en que se emite (no reescribe el mes original).
-      if (es && !anticipado) {
+      if (es && !anticipado && !abierto) {
         for (const nc of apps.filter((x) => x.clase === "nota_credito" && x.fecha >= desde && x.fecha <= hasta)) {
           const neto = -r2(nc.monto * k);
           A4 += neto;
@@ -403,7 +416,11 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     const c = m.comprobante_id ? porId.get(m.comprobante_id) : undefined;
     if (!c) continue;
     const entra = m.sentido === "entrada";
-    if (c.fecha_devengo >= desde && c.fecha_devengo <= hasta) {
+    if (c.caso_abierto) {
+      // Caso abierto: la plata se mueve pero el resultado todavía no.
+      if (entra) C1 += m.monto;
+      else C2 += m.monto;
+    } else if (c.fecha_devengo >= desde && c.fecha_devengo <= hasta) {
       if (entra) cajaA1 += m.monto;
       else cajaB1 += m.monto;
     } else if (c.fecha_devengo < desde) {
@@ -503,6 +520,8 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     por_pagar_acumulado: r2(porPagar),
     pendiente_cierre_cobrar_bruto: r2(pendMesCobrar),
     pendiente_cierre_pagar_bruto: r2(pendMesPagar),
+    diferido_ingresos_neto: r2(diferidoIng),
+    diferido_egresos_neto: r2(diferidoEgr),
     cajas,
     saldo_inicial_total: saldoInicialTotal,
     saldo_cajas_total: saldoCajasTotal,
@@ -562,7 +581,7 @@ export function pendienteHoy(mes: string, datos: DatosCierre): { porCobrar: numb
   let porCobrar = 0;
   let porPagar = 0;
   for (const c of datos.comprobantes) {
-    if (c.anulado || c.fecha_devengo < desde || c.fecha_devengo > hasta) continue;
+    if (c.anulado || c.caso_abierto || c.fecha_devengo < desde || c.fecha_devengo > hasta) continue;
     const pendiente = Math.max(c.monto_total - (aplicadoPor.get(c.comprobante_id) ?? 0), 0);
     if (c.tipo === "ingreso") porCobrar += pendiente;
     else porPagar += pendiente;

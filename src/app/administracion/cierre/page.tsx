@@ -455,6 +455,10 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
           {r.control_diferencia === 0 ? " = saldo final calculado ✓" : ` — diferencia de ${pesos(r.control_diferencia)} con el saldo final calculado`}
         </p>
         <p className="mt-1 text-slate-600">
+          <b>Devengo diferido</b> (casos todavía abiertos, neto): ingresos {pesos(r.diferido_ingresos_neto ?? 0)} · egresos{" "}
+          {pesos(r.diferido_egresos_neto ?? 0)}. No están en el resultado: entran en el mes en que cierra cada caso.
+        </p>
+        <p className="mt-1 text-slate-600">
           Pendiente de los comprobantes de {nombreMes(mes)} (con IVA): <b>al cierre</b> por cobrar{" "}
           {pesos(r.pendiente_cierre_cobrar_bruto)} y por pagar {pesos(r.pendiente_cierre_pagar_bruto)} · <b>hoy</b> por cobrar{" "}
           {pesos(hoy.porCobrar)} y por pagar {pesos(hoy.porPagar)}.

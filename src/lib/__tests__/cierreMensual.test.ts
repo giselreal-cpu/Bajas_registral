@@ -382,3 +382,45 @@ describe("rentabilidad por caso y por aseguradora", () => {
     expect(aseguradoras.reduce((a, x) => a + x.resultado, 0)).toBe(600);
   });
 });
+
+describe("devengo por cierre del caso", () => {
+  it("un caso abierto no entra al resultado de ningún mes pero sí al por cobrar y a la caja", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "i1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-10-02", monto_total: 1000, caso_abierto: true }),
+      comp({ comprobante_id: "e1", tipo: "egreso", caso_id: "k1", fecha_devengo: "2026-10-03", monto_total: 400, caso_abierto: true })
+    );
+    aplicar(d, "i1", "cobro", "2026-10-10", 300);
+    aplicar(d, "e1", "pago", "2026-10-11", 400);
+    const r = calcularCierre("2026-10", d);
+    expect(r.ingresos).toBe(0);
+    expect(r.egresos).toBe(0);
+    expect(r.por_cobrar_acumulado).toBe(700);
+    expect(r.diferido_ingresos_neto).toBe(1000);
+    expect(r.diferido_egresos_neto).toBe(400);
+    expect(r.variacion_saldo_cajas).toBe(-100);
+    expect(r.control_diferencia).toBe(0);
+    expect(pendienteHoy("2026-10", d).porCobrar).toBe(0);
+  });
+
+  it("al cerrar el caso, ingresos y costos caen juntos en el mes de cierre", () => {
+    const d = datosVacios();
+    // Caso cerrado en septiembre: factura emitida y gasto cargado en otros meses,
+    // pero ambos ya vienen con fecha_devengo = fecha de cierre.
+    d.comprobantes.push(
+      comp({ comprobante_id: "i1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-09-28", monto_total: 1000 }),
+      comp({ comprobante_id: "e1", tipo: "egreso", caso_id: "k1", fecha_devengo: "2026-09-28", monto_total: 400 })
+    );
+    aplicar(d, "e1", "pago", "2026-08-15", 400); // pagado antes de que cierre el caso
+    aplicar(d, "i1", "cobro", "2026-10-05", 1000);
+    const sep = calcularCierre("2026-09", d);
+    expect(sep.ingresos).toBe(1000);
+    expect(sep.egresos).toBe(400);
+    expect(sep.B3_pagado_antes).toBe(400);
+    expect(sep.rentabilidad_por_caso[0].resultado).toBe(600);
+    const oct = calcularCierre("2026-10", d);
+    expect(oct.ingresos).toBe(0);
+    expect(oct.egresos).toBe(0);
+    expect(oct.C1_cobranzas_anteriores).toBe(1000);
+  });
+});
