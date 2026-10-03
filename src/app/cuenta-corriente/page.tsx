@@ -182,9 +182,7 @@ export default async function CuentaCorrientePage() {
                   tipo={t.tipo as "compania" | "desarmadero"}
                   receptorId={t.id}
                   saldoDisponible={anticipoDisponibleDe(t.tipo, t.id)}
-                  anticipos={((anticipos as Anticipo[] | null) ?? []).filter(
-                    (a) => a.tipo_receptor === t.tipo && a.receptor_id === t.id
-                  )}
+                  anticipos={anticiposDisponiblesDe(t.tipo, t.id)}
                   cajas={cajas ?? []}
                   cuentas={cuentas ?? []}
                 />
