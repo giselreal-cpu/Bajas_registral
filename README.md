@@ -737,8 +737,10 @@ Calcula la ganancia real del mes, la liquidez y el ROI, con exportación
 para auditar cada número. Migración 0066 y lógica en
 `src/lib/cierreMensual.ts` (con tests: `npm test`).
 
-**Regla central.** El *resultado* es por **devengado** (neto de IVA, por
-fecha del comprobante) y la *liquidez* es por **caja** (por fecha en que
+**Regla central.** El *resultado* es por **devengado** (neto de IVA; un
+ingreso se devenga al **cerrar el caso** —o en la fecha de emisión de la
+factura si el caso todavía no cerró—, y un egreso en la fecha del
+movimiento) y la *liquidez* es por **caja** (por fecha en que
 la plata entra o sale de una caja). Un cobro de una factura de un mes
 anterior mueve la caja de este mes pero nunca su resultado. Las
 transferencias internas entre cajas no son cobros ni pagos.
