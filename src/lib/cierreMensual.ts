@@ -92,6 +92,45 @@ export interface FilaDetalle {
   pendiente: number;
 }
 
+// Una línea de las que componen los bloques del cierre: cada una aporta una
+// parte del total (cobrado en el mes, pendiente al cierre, etc.), así el
+// export puede sumar el detalle con SUMIFS y llegar al mismo número que el
+// resumen. En los bloques A y B `neto` es lo que entra al resultado y
+// `total` el bruto (con IVA); en C es solo caja (bruto).
+export interface LineaCierre {
+  bloque: "A" | "B" | "C";
+  linea: string;
+  comprobante_id: string;
+  caso_id: string | null;
+  aseguradora_id: string | null;
+  contraparte: string | null;
+  categoria: string | null;
+  numero: string | null;
+  fecha_devengo: string;
+  fecha_aplicacion: string | null;
+  caja_id: string | null;
+  neto: number;
+  iva: number;
+  total: number;
+  aplicado: number;
+  pendiente: number;
+  total_comprobante: number;
+}
+
+export interface MovimientoCajaFila {
+  movimiento_id: string;
+  caja_id: string;
+  caja: string;
+  grupo: "bancos" | "efectivo";
+  moneda: string;
+  fecha: string;
+  sentido: "entrada" | "salida";
+  monto: number;
+  origen: string;
+  comprobante_id: string | null;
+  es_transferencia_interna: boolean;
+}
+
 export interface CajaCierre {
   caja_id: string;
   nombre: string;
@@ -155,6 +194,8 @@ export interface ResultadoCierre {
     anteriores: FilaDetalle[];
   };
   rentabilidad_por_caso: { caso_id: string; ingresos: number; egresos: number; resultado: number }[];
+  lineas: LineaCierre[];
+  movimientos_caja: MovimientoCajaFila[];
 }
 
 const r2 = (n: number) => Math.round((n + Number.EPSILON) * 100) / 100;
@@ -200,6 +241,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   const detIngresos: FilaDetalle[] = [];
   const detEgresos: FilaDetalle[] = [];
   const detAnteriores: FilaDetalle[] = [];
+  const lineas: LineaCierre[] = [];
   const porCaso = new Map<string, { ingresos: number; egresos: number }>();
 
   const fila = (c: Comprobante, a: Aplicacion | null, aplicado: number, pendiente: number): FilaDetalle => ({
@@ -242,40 +284,84 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
       else porPagar += pendienteBruto;
     }
 
+    const linea = (
+      bloque: "A" | "B" | "C",
+      nombre: string,
+      a: Aplicacion | null,
+      bruto: number,
+      neto: number,
+      tipoMonto: "aplicado" | "pendiente"
+    ) => {
+      lineas.push({
+        bloque,
+        linea: nombre,
+        comprobante_id: c.comprobante_id,
+        caso_id: c.caso_id,
+        aseguradora_id: c.aseguradora_id,
+        contraparte: c.contraparte_nombre,
+        categoria: c.categoria,
+        numero: c.numero,
+        fecha_devengo: c.fecha_devengo,
+        fecha_aplicacion: a?.fecha ?? null,
+        caja_id: a?.caja_id ?? null,
+        neto,
+        iva: r2(bruto - neto),
+        total: bruto,
+        aplicado: tipoMonto === "aplicado" ? bruto : 0,
+        pendiente: tipoMonto === "pendiente" ? bruto : 0,
+        total_comprobante: c.monto_total
+      });
+    };
+    const delMesApps = apps.filter((x) => x.clase === clasePago && x.fecha >= desde && x.fecha <= hasta);
+
     if (enMes) {
-      const cobradoMes = suma(apps, (a) => a.clase === clasePago && a.fecha >= desde && a.fecha <= hasta);
-      const antes = suma(apps, (a) => a.clase === clasePago && a.fecha < desde);
-      const pendiente = pendienteBruto;
       if (es) pendMesCobrar += pendienteBruto;
       else pendMesPagar += pendienteBruto;
-      if (es) {
-        A1 += r2(cobradoMes * k);
-        A3 += r2(antes * k);
-        A2 += r2(pendiente * k);
-      } else {
-        B1 += r2(cobradoMes * k);
-        B3 += r2(antes * k);
-        B2 += r2(pendiente * k);
+
+      for (const a of delMesApps) {
+        const neto = r2(a.monto * k);
+        if (es) A1 += neto;
+        else B1 += neto;
+        linea(es ? "A" : "B", es ? "Cobrado en el mes" : "Pagado en el mes", a, a.monto, neto, "aplicado");
       }
+      for (const a of apps.filter((x) => x.clase === clasePago && x.fecha < desde)) {
+        const neto = r2(a.monto * k);
+        if (es) A3 += neto;
+        else B3 += neto;
+        linea(es ? "A" : "B", es ? "Cobrado antes del mes" : "Pagado antes del mes", a, a.monto, neto, "aplicado");
+      }
+      if (pendienteBruto > 0) {
+        const neto = r2(pendienteBruto * k);
+        if (es) A2 += neto;
+        else B2 += neto;
+        linea(es ? "A" : "B", "Pendiente al cierre", null, pendienteBruto, neto, "pendiente");
+      }
+
       sumarCaso(c, c.monto_neto - (es ? r2(suma(apps, (a) => a.clase === "nota_credito" && a.fecha <= hasta) * k) : 0));
-      const filas = apps.filter((a) => a.clase === clasePago && a.fecha >= desde && a.fecha <= hasta);
       const destino = es ? detIngresos : detEgresos;
-      if (filas.length === 0) destino.push(fila(c, null, 0, pendienteBruto));
-      for (const a of filas) destino.push(fila(c, a, a.monto, pendienteBruto));
-    } else if (c.fecha_devengo < desde) {
-      // Cobranzas/pagos de este mes de comprobantes anteriores: solo caja.
-      for (const a of apps.filter((x) => x.clase === clasePago && x.fecha >= desde && x.fecha <= hasta)) {
+      if (delMesApps.length === 0) destino.push(fila(c, null, 0, pendienteBruto));
+      for (const a of delMesApps) destino.push(fila(c, a, a.monto, pendienteBruto));
+    } else {
+      // Cobranzas/pagos de este mes de comprobantes de otros períodos: solo
+      // caja (con caja asignada; lo aplicado desde un anticipo no mueve caja).
+      const anticipado = c.fecha_devengo > hasta;
+      for (const a of delMesApps) {
         detAnteriores.push(fila(c, a, a.monto, pendienteBruto));
+        if (a.caja_id) {
+          const nombre = anticipado
+            ? es ? "Cobranza anticipada" : "Pago anticipado"
+            : es ? "Cobranza de período anterior" : "Pago de período anterior";
+          linea("C", nombre, a, a.monto, r2(a.monto * k), "aplicado");
+        }
       }
       // Nota de crédito de este mes sobre un comprobante anterior: ajusta el
       // resultado del mes en que se emite (no reescribe el mes original).
-      if (es) {
-        const nc = suma(apps, (a) => a.clase === "nota_credito" && a.fecha >= desde && a.fecha <= hasta);
-        if (nc > 0) A4 -= r2(nc * k);
-      }
-    } else {
-      for (const a of apps.filter((x) => x.clase === clasePago && x.fecha >= desde && x.fecha <= hasta)) {
-        detAnteriores.push(fila(c, a, a.monto, pendienteBruto));
+      if (es && !anticipado) {
+        for (const nc of apps.filter((x) => x.clase === "nota_credito" && x.fecha >= desde && x.fecha <= hasta)) {
+          const neto = -r2(nc.monto * k);
+          A4 += neto;
+          linea("A", "Nota de crédito de períodos anteriores", nc, -nc.monto, neto, "aplicado");
+        }
       }
     }
   }
@@ -408,7 +494,27 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     control_diferencia: controlDiferencia,
     capital_de_trabajo: r2(saldoCajasTotal + porCobrar - porPagar),
     detalle: { ingresos: detIngresos, egresos: detEgresos, anteriores: detAnteriores },
-    rentabilidad_por_caso: rentabilidad
+    rentabilidad_por_caso: rentabilidad,
+    lineas,
+    movimientos_caja: movs
+      .filter((m) => m.fecha >= desde && m.fecha <= hasta)
+      .sort((x, y) => (x.fecha < y.fecha ? -1 : x.fecha > y.fecha ? 1 : 0))
+      .map((m) => {
+        const caja = cajasPorId.get(m.caja_id)!;
+        return {
+          movimiento_id: m.movimiento_id,
+          caja_id: m.caja_id,
+          caja: caja.nombre,
+          grupo: caja.grupo,
+          moneda: caja.moneda,
+          fecha: m.fecha,
+          sentido: m.sentido,
+          monto: m.monto,
+          origen: m.origen,
+          comprobante_id: m.comprobante_id,
+          es_transferencia_interna: m.es_transferencia_interna
+        };
+      })
   };
 }
 

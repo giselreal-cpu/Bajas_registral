@@ -319,3 +319,47 @@ describe("pendiente hoy vs pendiente al cierre", () => {
     expect(pendienteHoy("2026-10", d).porCobrar).toBe(0);
   });
 });
+
+describe("las líneas de detalle suman exactamente los totales del resumen", () => {
+  it("A, B y C salen de las líneas (con IVA, nota de crédito, anticipado y pagos parciales)", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "i-sep", tipo: "ingreso", fecha_devengo: "2026-09-10", monto_total: 1210, monto_neto: 1000, iva: 210 }),
+      comp({ comprobante_id: "i-oct", tipo: "ingreso", fecha_devengo: "2026-10-05", monto_total: 3025, monto_neto: 2500, iva: 525 }),
+      comp({ comprobante_id: "i-nov", tipo: "ingreso", fecha_devengo: "2026-11-05", monto_total: 500 }),
+      comp({ comprobante_id: "e-oct", tipo: "egreso", fecha_devengo: "2026-10-06", monto_total: 1210, monto_neto: 1000, iva: 210 }),
+      comp({ comprobante_id: "e-sep", tipo: "egreso", fecha_devengo: "2026-09-12", monto_total: 700 })
+    );
+    aplicar(d, "i-sep", "cobro", "2026-10-03", 605);
+    aplicar(d, "i-oct", "cobro", "2026-10-10", 1000);
+    aplicar(d, "i-oct", "cobro", "2026-10-20", 333.33);
+    aplicar(d, "i-nov", "cobro", "2026-10-25", 500);
+    aplicar(d, "e-oct", "pago", "2026-10-12", 400);
+    aplicar(d, "e-sep", "pago", "2026-10-04", 700);
+    d.aplicaciones.push({
+      aplicacion_id: "nc9", comprobante_id: "i-sep", clase: "nota_credito", fecha: "2026-10-15",
+      monto: 121, caja_id: null, es_anticipo: false, anulado: false
+    });
+    const r = calcularCierre("2026-10", d);
+    const suma = (bloque: string, linea?: string, campo: "neto" | "total" = "neto") =>
+      Math.round(
+        r.lineas
+          .filter((l) => l.bloque === bloque && (!linea || l.linea === linea))
+          .reduce((a, l) => a + l[campo], 0) * 100
+      ) / 100;
+    expect(suma("A")).toBe(r.ingresos);
+    expect(suma("B")).toBe(r.egresos);
+    expect(suma("A", "Cobrado en el mes")).toBe(r.A1_cobrado_mes);
+    expect(suma("A", "Pendiente al cierre")).toBe(r.A2_pendiente_cierre);
+    expect(suma("A", "Nota de crédito de períodos anteriores")).toBe(r.A4_notas_credito_anteriores);
+    expect(suma("B", "Pagado en el mes")).toBe(r.B1_pagado_mes);
+    expect(suma("B", "Pendiente al cierre")).toBe(r.B2_pendiente_cierre);
+    expect(suma("C", "Cobranza de período anterior", "total")).toBe(r.C1_cobranzas_anteriores);
+    expect(suma("C", "Pago de período anterior", "total")).toBe(r.C2_pagos_anteriores);
+    expect(suma("C", "Cobranza anticipada", "total")).toBe(r.C3_cobranzas_anticipadas);
+    // movimientos de caja del mes: las entradas/salidas netas cierran con la variación
+    const neto = r.movimientos_caja.reduce((a, m) => a + (m.sentido === "entrada" ? m.monto : -m.monto), 0);
+    expect(Math.round(neto * 100) / 100).toBe(r.variacion_saldo_cajas);
+  });
+});
+

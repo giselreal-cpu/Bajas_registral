@@ -731,6 +731,60 @@ interno del equipo). También queda pendiente, por decisión explícita
 del usuario, que "caso saldado" exija egresos pagados y no solo
 cobrados (ver punto 8 de la auditoría contable arriba).
 
+## Cierre mensual (Administración → Cierre mensual)
+
+Calcula la ganancia real del mes, la liquidez y el ROI, con exportación
+para auditar cada número. Migración 0066 y lógica en
+`src/lib/cierreMensual.ts` (con tests: `npm test`).
+
+**Regla central.** El *resultado* es por **devengado** (neto de IVA, por
+fecha del comprobante) y la *liquidez* es por **caja** (por fecha en que
+la plata entra o sale de una caja). Un cobro de una factura de un mes
+anterior mueve la caja de este mes pero nunca su resultado. Las
+transferencias internas entre cajas no son cobros ni pagos.
+
+**Cómo se lee.**
+- **A – Ingresos:** cobrado en el mes (A1) + pendiente de cobro al cierre
+  (A2) de las facturas del mes; A3 = cobrado antes del mes (anticipado);
+  A4 = notas de crédito del mes sobre facturas de meses anteriores.
+- **B – Egresos:** igual, con pagos. Incluye gastos de caso y movimientos
+  generales.
+- **C – Otros períodos:** cobranzas y pagos del mes de comprobantes de
+  otros meses. Solo caja, informativo.
+- **D – Liquidez:** saldo por caja (inicial + entradas − salidas) con
+  Bancos / Efectivo; el *control* debe dar diferencia 0.
+- **Ganancia** = ingresos − egresos · **ROI** = ganancia / egresos · **Margen**
+  = ganancia / ingresos · **Capital de trabajo** = saldo de cajas + por
+  cobrar − por pagar.
+- Los montos cargados **incluyen IVA**; el neto es total / (1 + alícuota).
+  La alícuota se guarda por concepto (`conceptos_movimiento.iva_alicuota`,
+  21 % por defecto) y como foto en cada movimiento.
+
+**Para cerrar un mes.**
+1. Cargá el **saldo real** de cada caja activa en *Conciliación de cajas*
+   (extracto en bancos, arqueo en efectivo). Las diferencias quedan
+   marcadas (en efectivo, como faltante/sobrante).
+2. Registrá las **transferencias internas** del mes (p. ej. depósito de
+   efectivo al banco) si las hubo.
+3. Un administrador usa **Cerrar mes**: se congela el reporte (snapshot) y
+   el mes queda bloqueado para altas y modificaciones.
+4. **Reabrir** (solo administrador) exige un motivo y deja el snapshot
+   anterior en la bitácora del período.
+
+Un mes cerrado muestra el reporte congelado; el *pendiente al cierre*
+(congelado) se compara con el *pendiente hoy* (en vivo).
+
+**Exportar.** Excel completo (`cierre_AAAA-MM_generado_AAAA-MM-DD.xlsx`):
+la hoja *Resumen* usa fórmulas SUMIFS que leen las hojas de detalle
+(`A_Ingresos_mes`, `B_Egresos_mes`, `C_Movimientos_anteriores`, `D_Cajas`,
+`Conciliacion_Cajas`, `Transferencias_internas`, `Comparativo_12m`,
+`Rentabilidad_por_caso`) y una columna de control contra el valor del
+sistema. También hay CSV por bloque y exportación de un rango de meses.
+
+**Permisos.** Administrador y operador ven el módulo, cargan saldos y
+registran transferencias; cerrar y reabrir es solo de administrador.
+Compañía no tiene acceso.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

@@ -332,6 +332,60 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
         </button>
       </form>
 
+      <section className="card p-4 mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <a href={`/api/cierre-mensual/${mes}/export?formato=xlsx`} className="btn-primary text-sm">
+            Descargar Excel del cierre (.xlsx)
+          </a>
+          <span className="text-xs text-slate-500">
+            {cerrado ? "Sale del reporte congelado al cierre." : "Mes abierto: sale en vivo."} El Resumen usa fórmulas
+            SUMIFS sobre las hojas de detalle.
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-slate-600">
+          <span className="font-medium">CSV por bloque:</span>
+          {[
+            ["A", "A Ingresos"],
+            ["B", "B Egresos"],
+            ["C", "C Otros períodos"],
+            ["D", "D Cajas"],
+            ["conciliacion", "Conciliación"],
+            ["transferencias", "Transferencias"],
+            ["comparativo", "Comparativo 12m"],
+            ["rentabilidad", "Rentabilidad por caso"]
+          ].map(([bloque, texto]) => (
+            <a
+              key={bloque}
+              href={`/api/cierre-mensual/${mes}/export?formato=csv&bloque=${bloque}`}
+              className="text-brand-600 hover:underline"
+            >
+              {texto}
+            </a>
+          ))}
+        </div>
+        <form method="get" action="/api/cierre-mensual/export-rango" className="flex flex-wrap items-end gap-3 mt-4">
+          <span className="text-xs font-medium text-slate-600 self-center">Comparar un rango de meses:</span>
+          <div>
+            <label className="label">Desde</label>
+            <input type="month" name="desde" required defaultValue={ultimosMeses(mes, 6)[0]} className="input w-40" />
+          </div>
+          <div>
+            <label className="label">Hasta</label>
+            <input type="month" name="hasta" required defaultValue={mes} className="input w-40" />
+          </div>
+          <div>
+            <label className="label">Formato</label>
+            <select name="formato" className="input w-28" defaultValue="xlsx">
+              <option value="xlsx">Excel</option>
+              <option value="csv">CSV</option>
+            </select>
+          </div>
+          <button className="btn-secondary text-sm" type="submit">
+            Exportar rango
+          </button>
+        </form>
+      </section>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
         <Kpi titulo="Ingresos del mes" valor={pesos(r.ingresos)} detalle="Devengado, neto de IVA" />
         <Kpi titulo="Egresos del mes" valor={pesos(r.egresos)} detalle="Devengado, neto de IVA" />
