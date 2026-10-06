@@ -424,3 +424,29 @@ describe("devengo por cierre del caso", () => {
     expect(oct.C1_cobranzas_anteriores).toBe(1000);
   });
 });
+
+describe("ingresos sin facturar de un caso cerrado", () => {
+  it("entran al mes de cierre del caso como pendiente de cobro y no cambian al facturarse", () => {
+    const sinFacturar = (d = datosVacios()) => {
+      d.comprobantes.push(
+        comp({ comprobante_id: "ing:m1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-09-28", monto_total: 1210, monto_neto: 1000, iva: 210 })
+      );
+      return d;
+    };
+    const antes = calcularCierre("2026-09", sinFacturar());
+    expect(antes.ingresos).toBe(1000);
+    expect(antes.A2_pendiente_cierre).toBe(1000);
+    expect(antes.por_cobrar_acumulado).toBe(1210);
+    expect(antes.por_cobrar_sin_facturar).toBe(1210);
+
+    // Se factura en octubre: pasa a ser la factura, con la misma fecha de devengo.
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "fac:f1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-09-28", monto_total: 1210, monto_neto: 1000, iva: 210 })
+    );
+    const despues = calcularCierre("2026-09", d);
+    expect(despues.ingresos).toBe(antes.ingresos);
+    expect(despues.por_cobrar_sin_facturar).toBe(0);
+    expect(calcularCierre("2026-10", d).ingresos).toBe(0);
+  });
+});

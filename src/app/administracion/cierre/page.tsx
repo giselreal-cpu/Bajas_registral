@@ -226,7 +226,13 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
               <tbody>
                 {filas.slice(0, LIMITE_FILAS).map((f, i) => {
                   const href = hrefComprobante(f);
-                  const etiqueta = f.numero ? `N° ${f.numero}` : f.comprobante_id.split(":")[0] === "gen" ? "Mov. general" : "Gasto";
+                  const etiqueta = f.numero
+                    ? `N° ${f.numero}`
+                    : f.comprobante_id.startsWith("gen:")
+                      ? "Mov. general"
+                      : f.comprobante_id.startsWith("ing:")
+                        ? "Ingreso sin facturar"
+                        : "Gasto";
                   return (
                     <tr key={`${f.comprobante_id}-${i}`} className="border-t border-slate-100">
                       <td className="py-1.5 pr-3">
@@ -421,7 +427,14 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
           valor={pesos(r.saldo_cajas_total)}
           detalle={`Bancos ${pesos(r.saldo_bancos)} · Efectivo ${pesos(r.saldo_efectivo)}`}
         />
-        <Kpi titulo="Por cobrar acumulado" valor={pesos(r.por_cobrar_acumulado)} detalle="Todos los períodos, al cierre del mes" />
+        <Kpi
+          titulo="Por cobrar acumulado"
+          valor={pesos(r.por_cobrar_acumulado)}
+          detalle={`Al cierre del mes${
+            r.por_cobrar_sin_facturar ? ` · incluye ${pesos(r.por_cobrar_sin_facturar)} sin facturar` : ""
+          }`}
+        />
+        <Kpi titulo="Cuentas por pagar acumulado" valor={pesos(r.por_pagar_acumulado)} detalle="Todos los períodos, al cierre del mes" />
         <Kpi
           titulo="Capital de trabajo"
           valor={pesos(r.capital_de_trabajo)}

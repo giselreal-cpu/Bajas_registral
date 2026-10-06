@@ -196,6 +196,8 @@ export interface ResultadoCierre {
   margen: number | null;
   por_cobrar_acumulado: number;
   por_pagar_acumulado: number;
+  // Parte del por cobrar que corresponde a ingresos de caso todavía sin facturar
+  por_cobrar_sin_facturar: number;
   // Pendiente BRUTO al cierre de los comprobantes del mes (para compararlo con "hoy")
   pendiente_cierre_cobrar_bruto: number;
   pendiente_cierre_pagar_bruto: number;
@@ -263,6 +265,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   let porCobrar = 0, porPagar = 0;
   let pendMesCobrar = 0, pendMesPagar = 0;
   let diferidoIng = 0, diferidoEgr = 0;
+  let sinFacturar = 0;
   const detIngresos: FilaDetalle[] = [];
   const detEgresos: FilaDetalle[] = [];
   const detAnteriores: FilaDetalle[] = [];
@@ -312,6 +315,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     if (c.fecha_devengo <= hasta) {
       if (es) porCobrar += pendienteBruto;
       else porPagar += pendienteBruto;
+      if (c.comprobante_id.startsWith("ing:")) sinFacturar += pendienteBruto;
     }
 
     const linea = (
@@ -520,6 +524,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     por_pagar_acumulado: r2(porPagar),
     pendiente_cierre_cobrar_bruto: r2(pendMesCobrar),
     pendiente_cierre_pagar_bruto: r2(pendMesPagar),
+    por_cobrar_sin_facturar: r2(sinFacturar),
     diferido_ingresos_neto: r2(diferidoIng),
     diferido_egresos_neto: r2(diferidoEgr),
     cajas,
