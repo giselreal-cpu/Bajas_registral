@@ -384,7 +384,7 @@ describe("rentabilidad por caso y por aseguradora", () => {
 });
 
 describe("devengo por cierre del caso", () => {
-  it("un caso abierto no entra al resultado de ningún mes pero sí al por cobrar y a la caja", () => {
+  it("un caso abierto no se contabiliza (ni resultado ni por cobrar/pagar) pero su plata sí está en la caja", () => {
     const d = datosVacios();
     d.comprobantes.push(
       comp({ comprobante_id: "i1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-10-02", monto_total: 1000, caso_abierto: true }),
@@ -395,9 +395,10 @@ describe("devengo por cierre del caso", () => {
     const r = calcularCierre("2026-10", d);
     expect(r.ingresos).toBe(0);
     expect(r.egresos).toBe(0);
-    expect(r.por_cobrar_acumulado).toBe(700);
-    expect(r.diferido_ingresos_neto).toBe(1000);
-    expect(r.diferido_egresos_neto).toBe(400);
+    expect(r.por_cobrar_acumulado).toBe(0);
+    expect(r.por_pagar_acumulado).toBe(0);
+    expect(r.C1_cobranzas_anteriores + r.C2_pagos_anteriores).toBe(0);
+    expect(r.caja_casos_abiertos).toBe(-100);
     expect(r.variacion_saldo_cajas).toBe(-100);
     expect(r.control_diferencia).toBe(0);
     expect(pendienteHoy("2026-10", d).porCobrar).toBe(0);
@@ -451,17 +452,29 @@ describe("ingresos sin facturar de un caso cerrado", () => {
   });
 });
 
-describe("por cobrar con casos abiertos", () => {
-  it("un ingreso sin facturar de un caso abierto no es por cobrar, pero una factura de un caso abierto sí", () => {
+describe("casos abiertos fuera de la contabilización", () => {
+  it("ni las facturas ni los ingresos sin facturar de un caso abierto cuentan como por cobrar", () => {
     const d = datosVacios();
     d.comprobantes.push(
       comp({ comprobante_id: "ing:m1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-10-02", monto_total: 500, caso_abierto: true }),
-      comp({ comprobante_id: "fac:f1", tipo: "ingreso", caso_id: "k2", fecha_devengo: "2026-10-03", monto_total: 700, caso_abierto: true })
+      comp({ comprobante_id: "fac:f1", tipo: "ingreso", caso_id: "k2", fecha_devengo: "2026-10-03", monto_total: 700, caso_abierto: true }),
+      comp({ comprobante_id: "gen:g1", tipo: "egreso", fecha_devengo: "2026-10-04", monto_total: 90 })
     );
+    aplicar(d, "gen:g1", "pago", "2026-10-04", 90);
     const r = calcularCierre("2026-10", d);
-    expect(r.por_cobrar_acumulado).toBe(700);
+    expect(r.por_cobrar_acumulado).toBe(0);
     expect(r.por_cobrar_sin_facturar).toBe(0);
-    expect(r.diferido_ingresos_neto).toBe(1200);
     expect(r.ingresos).toBe(0);
+    // el movimiento general sí se contabiliza
+    expect(r.egresos).toBe(90);
+  });
+
+  it("al cerrar el caso se contabiliza entero en el mes de cierre", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "fac:f1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-11-05", monto_total: 700 })
+    );
+    expect(calcularCierre("2026-10", d).por_cobrar_acumulado).toBe(0);
+    expect(calcularCierre("2026-11", d).por_cobrar_acumulado).toBe(700);
   });
 });

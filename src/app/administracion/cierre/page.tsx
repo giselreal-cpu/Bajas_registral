@@ -467,10 +467,12 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
           Control de caja: saldo inicial {pesos(r.saldo_inicial_total)} + entradas − salidas (sin transferencias internas)
           {r.control_diferencia === 0 ? " = saldo final calculado ✓" : ` — diferencia de ${pesos(r.control_diferencia)} con el saldo final calculado`}
         </p>
-        <p className="mt-1 text-slate-600">
-          <b>Devengo diferido</b> (casos todavía abiertos, neto): ingresos {pesos(r.diferido_ingresos_neto ?? 0)} · egresos{" "}
-          {pesos(r.diferido_egresos_neto ?? 0)}. No están en el resultado: entran en el mes en que cierra cada caso.
-        </p>
+        {(r.caja_casos_abiertos ?? 0) !== 0 && (
+          <p className="mt-1 text-slate-600">
+            Los casos abiertos no se contabilizan (entran cuando cierran), pero su plata sí se movió de las cajas: neto del mes{" "}
+            {pesos(r.caja_casos_abiertos)} dentro del saldo de cajas.
+          </p>
+        )}
         <p className="mt-1 text-slate-600">
           Pendiente de los comprobantes de {nombreMes(mes)} (con IVA): <b>al cierre</b> por cobrar{" "}
           {pesos(r.pendiente_cierre_cobrar_bruto)} y por pagar {pesos(r.pendiente_cierre_pagar_bruto)} · <b>hoy</b> por cobrar{" "}

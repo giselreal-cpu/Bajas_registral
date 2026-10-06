@@ -739,10 +739,11 @@ para auditar cada número. Migración 0066 y lógica en
 
 **Regla central.** El *resultado* es por **devengado** (neto de IVA): los
 ingresos **y** los gastos de un caso se devengan al **cerrar el caso**, para
-que los costos caigan en el mismo mes que sus ingresos; un caso todavía
-abierto no entra al resultado de ningún mes (se muestra como *devengo
-diferido*), aunque sí cuenta en el por cobrar / por pagar y en la caja. Los
-movimientos generales se devengan en el mes en que se cargaron. La
+que los costos caigan en el mismo mes que sus ingresos. **Un caso todavía
+abierto no se contabiliza en absoluto** (ni resultado, ni por cobrar, ni por
+pagar): entra entero cuando cierra. La plata que ya se movió de una caja por
+un caso abierto sí está en el saldo de cajas (es dinero real) y el cierre lo
+avisa aparte. Los movimientos generales se devengan en el mes en que se cargaron. La
 *liquidez* es por **caja** (por fecha en que
 la plata entra o sale de una caja). Un cobro de una factura de un mes
 anterior mueve la caja de este mes pero nunca su resultado. Las

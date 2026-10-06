@@ -201,9 +201,9 @@ export interface ResultadoCierre {
   // Pendiente BRUTO al cierre de los comprobantes del mes (para compararlo con "hoy")
   pendiente_cierre_cobrar_bruto: number;
   pendiente_cierre_pagar_bruto: number;
-  // Devengo diferido: comprobantes de casos aún abiertos (neto de IVA, hasta fin de mes)
-  diferido_ingresos_neto: number;
-  diferido_egresos_neto: number;
+  // Movimiento neto de caja (entradas − salidas) del mes por casos aún abiertos:
+  // no se contabiliza, pero está en el saldo de las cajas.
+  caja_casos_abiertos: number;
   // Liquidez
   cajas: CajaCierre[];
   saldo_inicial_total: number;
@@ -264,7 +264,6 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   let B1 = 0, B2 = 0, B3 = 0;
   let porCobrar = 0, porPagar = 0;
   let pendMesCobrar = 0, pendMesPagar = 0;
-  let diferidoIng = 0, diferidoEgr = 0;
   let sinFacturar = 0;
   const detIngresos: FilaDetalle[] = [];
   const detEgresos: FilaDetalle[] = [];
@@ -302,23 +301,18 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     const es = c.tipo === "ingreso";
     const clasePago = es ? "cobro" : "pago";
     const k = ratio(c);
-    const abierto = !!c.caso_abierto;
-    const enMes = !abierto && c.fecha_devengo >= desde && c.fecha_devengo <= hasta;
-    if (abierto && c.fecha_devengo <= hasta) {
-      if (es) diferidoIng += c.monto_neto;
-      else diferidoEgr += c.monto_neto;
-    }
+    // Un caso todavía abierto no se contabiliza: ni resultado, ni por cobrar,
+    // ni por pagar. Se contabiliza entero cuando cierra el caso.
+    if (c.caso_abierto) continue;
+    const enMes = c.fecha_devengo >= desde && c.fecha_devengo <= hasta;
 
     // Saldo pendiente al cierre del mes (as-of fin de mes).
     const aplicadoHastaFin = suma(apps, (a) => (a.clase === clasePago || a.clase === "nota_credito") && a.fecha <= hasta);
     const pendienteBruto = Math.max(c.monto_total - aplicadoHastaFin, 0);
     if (c.fecha_devengo <= hasta) {
-      // Un ingreso sin facturar de un caso todavía abierto no es una deuda a
-      // cobrar (ni está devengado): queda solo en el devengo diferido.
-      const ingresoAbiertoSinFacturar = es && abierto && c.comprobante_id.startsWith("ing:");
-      if (es && !ingresoAbiertoSinFacturar) porCobrar += pendienteBruto;
-      else if (!es) porPagar += pendienteBruto;
-      if (c.comprobante_id.startsWith("ing:") && !abierto) sinFacturar += pendienteBruto;
+      if (es) porCobrar += pendienteBruto;
+      else porPagar += pendienteBruto;
+      if (c.comprobante_id.startsWith("ing:")) sinFacturar += pendienteBruto;
     }
 
     const linea = (
@@ -381,7 +375,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     } else {
       // Cobranzas/pagos de este mes de comprobantes de otros períodos: solo
       // caja (con caja asignada; lo aplicado desde un anticipo no mueve caja).
-      const anticipado = !abierto && c.fecha_devengo > hasta;
+      const anticipado = c.fecha_devengo > hasta;
       for (const a of delMesApps) {
         detAnteriores.push(fila(c, a, a.monto, pendienteBruto));
         if (a.caja_id) {
@@ -393,7 +387,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
       }
       // Nota de crédito de este mes sobre un comprobante anterior: ajusta el
       // resultado del mes en que se emite (no reescribe el mes original).
-      if (es && !anticipado && !abierto) {
+      if (es && !anticipado) {
         for (const nc of apps.filter((x) => x.clase === "nota_credito" && x.fecha >= desde && x.fecha <= hasta)) {
           const neto = -r2(nc.monto * k);
           A4 += neto;
@@ -413,7 +407,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   const cajasPorId = new Map(datos.cajas.map((c) => [c.id, c]));
   const movs = datos.movimientos.filter((m) => cajasPorId.has(m.caja_id));
 
-  let cajaA1 = 0, cajaB1 = 0, C1 = 0, C2 = 0, C3 = 0, C4 = 0, anticipos = 0;
+  let cajaA1 = 0, cajaB1 = 0, C1 = 0, C2 = 0, C3 = 0, C4 = 0, anticipos = 0, cajaCasosAbiertos = 0;
   for (const m of movs) {
     if (m.fecha < desde || m.fecha > hasta || m.es_transferencia_interna) continue;
     if (m.origen === "anticipo") {
@@ -424,9 +418,10 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     if (!c) continue;
     const entra = m.sentido === "entrada";
     if (c.caso_abierto) {
-      // Caso abierto: la plata se mueve pero el resultado todavía no.
-      if (entra) C1 += m.monto;
-      else C2 += m.monto;
+      // Caso abierto: no se contabiliza, pero la plata sí se movió de una
+      // caja (el saldo y la conciliación tienen que reflejarla). Solo se
+      // acumula para poder explicar la diferencia en la caja.
+      cajaCasosAbiertos += entra ? m.monto : -m.monto;
     } else if (c.fecha_devengo >= desde && c.fecha_devengo <= hasta) {
       if (entra) cajaA1 += m.monto;
       else cajaB1 += m.monto;
@@ -528,8 +523,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     pendiente_cierre_cobrar_bruto: r2(pendMesCobrar),
     pendiente_cierre_pagar_bruto: r2(pendMesPagar),
     por_cobrar_sin_facturar: r2(sinFacturar),
-    diferido_ingresos_neto: r2(diferidoIng),
-    diferido_egresos_neto: r2(diferidoEgr),
+    caja_casos_abiertos: r2(cajaCasosAbiertos),
     cajas,
     saldo_inicial_total: saldoInicialTotal,
     saldo_cajas_total: saldoCajasTotal,
