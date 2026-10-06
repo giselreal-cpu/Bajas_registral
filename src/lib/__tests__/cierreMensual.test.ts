@@ -450,3 +450,18 @@ describe("ingresos sin facturar de un caso cerrado", () => {
     expect(calcularCierre("2026-10", d).ingresos).toBe(0);
   });
 });
+
+describe("por cobrar con casos abiertos", () => {
+  it("un ingreso sin facturar de un caso abierto no es por cobrar, pero una factura de un caso abierto sí", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "ing:m1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-10-02", monto_total: 500, caso_abierto: true }),
+      comp({ comprobante_id: "fac:f1", tipo: "ingreso", caso_id: "k2", fecha_devengo: "2026-10-03", monto_total: 700, caso_abierto: true })
+    );
+    const r = calcularCierre("2026-10", d);
+    expect(r.por_cobrar_acumulado).toBe(700);
+    expect(r.por_cobrar_sin_facturar).toBe(0);
+    expect(r.diferido_ingresos_neto).toBe(1200);
+    expect(r.ingresos).toBe(0);
+  });
+});

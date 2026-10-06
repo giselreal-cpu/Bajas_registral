@@ -313,9 +313,12 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     const aplicadoHastaFin = suma(apps, (a) => (a.clase === clasePago || a.clase === "nota_credito") && a.fecha <= hasta);
     const pendienteBruto = Math.max(c.monto_total - aplicadoHastaFin, 0);
     if (c.fecha_devengo <= hasta) {
-      if (es) porCobrar += pendienteBruto;
-      else porPagar += pendienteBruto;
-      if (c.comprobante_id.startsWith("ing:")) sinFacturar += pendienteBruto;
+      // Un ingreso sin facturar de un caso todavía abierto no es una deuda a
+      // cobrar (ni está devengado): queda solo en el devengo diferido.
+      const ingresoAbiertoSinFacturar = es && abierto && c.comprobante_id.startsWith("ing:");
+      if (es && !ingresoAbiertoSinFacturar) porCobrar += pendienteBruto;
+      else if (!es) porPagar += pendienteBruto;
+      if (c.comprobante_id.startsWith("ing:") && !abierto) sinFacturar += pendienteBruto;
     }
 
     const linea = (
