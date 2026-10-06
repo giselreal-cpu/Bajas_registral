@@ -798,6 +798,24 @@ sistema. También hay CSV por bloque y exportación de un rango de meses.
 registran transferencias; cerrar y reabrir es solo de administrador.
 Compañía no tiene acceso.
 
+## Análisis, Panel y Cierre mensual: dónde vive cada dato
+
+Para no duplicar información entre módulos:
+
+- **Panel** (`/panel`): lo operativo del día — KPIs de casos, casos que piden
+  atención, avance por etapa, vencimientos, pendiente de aprobar, casos por
+  gestor y eventos sin completar.
+- **Análisis** (`/analisis`, no visible para compañía): indicadores.
+  Gráficos de evolución de 12 meses y ranking de rentabilidad (por
+  aseguradora y por caso, mes o 12 meses; período propio `?periodo=AAAA-MM`),
+  tiempos de trámite (promedios y días promedio por etapa) y encuestas de
+  satisfacción. Los filtros del Panel (compañía, mes de ingreso, tipo de baja,
+  trámitador) aplican a tiempos y satisfacción.
+- **Cierre mensual**: la contabilidad del mes (conciliación, detalle A/B/C,
+  cajas, transferencias, comparativo en tabla, cierre/reapertura, exportes).
+- **Cuenta corriente** (`/cuenta-corriente`): facturas, cobros y anticipos —
+  ya no se resume en Análisis.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

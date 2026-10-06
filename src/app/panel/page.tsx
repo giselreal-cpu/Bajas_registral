@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ESTADOS } from "@/types/database";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
-import { obtenerDatosPanel, obtenerDatosPanelCompania, nombreMes, PanelFiltros } from "@/lib/panelData";
+import { obtenerDatosPanel, obtenerDatosPanelCompania, PanelFiltros } from "@/lib/panelData";
 import { avanceCaso } from "@/lib/avanceCaso";
 import AvanceBar from "@/components/AvanceBar";
 import PanelCompania from "@/components/panel/PanelCompania";
@@ -40,22 +40,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
     casosSinMovimiento,
     casosSinContactar,
     rankingGestores,
-    casosConTiempos,
-    promedioTramite,
-    casosConPresentacion,
-    promedioPresentacionCierre,
     eventosPorTipo,
-    encuestasEnviadas,
-    encuestasRespondidas,
-    encuestasSinResponder,
-    promedioContacto,
-    promedioTraslado,
-    promedioGestoria,
-    facturasPendientes,
-    totalIngresosPanel,
-    totalEgresosPanel,
-    gananciaNetaPanel,
-    resumenMensual,
     itemsAtencionLimitados,
     totalACobrarCartera,
     casosACobrarCartera,
@@ -411,73 +396,6 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
         </section>
       )}
 
-      {puedeVerTiempos && (
-        <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-1">Rentabilidad — base caja (casos cerrados)</h2>
-          <p className="text-xs text-slate-400 mb-3">
-            Ingresos = plata efectivamente cobrada, no lo facturado pendiente. Egresos = solo lo
-            efectivamente pagado, no lo cargado pendiente de pago.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            <div className="rounded-md bg-emerald-50 border border-emerald-100 p-3">
-              <div className="text-xs text-emerald-700">Ingresos</div>
-              <div className="text-lg font-semibold text-emerald-800">
-                {formatCurrency(totalIngresosPanel)}
-              </div>
-            </div>
-            <div className="rounded-md bg-red-50 border border-red-100 p-3">
-              <div className="text-xs text-red-700">Egresos</div>
-              <div className="text-lg font-semibold text-red-800">
-                {formatCurrency(totalEgresosPanel)}
-              </div>
-            </div>
-            <div
-              className={`rounded-md border p-3 ${
-                gananciaNetaPanel >= 0
-                  ? "bg-accent-50 border-accent-200"
-                  : "bg-red-50 border-red-200"
-              }`}
-            >
-              <div className="text-xs text-slate-600">Ganancia neta</div>
-              <div
-                className={`text-lg font-semibold ${
-                  gananciaNetaPanel >= 0 ? "text-accent-700" : "text-red-800"
-                }`}
-              >
-                {formatCurrency(gananciaNetaPanel)}
-              </div>
-            </div>
-          </div>
-
-          <h3 className="text-sm font-medium text-slate-700 mb-2">Facturas pendientes de cobro</h3>
-          {facturasPendientes.length > 0 ? (
-            <div className="divide-y divide-slate-100">
-              {facturasPendientes.map((f) => (
-                <div key={f.id} className="py-2 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link
-                      href={`/casos/${f.caso_id}`}
-                      className="text-brand-700 font-medium hover:underline text-sm"
-                    >
-                      N° {f.numero_factura} — {f.caso?.numero_siniestro}
-                    </Link>
-                    <p className="text-xs text-slate-500">
-                      {f.tipo_receptor === "compania" ? "Compañía" : "Desarmadero"} ·{" "}
-                      {formatCurrency(f.monto_total)}
-                    </p>
-                  </div>
-                  <span className="badge bg-amber-100 text-amber-800 shrink-0">
-                    {f.estado === "cobrado_parcial" ? "Cobrado parcial" : "Pendiente"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500">No hay facturas pendientes de cobro.</p>
-          )}
-        </section>
-      )}
-
       <section className="card p-4">
         <div className="flex items-center justify-between mb-1">
           <h2 className="font-medium text-slate-800">Eventos sin completar</h2>
@@ -512,101 +430,6 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
         </div>
       </section>
 
-      <section className="card p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-medium text-slate-800">Encuestas de satisfacción</h2>
-          <Link href={hrefDetalle("encuestas")} className="text-sm text-brand-600 hover:underline">
-            Ver detalle →
-          </Link>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-          <StatCard label="Enviadas" value={encuestasEnviadas} />
-          <StatCard label="Respondidas" value={encuestasRespondidas} />
-          <StatCard label="Sin responder" value={encuestasSinResponder} />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <StatCard
-            label="Contacto inicial (promedio)"
-            value={promedioContacto ?? 0}
-            sufijo="/5"
-          />
-          <StatCard label="Traslado (promedio)" value={promedioTraslado ?? 0} sufijo="/5" />
-          <StatCard label="Gestoría (promedio)" value={promedioGestoria ?? 0} sufijo="/5" />
-        </div>
-      </section>
-
-      {puedeVerTiempos && (
-        <section className="card p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-medium text-slate-800">Tiempos de trámite (casos cerrados)</h2>
-            <Link href={hrefDetalle("tiempos")} className="text-sm text-brand-600 hover:underline">
-              Ver detalle →
-            </Link>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <StatCard
-              label="Trámite completo (promedio)"
-              value={promedioTramite ?? 0}
-              sufijo=" días"
-            />
-            <StatCard label="Casos cerrados analizados" value={casosConTiempos.length} />
-            <StatCard
-              label="Presentación → cierre (promedio)"
-              value={promedioPresentacionCierre ?? 0}
-              sufijo=" días"
-            />
-            <StatCard label="Casos con ese dato" value={casosConPresentacion.length} />
-          </div>
-        </section>
-      )}
-
-      {puedeVerTiempos && (
-        <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-1">
-            Ganancia neta por mes — devengado (casos cerrados)
-          </h2>
-          <p className="text-xs text-slate-400 mb-3">
-            Ganancia neta = todo lo facturado (cobrado o no) menos todos los egresos cargados
-            (pagados y pendientes de pago), sobre los autos cerrados cada mes.
-          </p>
-          {resumenMensual.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-left text-slate-500">
-                  <tr>
-                    <th className="py-1 pr-4 font-medium">Mes</th>
-                    <th className="py-1 pr-4 font-medium">Autos cerrados</th>
-                    <th className="py-1 pr-4 font-medium">Ganancia neta</th>
-                    <th className="py-1 pr-4 font-medium">Cobrado al desarmadero</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resumenMensual.map((r) => (
-                    <tr key={r.mes} className="border-t border-slate-100">
-                      <td className="py-1.5 pr-4 font-medium text-slate-800">
-                        {nombreMes(r.mes)}
-                      </td>
-                      <td className="py-1.5 pr-4">{r.autosCerrados}</td>
-                      <td
-                        className={`py-1.5 pr-4 font-medium ${
-                          r.gananciaNeta >= 0 ? "text-accent-700" : "text-red-700"
-                        }`}
-                      >
-                        {formatCurrency(r.gananciaNeta)}
-                      </td>
-                      <td className="py-1.5 pr-4">{formatCurrency(r.cobradoDesarmadero)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500">
-              Todavía no hay casos cerrados con fecha de cierre cargada.
-            </p>
-          )}
-        </section>
-      )}
     </div>
   );
 }
