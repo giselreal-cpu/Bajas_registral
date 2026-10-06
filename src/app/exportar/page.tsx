@@ -24,13 +24,8 @@ export default async function ExportarPage() {
         <ExportCard
           titulo="Casos (Excel)"
           descripcion="Un renglón por caso, con aseguradora, asegurado, vehículo, desarmadero, registro, tipo de baja y responsable ya resueltos. Con filtros en el encabezado, fechas reales y los números de siniestro, DNI y teléfonos como texto (no se pierden ceros ni se convierten en notación científica). Recomendado para trabajar en Excel."
-          href="/api/export/casos?formato=xlsx"
-          destacado
-        />
-        <ExportCard
-          titulo="Casos (CSV)"
-          descripcion="El mismo reporte en CSV, para importar en otros sistemas. Si lo abrís en Excel, los números largos pueden perder ceros o verse en notación científica."
           href="/api/export/casos"
+          destacado
         />
         <ExportCard
           titulo="Bitácora (CSV)"
