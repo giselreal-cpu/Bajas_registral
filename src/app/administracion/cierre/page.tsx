@@ -7,7 +7,7 @@ import {
   combinarRentabilidad,
   pendienteHoy,
   ultimosMeses,
-  FilaDetalle,
+  LineaCierre,
   ResultadoCierre,
   SaldoDeclarado
 } from "@/lib/cierreMensual";
@@ -107,7 +107,7 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
     }));
 
   // ---- Detalle con filtros ----
-  const pasa = (f: FilaDetalle) => {
+  const pasa = (f: LineaCierre) => {
     if (searchParams.aseguradora_id && f.aseguradora_id !== searchParams.aseguradora_id) return false;
     if (searchParams.categoria && f.categoria !== searchParams.categoria) return false;
     if (searchParams.caja_id && f.caja_id !== searchParams.caja_id) return false;
@@ -163,7 +163,7 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
   const idsCaso = Array.from(
     new Set(
       [
-        ...[...r.detalle.ingresos, ...r.detalle.egresos, ...r.detalle.anteriores].map((f) => f.caso_id),
+        ...r.lineas.map((f) => f.caso_id),
         ...mejoresCasos.map((c) => c.caso_id),
         ...peoresCasos.map((c) => c.caso_id)
       ].filter((x): x is string => !!x)
@@ -180,18 +180,18 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
     }
   }
   const textoCaso = searchParams.caso?.trim().toLowerCase();
-  const pasaConCaso = (f: FilaDetalle) => {
+  const pasaConCaso = (f: LineaCierre) => {
     if (!pasa(f)) return false;
     if (textoCaso) return (f.caso_id ? casoLabel.get(f.caso_id) ?? "" : "").toLowerCase().includes(textoCaso);
     return true;
   };
 
-  const ingresosDet = r.detalle.ingresos.filter(pasaConCaso);
-  const egresosDet = r.detalle.egresos.filter(pasaConCaso);
-  const anterioresDet = r.detalle.anteriores.filter(pasaConCaso);
+  const ingresosDet = r.lineas.filter((l) => l.bloque === "A").filter(pasaConCaso);
+  const egresosDet = r.lineas.filter((l) => l.bloque === "B").filter(pasaConCaso);
+  const anterioresDet = r.lineas.filter((l) => l.bloque === "C").filter(pasaConCaso);
 
   const categorias = Array.from(
-    new Set([...r.detalle.ingresos, ...r.detalle.egresos, ...r.detalle.anteriores].map((f) => f.categoria).filter((x): x is string => !!x))
+    new Set(r.lineas.map((f) => f.categoria).filter((x): x is string => !!x))
   ).sort();
 
   const aseguradoraNombre = new Map((aseguradoras ?? []).map((a) => [a.id, a.nombre]));
@@ -226,14 +226,14 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
 
   // ---- Comparativo últimos 12 meses ----
 
-  const hrefComprobante = (f: FilaDetalle) =>
+  const hrefComprobante = (f: LineaCierre) =>
     f.comprobante_id.startsWith("gen:")
       ? "/administracion?reporte=generales"
       : f.caso_id
         ? `/casos/${f.caso_id}/rentabilidad`
         : null;
 
-  function TablaDetalle({ titulo, filas, vacio, etiquetaFecha }: { titulo: string; filas: FilaDetalle[]; vacio: string; etiquetaFecha: string }) {
+  function TablaDetalle({ titulo, filas, vacio, etiquetaFecha }: { titulo: string; filas: LineaCierre[]; vacio: string; etiquetaFecha: string }) {
     return (
       <section className="card p-4 mb-6">
         <h2 className="font-medium text-slate-800 mb-3">
@@ -250,13 +250,12 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
                   <th className="py-1 pr-3 font-medium">Caso</th>
                   <th className="py-1 pr-3 font-medium">Contraparte / categoría</th>
                   <th className="py-1 pr-3 font-medium">Devengo</th>
+                  <th className="py-1 pr-3 font-medium">Concepto</th>
                   <th className="py-1 pr-3 font-medium">{etiquetaFecha}</th>
                   <th className="py-1 pr-3 font-medium">Caja</th>
-                  <th className="py-1 pr-3 font-medium text-right">Neto</th>
-                  <th className="py-1 pr-3 font-medium text-right">IVA</th>
-                  <th className="py-1 pr-3 font-medium text-right">Total</th>
-                  <th className="py-1 pr-3 font-medium text-right">Aplicado</th>
-                  <th className="py-1 pr-3 font-medium text-right">Pendiente</th>
+                  <th className="py-1 pr-3 font-medium text-right">Al resultado (neto)</th>
+                  <th className="py-1 pr-3 font-medium text-right">IVA descontado</th>
+                  <th className="py-1 pr-3 font-medium text-right">Monto</th>
                 </tr>
               </thead>
               <tbody>
@@ -286,6 +285,7 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
                         {f.contraparte && f.categoria && <span className="block text-xs text-slate-400">{f.categoria}</span>}
                       </td>
                       <td className="py-1.5 pr-3">{new Date(f.fecha_devengo + "T00:00:00").toLocaleDateString("es-AR")}</td>
+                      <td className="py-1.5 pr-3">{f.linea}</td>
                       <td className="py-1.5 pr-3">
                         {f.fecha_aplicacion ? new Date(f.fecha_aplicacion + "T00:00:00").toLocaleDateString("es-AR") : "—"}
                       </td>
@@ -293,8 +293,6 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
                       <td className="py-1.5 pr-3 text-right tabular-nums">{pesos(f.neto)}</td>
                       <td className="py-1.5 pr-3 text-right tabular-nums">{pesos(f.iva)}</td>
                       <td className="py-1.5 pr-3 text-right tabular-nums">{pesos(f.total)}</td>
-                      <td className="py-1.5 pr-3 text-right tabular-nums">{pesos(f.aplicado)}</td>
-                      <td className="py-1.5 pr-3 text-right tabular-nums">{pesos(f.pendiente)}</td>
                     </tr>
                   );
                 })}

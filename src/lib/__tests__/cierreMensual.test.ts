@@ -228,10 +228,10 @@ describe("casos especiales", () => {
     expect(r.saldo_bancos).toBe(0);
   });
 
-  it("neto de IVA: el resultado usa neto y la caja usa bruto", () => {
+  it("ingreso por banco: el resultado usa neto de IVA y la caja usa bruto", () => {
     const d = datosVacios();
     d.comprobantes.push(
-      comp({ comprobante_id: "i1", tipo: "ingreso", fecha_devengo: "2026-10-02", monto_total: 1210, monto_neto: 1000, iva: 210 })
+      comp({ comprobante_id: "i1", tipo: "ingreso", fecha_devengo: "2026-10-02", monto_total: 1210, monto_neto: 1000, iva: 210, forma_pago: "Transferencia" })
     );
     aplicar(d, "i1", "cobro", "2026-10-10", 605);
     const r = calcularCierre("2026-10", d);
@@ -435,8 +435,9 @@ describe("ingresos sin facturar de un caso cerrado", () => {
       return d;
     };
     const antes = calcularCierre("2026-09", sinFacturar());
-    expect(antes.ingresos).toBe(1000);
-    expect(antes.A2_pendiente_cierre).toBe(1000);
+    // sin caja ni forma de pago prevista = efectivo: cuenta el monto completo
+    expect(antes.ingresos).toBe(1210);
+    expect(antes.A2_pendiente_cierre).toBe(1210);
     expect(antes.por_cobrar_acumulado).toBe(1210);
     expect(antes.por_cobrar_sin_facturar).toBe(1210);
 
@@ -476,5 +477,54 @@ describe("casos abiertos fuera de la contabilización", () => {
     );
     expect(calcularCierre("2026-10", d).por_cobrar_acumulado).toBe(0);
     expect(calcularCierre("2026-11", d).por_cobrar_acumulado).toBe(700);
+  });
+});
+
+describe("criterio de IVA según caja y factura A", () => {
+  it("ingreso cobrado por Caja pesos (efectivo) cuenta el monto completo, sin descontar IVA", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "i1", tipo: "ingreso", fecha_devengo: "2026-10-02", monto_total: 1210, monto_neto: 1000, iva: 210 })
+    );
+    aplicar(d, "i1", "cobro", "2026-10-10", 1210, "c2"); // c2 = efectivo
+    const r = calcularCierre("2026-10", d);
+    expect(r.A1_cobrado_mes).toBe(1210);
+    expect(r.ingresos).toBe(1210);
+    expect(r.lineas.every((l) => l.iva === 0)).toBe(true);
+  });
+
+  it("ingreso cobrado por banco descuenta el IVA; lo pendiente sigue la forma de pago de la factura", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "i1", tipo: "ingreso", fecha_devengo: "2026-10-02", monto_total: 1210, monto_neto: 1000, iva: 210 }),
+      comp({ comprobante_id: "i2", tipo: "ingreso", fecha_devengo: "2026-10-02", monto_total: 1210, monto_neto: 1000, iva: 210, forma_pago: "Transferencia" })
+    );
+    aplicar(d, "i1", "cobro", "2026-10-10", 605, "c1"); // c1 = banco
+    const r = calcularCierre("2026-10", d);
+    expect(r.A1_cobrado_mes).toBe(500); // banco: neto
+    expect(r.A2_pendiente_cierre).toBe(605 + 1000); // i1 pendiente sin forma de pago = completo; i2 transferencia = neto
+  });
+
+  it("cobro hecho con un anticipo sigue la caja del anticipo", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "i1", tipo: "ingreso", fecha_devengo: "2026-10-02", monto_total: 1210, monto_neto: 1000, iva: 210 })
+    );
+    aplicar(d, "i1", "cobro", "2026-10-10", 1210, null, true);
+    d.aplicaciones[d.aplicaciones.length - 1].caja_pago_id = "c1"; // el anticipo entró por el banco
+    expect(calcularCierre("2026-10", d).ingresos).toBe(1000);
+  });
+
+  it("egreso: solo se descuenta el IVA si es factura A, sin importar la caja", () => {
+    const base = { tipo: "egreso" as const, fecha_devengo: "2026-10-02", monto_total: 1210, monto_neto: 1000, iva: 210 };
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "mov:a", ...base, factura_a: true }),
+      comp({ comprobante_id: "mov:b", ...base })
+    );
+    aplicar(d, "mov:a", "pago", "2026-10-05", 1210, "c2");
+    aplicar(d, "mov:b", "pago", "2026-10-05", 1210, "c1"); // por banco pero sin factura A: completo
+    const r = calcularCierre("2026-10", d);
+    expect(r.egresos).toBe(1000 + 1210);
   });
 });

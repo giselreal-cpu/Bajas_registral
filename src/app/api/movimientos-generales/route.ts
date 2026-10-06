@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const usuarioActualId = await getUsuarioActualId();
 
-  const { fecha, descripcion, tipo, monto, caja_id, cuenta_contable_id } = body;
+  const { fecha, descripcion, tipo, monto, caja_id, cuenta_contable_id, factura_a } = body;
 
   if (!descripcion || !String(descripcion).trim()) {
     return NextResponse.json({ error: "La descripción es obligatoria." }, { status: 400 });
@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       tipo,
       monto,
       caja_id: caja_id || null,
+      ...(factura_a ? { factura_a: true } : {}),
       moneda,
       cuenta_contable_id: cuenta_contable_id || null,
       creado_por: usuarioActualId

@@ -46,6 +46,7 @@ interface FormMovimiento {
   fecha: string;
   observacion: string;
   pagado: boolean;
+  factura_a: boolean;
   caja_id: string;
   cuenta_contable_id: string;
 }
@@ -57,6 +58,7 @@ function formVacio(): FormMovimiento {
     fecha: new Date().toISOString().slice(0, 10),
     observacion: "",
     pagado: false,
+    factura_a: false,
     caja_id: "",
     cuenta_contable_id: ""
   };
@@ -219,6 +221,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
           fecha: form.fecha,
           observacion: form.observacion,
           pagado: form.pagado,
+          ...(form.factura_a ? { factura_a: true } : {}),
           caja_id: form.caja_id || null,
           cuenta_contable_id: form.cuenta_contable_id || null
         })
@@ -245,6 +248,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
       fecha: m.fecha,
       observacion: m.observacion ?? "",
       pagado: m.pagado,
+      factura_a: !!m.factura_a,
       caja_id: m.caja_id ?? "",
       cuenta_contable_id: m.cuenta_contable_id ?? ""
     });
@@ -263,6 +267,12 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
           fecha: editForm.fecha,
           observacion: editForm.observacion,
           pagado: editForm.pagado,
+          // solo se manda si cambia o está tildado (así no depende de la migración si no se usa)
+          ...(editForm.factura_a
+            ? { factura_a: true }
+            : (movimientos ?? []).find((x) => x.id === id)?.factura_a
+              ? { factura_a: false }
+              : {}),
           caja_id: editForm.caja_id || null,
           cuenta_contable_id: editForm.cuenta_contable_id || null
         })
@@ -759,6 +769,16 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
               Ya está pagado (si no, queda como pendiente de pago)
             </label>
           )}
+          {conceptos.find((c) => c.id === form.concepto_id)?.tipo === "egreso" && (
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.factura_a}
+                onChange={(e) => setForm((f) => ({ ...f, factura_a: e.target.checked }))}
+              />
+              Es con factura A (se descuenta el IVA del gasto en el cierre mensual)
+            </label>
+          )}
           <button className="btn-primary" disabled={saving} type="submit">
             {saving ? "Guardando..." : "Guardar movimiento"}
           </button>
@@ -841,6 +861,16 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
                     Ya está pagado
                   </label>
                 )}
+                {conceptos.find((c) => c.id === editForm.concepto_id)?.tipo === "egreso" && (
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={editForm.factura_a}
+                      onChange={(e) => setEditForm((f) => ({ ...f, factura_a: e.target.checked }))}
+                    />
+                    Con factura A
+                  </label>
+                )}
                 <div className="flex gap-2">
                   <button
                     className="btn-primary text-xs"
@@ -880,6 +910,9 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
                   </span>
                   {m.factura_id && (
                     <span className="badge ml-1 bg-slate-100 text-slate-500">Facturado</span>
+                  )}
+                  {m.factura_a && (
+                    <span className="badge ml-1 bg-sky-100 text-sky-700">Factura A</span>
                   )}
                   {!m.aprobado && (
                     <span className="badge ml-1 bg-amber-100 text-amber-700">

@@ -14,7 +14,8 @@ const ALLOWED_FIELDS = [
   "pagado",
   "caja_id",
   "cuenta_contable_id",
-  "aprobado"
+  "aprobado",
+  "factura_a"
 ];
 
 export async function PUT(

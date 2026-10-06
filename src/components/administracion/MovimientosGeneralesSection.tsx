@@ -29,6 +29,7 @@ interface FormState {
   monto: string;
   caja_id: string;
   cuenta_contable_id: string;
+  factura_a: boolean;
 }
 
 function formVacio(): FormState {
@@ -38,7 +39,8 @@ function formVacio(): FormState {
     tipo: "egreso",
     monto: "",
     caja_id: "",
-    cuenta_contable_id: ""
+    cuenta_contable_id: "",
+    factura_a: false
   };
 }
 
@@ -83,7 +85,8 @@ export default function MovimientosGeneralesSection({ cajas, cuentas, esAdminist
           tipo: form.tipo,
           monto: Number(form.monto),
           caja_id: form.caja_id || null,
-          cuenta_contable_id: form.cuenta_contable_id || null
+          cuenta_contable_id: form.cuenta_contable_id || null,
+          ...(form.tipo === "egreso" && form.factura_a ? { factura_a: true } : {})
         })
       });
       const json = await res.json();
@@ -226,6 +229,16 @@ export default function MovimientosGeneralesSection({ cajas, cuentas, esAdminist
               })}
             </select>
           </div>
+          {form.tipo === "egreso" && (
+            <label className="col-span-2 flex items-center gap-2 text-sm self-center">
+              <input
+                type="checkbox"
+                checked={form.factura_a}
+                onChange={(e) => setForm((f) => ({ ...f, factura_a: e.target.checked }))}
+              />
+              Con factura A (se descuenta el IVA en el cierre)
+            </label>
+          )}
           <button className="btn-primary col-span-2 sm:col-span-1" disabled={saving} type="submit">
             {saving ? "Guardando..." : "Guardar"}
           </button>

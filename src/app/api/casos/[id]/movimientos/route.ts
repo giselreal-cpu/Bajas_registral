@@ -43,7 +43,8 @@ export async function POST(
     caja_id,
     cuenta_contable_id,
     documento_id,
-    aprobado
+    aprobado,
+    factura_a
   } = body;
 
   if (!concepto_id || monto === undefined || monto === null) {
@@ -82,6 +83,9 @@ export async function POST(
       // envía este campo y queda aprobado por default, sin cambiar su
       // comportamiento de siempre.
       aprobado: aprobado === false ? false : true,
+      // Solo se manda cuando está tildado: así el alta sigue funcionando igual aunque
+      // la migración de factura_a todavía no se haya corrido.
+      ...(factura_a ? { factura_a: true } : {}),
       creado_por: usuarioActualId
     })
     .select("*, concepto:conceptos_movimiento(*), caja:cajas(*), cuenta_contable:cuentas_contables(*)")

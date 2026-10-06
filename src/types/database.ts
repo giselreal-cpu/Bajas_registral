@@ -335,6 +335,7 @@ export interface ConceptoMovimiento {
 }
 
 export interface MovimientoCaso {
+  factura_a?: boolean;
   id: string;
   caso_id: string;
   concepto_id: string;
