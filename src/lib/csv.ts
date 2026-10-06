@@ -6,10 +6,19 @@ export interface CsvColumn {
   label: string;
 }
 
+// Los saltos de línea y tabulaciones dentro de una celda (por ejemplo una
+// observación con un Enter al final) hacen que Excel deje de leer todas las
+// filas que vienen después — se perdían casos en el reporte sin ningún
+// aviso. Se colapsan a un espacio para que cada registro sea siempre una
+// sola línea.
+function limpiarCelda(texto: string): string {
+  return texto.replace(/\s*[\r\n]+\s*/g, " ").replace(/\t/g, " ").trim();
+}
+
 function escapeCsvValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+  const str = limpiarCelda(String(value));
+  if (str.includes(",") || str.includes('"')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
