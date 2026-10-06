@@ -494,6 +494,27 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
           </Row>
         </MobileSection>
 
+        {!soloLectura && (
+          <MobileSection title="Observaciones del caso">
+            <div className="py-2.5">
+              {editing ? (
+                <textarea
+                  className="mv-input"
+                  rows={4}
+                  value={form.observaciones}
+                  onChange={(e) => update("observaciones", e.target.value)}
+                />
+              ) : caso.observaciones ? (
+                <p className="text-[13.5px] whitespace-pre-wrap break-words">{caso.observaciones}</p>
+              ) : (
+                <p className="text-[13px]" style={{ color: "var(--mv-neutral-500)" }}>
+                  Sin observaciones. Usá Editar para cargar una.
+                </p>
+              )}
+            </div>
+          </MobileSection>
+        )}
+
         {!editing && (
           <div className="flex gap-2.5">
             <a href={`tel:${caso.asegurado?.telefono ?? ""}`} className="mv-btn mv-btn-primary flex-1 py-3">

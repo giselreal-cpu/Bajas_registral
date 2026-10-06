@@ -631,6 +631,25 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
         </div>
       </Section>
       </div>
+
+      {!soloLectura && (
+        <div className="lg:col-span-3 lg:order-7">
+          <Section title="Observaciones del caso">
+            {editing ? (
+              <textarea
+                className="input"
+                rows={4}
+                value={form.observaciones}
+                onChange={(e) => update("observaciones", e.target.value)}
+              />
+            ) : caso.observaciones ? (
+              <p className="text-sm text-slate-800 whitespace-pre-wrap break-words">{caso.observaciones}</p>
+            ) : (
+              <p className="text-sm text-slate-400">Sin observaciones. Usá Editar para cargar una.</p>
+            )}
+          </Section>
+        </div>
+      )}
       </div>
     </div>
   );
