@@ -93,6 +93,9 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
   const [cobroFacturaId, setCobroFacturaId] = useState<string | null>(null);
   const [cobroMonto, setCobroMonto] = useState("");
   const [cobroMedioPago, setCobroMedioPago] = useState("");
+  const [cobroFecha, setCobroFecha] = useState("");
+  const [editandoCobroId, setEditandoCobroId] = useState<string | null>(null);
+  const [editandoCobroFecha, setEditandoCobroFecha] = useState("");
   const [cobroCajaId, setCobroCajaId] = useState("");
   const [cobroCuentaContableId, setCobroCuentaContableId] = useState("");
   const [savingCobro, setSavingCobro] = useState(false);
@@ -422,6 +425,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           monto: Number(cobroMonto),
+          fecha: cobroFecha || undefined,
           medio_pago: cobroMedioPago,
           caja_id: cobroCajaId || null,
           cuenta_contable_id: cobroCuentaContableId || null
@@ -434,6 +438,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
       }
       setCobroFacturaId(null);
       setCobroMonto("");
+      setCobroFecha("");
       setCobroMedioPago("");
       setCobroCajaId("");
       setCobroCuentaContableId("");
@@ -441,6 +446,27 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
     } finally {
       setSavingCobro(false);
     }
+  }
+
+  async function handleGuardarFechaCobro(facturaId: string, cobroId: string) {
+    if (!editandoCobroFecha) {
+      setError("Elegí la fecha del cobro.");
+      return;
+    }
+    setError(null);
+    const res = await fetch(`/api/facturas/${facturaId}/cobros/${cobroId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fecha: editandoCobroFecha })
+    });
+    const json = await res.json();
+    if (!res.ok) {
+      setError(json.error);
+      return;
+    }
+    setEditandoCobroId(null);
+    setEditandoCobroFecha("");
+    loadFacturas();
   }
 
   async function handleEliminarCobro(facturaId: string, cobroId: string) {
@@ -1189,14 +1215,51 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
                         {c.anulado ? (
                           <span className="text-red-600">Anulado{c.anulado_motivo ? ` — ${c.anulado_motivo}` : ""}</span>
                         ) : (
-                          esAdministrador && (
-                            <button
-                              className="text-slate-400 hover:text-red-600"
-                              onClick={() => handleEliminarCobro(f.id, c.id)}
-                            >
-                              Anular
-                            </button>
-                          )
+                          esAdministrador &&
+                          (editandoCobroId === c.id ? (
+                            <span className="flex items-center gap-1">
+                              <input
+                                type="date"
+                                className="input !w-36 !py-0.5 text-xs"
+                                max={new Date().toISOString().slice(0, 10)}
+                                value={editandoCobroFecha}
+                                onChange={(e) => setEditandoCobroFecha(e.target.value)}
+                              />
+                              <button
+                                className="text-brand-600 hover:underline"
+                                onClick={() => handleGuardarFechaCobro(f.id, c.id)}
+                              >
+                                Guardar
+                              </button>
+                              <button
+                                className="text-slate-400 hover:underline"
+                                onClick={() => {
+                                  setEditandoCobroId(null);
+                                  setEditandoCobroFecha("");
+                                }}
+                              >
+                                Cancelar
+                              </button>
+                            </span>
+                          ) : (
+                            <>
+                              <button
+                                className="text-slate-400 hover:text-brand-700"
+                                onClick={() => {
+                                  setEditandoCobroId(c.id);
+                                  setEditandoCobroFecha(c.fecha);
+                                }}
+                              >
+                                Cambiar fecha
+                              </button>
+                              <button
+                                className="text-slate-400 hover:text-red-600"
+                                onClick={() => handleEliminarCobro(f.id, c.id)}
+                              >
+                                Anular
+                              </button>
+                            </>
+                          ))
                         )}
                       </li>
                     ))}
@@ -1238,6 +1301,17 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
                             value={cobroMonto}
                             onChange={(e) => setCobroMonto(e.target.value)}
                           />
+                        </div>
+                        <div>
+                          <label className="label">Fecha del cobro</label>
+                          <input
+                            type="date"
+                            className="input w-40"
+                            max={new Date().toISOString().slice(0, 10)}
+                            value={cobroFecha}
+                            onChange={(e) => setCobroFecha(e.target.value)}
+                          />
+                          <span className="block text-xs text-slate-400">Vacío = hoy</span>
                         </div>
                         <div>
                           <label className="label">Medio de pago</label>
@@ -1290,6 +1364,7 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
                           className="btn-secondary text-xs"
                           onClick={() => {
                             setCobroFacturaId(null);
+                            setCobroFecha("");
                             setCobroCajaId("");
                             setCobroCuentaContableId("");
                           }}

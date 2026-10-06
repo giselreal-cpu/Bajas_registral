@@ -29,7 +29,14 @@ export async function POST(
     return NextResponse.json({ error: errorFactura?.message ?? "Factura no encontrada." }, { status: 404 });
   }
 
-  const fechaFinal = fecha || new Date().toISOString().slice(0, 10);
+  const hoy = new Date().toISOString().slice(0, 10);
+  const fechaFinal = fecha || hoy;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaFinal)) {
+    return NextResponse.json({ error: "La fecha del cobro no es válida." }, { status: 400 });
+  }
+  if (fechaFinal > hoy) {
+    return NextResponse.json({ error: "La fecha del cobro no puede ser futura." }, { status: 400 });
+  }
   if (await periodoCerrado(supabase, fechaFinal)) {
     return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
   }
