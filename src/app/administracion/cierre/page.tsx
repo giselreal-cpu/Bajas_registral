@@ -124,6 +124,42 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
   const mejoresCasos = rentabilidad.casos.slice(0, 10);
   const peoresCasos = rentabilidad.casos.length > 10 ? rentabilidad.casos.slice(-5).reverse() : [];
 
+  // Casos que cerraron en el período del ranking, tengan o no movimientos: un
+  // caso cerrado sin ningún ingreso ni gasto cargado no aporta resultado, así
+  // que no aparece en las listas — se cuenta aparte para que los totales cierren.
+  const rangoRankingDesde = `${rankingModo === "12m" ? ultimosMeses(mes, 12)[0] : mes}-01`;
+  const rangoRankingHasta = new Date(Number(mes.slice(0, 4)), Number(mes.slice(5, 7)), 0).toISOString().slice(0, 10);
+  const { data: cerradosRankingRaw } = await supabase
+    .from("casos")
+    .select("id, aseguradora_id, vehiculo:vehiculos(dominio)")
+    .gte("fecha_cierre", rangoRankingDesde)
+    .lte("fecha_cierre", rangoRankingHasta);
+  const cerradosRanking = (cerradosRankingRaw ?? []) as unknown as {
+    id: string;
+    aseguradora_id: string | null;
+    vehiculo: { dominio: string } | null;
+  }[];
+  const idsConMovimientos = new Set(rentabilidad.casos.map((c) => c.caso_id));
+  const casosSinMovimientos = cerradosRanking.filter((c) => !idsConMovimientos.has(c.id));
+  const cerradosPorAseguradora = new Map<string, number>();
+  for (const c of cerradosRanking) {
+    const k = c.aseguradora_id ?? "sin";
+    cerradosPorAseguradora.set(k, (cerradosPorAseguradora.get(k) ?? 0) + 1);
+  }
+  const filasAseguradoras = [...rentabilidad.aseguradoras];
+  for (const k of Array.from(cerradosPorAseguradora.keys())) {
+    if (!filasAseguradoras.some((a) => (a.aseguradora_id ?? "sin") === k)) {
+      filasAseguradoras.push({
+        aseguradora_id: k === "sin" ? null : k,
+        casos: 0,
+        ingresos: 0,
+        egresos: 0,
+        resultado: 0,
+        margen: null
+      });
+    }
+  }
+
   const idsCaso = Array.from(
     new Set(
       [
@@ -570,7 +606,7 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
         </p>
 
         <h3 className="text-xs font-semibold uppercase text-slate-500 mb-2">Por aseguradora</h3>
-        {rentabilidad.aseguradoras.length === 0 ? (
+        {filasAseguradoras.length === 0 ? (
           <p className="text-sm text-slate-400 mb-4">Sin comprobantes con caso en este período.</p>
         ) : (
           <div className="overflow-x-auto mb-6">
@@ -579,7 +615,8 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
                 <tr>
                   <th className="py-1 pr-3 font-medium">#</th>
                   <th className="py-1 pr-3 font-medium">Aseguradora</th>
-                  <th className="py-1 pr-3 font-medium text-right">Casos</th>
+                  <th className="py-1 pr-3 font-medium text-right">Casos cerrados</th>
+                  <th className="py-1 pr-3 font-medium text-right">Con movimientos</th>
                   <th className="py-1 pr-3 font-medium text-right">Ingresos</th>
                   <th className="py-1 pr-3 font-medium text-right">Egresos</th>
                   <th className="py-1 pr-3 font-medium text-right">Resultado</th>
@@ -587,11 +624,14 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
                 </tr>
               </thead>
               <tbody>
-                {rentabilidad.aseguradoras.map((a, i) => (
+                {filasAseguradoras.map((a, i) => (
                   <tr key={a.aseguradora_id ?? "sin"} className="border-t border-slate-100">
                     <td className="py-1.5 pr-3 text-slate-400">{i + 1}</td>
                     <td className="py-1.5 pr-3">
                       {a.aseguradora_id ? aseguradoraNombre.get(a.aseguradora_id) ?? "—" : "Sin aseguradora"}
+                    </td>
+                    <td className="py-1.5 pr-3 text-right tabular-nums">
+                      {cerradosPorAseguradora.get(a.aseguradora_id ?? "sin") ?? 0}
                     </td>
                     <td className="py-1.5 pr-3 text-right tabular-nums">{a.casos}</td>
                     <td className="py-1.5 pr-3 text-right tabular-nums">{pesos(a.ingresos)}</td>
@@ -604,6 +644,20 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
                 ))}
               </tbody>
             </table>
+            <p className="text-xs text-slate-500 mt-2">
+              Cerraron <b>{cerradosRanking.length}</b> casos en el período: <b>{cerradosRanking.length - casosSinMovimientos.length}</b>{" "}
+              tienen ingresos o gastos cargados y entran al resultado
+              {casosSinMovimientos.length > 0 && (
+                <>
+                  ; <b>{casosSinMovimientos.length}</b> no tienen ningún movimiento cargado, así que no aportan resultado (
+                  {casosSinMovimientos
+                    .map((c) => c.vehiculo?.dominio)
+                    .filter(Boolean)
+                    .join(", ")}
+                  ).
+                </>
+              )}
+            </p>
           </div>
         )}
 
