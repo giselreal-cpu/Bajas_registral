@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { toCsv, csvResponse } from "@/lib/csv";
+import { generarXlsxTabla, traerTodo, xlsxResponse } from "@/lib/xlsxTabla";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { ESTADOS } from "@/types/database";
 
@@ -23,29 +23,38 @@ interface BitacoraRow {
   created_at: string;
 }
 
-// PostgREST corta cada consulta en 1000 filas (mismo problema que ya se
-// arregló en panelData.ts) — se pagina hasta traer todo.
-async function traerTodo<T>(
-  pagina: (desde: number, hasta: number) => PromiseLike<{ data: T[] | null }>
-): Promise<T[]> {
-  const TAM = 1000;
-  const todo: T[] = [];
-  for (let desde = 0; ; desde += TAM) {
-    const { data } = await pagina(desde, desde + TAM - 1);
-    todo.push(...(data ?? []));
-    if (!data || data.length < TAM) break;
-  }
-  return todo;
+interface HonorarioRow {
+  caso_id: string;
+  monto: number;
+  pagado: boolean;
+  fecha: string;
+  fecha_pago: string | null;
+  observacion: string | null;
 }
+
+// Concepto con el que se carga el pago al gestor de campo.
+const CONCEPTO_GESTORIA = "Honorarios por Gestoría";
 
 // GET /api/export/casos-por-gestor -> un renglón por caso asignado a un
 // gestor de campo, con el último evento cargado en su bitácora (el más
-// reciente por fecha de carga), su fecha y su observación.
+// reciente por fecha de carga), su fecha y su observación, más el pago de
+// honorarios por gestoría (monto, fecha de pago y la observación del
+// movimiento — donde suele anotarse el N° de factura o de comprobante).
 export async function GET() {
   const supabase = createClient();
   const usuarioActual = await getUsuarioActual();
 
-  const [casos, bitacora] = await Promise.all([
+  const { data: concepto } = await supabase
+    .from("conceptos_movimiento")
+    .select("id")
+    .eq("nombre", CONCEPTO_GESTORIA)
+    .maybeSingle();
+
+  let casos: CasoRow[];
+  let bitacora: BitacoraRow[];
+  let honorarios: HonorarioRow[] = [];
+  try {
+    [casos, bitacora, honorarios] = await Promise.all([
     traerTodo<CasoRow>(
       (d, h) =>
         supabase
@@ -69,8 +78,29 @@ export async function GET() {
         .select("caso_id, tipo_evento, observacion, es_interna, fecha_inicio, created_at")
         .order("id")
         .range(d, h)
-    )
-  ]);
+    ),
+    concepto
+      ? traerTodo<HonorarioRow>((d, h) =>
+          supabase
+            .from("movimientos_caso")
+            .select("caso_id, monto, pagado, fecha, fecha_pago, observacion")
+            .eq("concepto_id", concepto.id)
+            .eq("anulado", false)
+            .order("id")
+            .range(d, h)
+        )
+      : Promise.resolve([] as HonorarioRow[])
+    ]);
+  } catch (e) {
+    return new Response(e instanceof Error ? e.message : "No se pudieron leer los datos.", { status: 500 });
+  }
+
+  const honorariosPorCaso = new Map<string, HonorarioRow[]>();
+  for (const m of honorarios) {
+    const lista = honorariosPorCaso.get(m.caso_id) ?? [];
+    lista.push(m);
+    honorariosPorCaso.set(m.caso_id, lista);
+  }
 
   const ultimoEventoPorCaso = new Map<string, BitacoraRow>();
   for (const ev of bitacora) {
@@ -89,6 +119,17 @@ export async function GET() {
         usuarioActual?.rol === "administrador" ||
         c.responsable_id === usuarioActual?.id;
 
+      const pagos = (honorariosPorCaso.get(c.id) ?? []).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      const fechasPago = pagos.filter((p) => p.pagado).map((p) => p.fecha_pago ?? p.fecha);
+      const estadoPago =
+        pagos.length === 0
+          ? ""
+          : pagos.every((p) => p.pagado)
+            ? "Pagado"
+            : pagos.some((p) => p.pagado)
+              ? "Pagado parcial"
+              : "Pendiente de pago";
+
       return {
         gestor: c.gestor?.nombre ?? "",
         numero_siniestro: c.numero_siniestro,
@@ -103,24 +144,39 @@ export async function GET() {
           ? puedeVerObservacion
             ? ultimo.observacion ?? ""
             : "[Observación interna - oculta]"
-          : ""
+          : "",
+        honorarios_gestoria: pagos.length ? pagos.reduce((acc, p) => acc + Number(p.monto), 0) : "",
+        estado_pago: estadoPago,
+        fecha_pago: fechasPago.length ? fechasPago.sort().slice(-1)[0] : "",
+        observacion_pago: pagos
+          .map((p) => (p.observacion ?? "").trim())
+          .filter(Boolean)
+          .join(" | ")
       };
     })
     .sort((a, b) => a.gestor.localeCompare(b.gestor) || a.numero_siniestro.localeCompare(b.numero_siniestro));
 
-  const csv = toCsv(filas, [
-    { key: "gestor", label: "Gestor" },
-    { key: "numero_siniestro", label: "N° Siniestro" },
-    { key: "asegurado", label: "Asegurado" },
-    { key: "dominio", label: "Dominio" },
-    { key: "vehiculo", label: "Marca/Modelo" },
-    { key: "aseguradora", label: "Aseguradora" },
-    { key: "estado", label: "Estado" },
-    { key: "ultimo_evento", label: "Último Evento" },
-    { key: "fecha_ultimo_evento", label: "Fecha del Evento" },
-    { key: "observacion_ultimo_evento", label: "Observación del Evento" }
-  ]);
+  const buffer = await generarXlsxTabla(
+    "Casos por gestor",
+    [
+      { key: "gestor", label: "Gestor", ancho: 24 },
+      { key: "numero_siniestro", label: "N° Siniestro", tipo: "texto", ancho: 18 },
+      { key: "asegurado", label: "Asegurado", ancho: 28 },
+      { key: "dominio", label: "Dominio", tipo: "texto", ancho: 11 },
+      { key: "vehiculo", label: "Marca/Modelo", ancho: 30 },
+      { key: "aseguradora", label: "Aseguradora", ancho: 24 },
+      { key: "estado", label: "Estado", ancho: 22 },
+      { key: "ultimo_evento", label: "Último Evento", ancho: 28 },
+      { key: "fecha_ultimo_evento", label: "Fecha del Evento", tipo: "fecha" },
+      { key: "observacion_ultimo_evento", label: "Observación del Evento", ancho: 50 },
+      { key: "honorarios_gestoria", label: "Honorarios por Gestoría", tipo: "moneda", ancho: 18 },
+      { key: "estado_pago", label: "Estado del Pago", ancho: 18 },
+      { key: "fecha_pago", label: "Fecha de Pago", tipo: "fecha" },
+      { key: "observacion_pago", label: "Observaciones del Movimiento (N° factura / comprobante)", tipo: "texto", ancho: 45 }
+    ],
+    filas
+  );
 
   const fecha = new Date().toISOString().slice(0, 10);
-  return csvResponse(csv, `casos_por_gestor_${fecha}.csv`);
+  return xlsxResponse(buffer, `casos_por_gestor_${fecha}.xlsx`);
 }

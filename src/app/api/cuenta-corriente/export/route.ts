@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { toCsv, csvResponse } from "@/lib/csv";
+import { generarXlsxTabla, xlsxResponse } from "@/lib/xlsxTabla";
 import { ESTADOS_FACTURA } from "@/types/database";
 
 interface FacturaExport {
@@ -19,7 +19,7 @@ interface FacturaExport {
 }
 
 // GET /api/cuenta-corriente/export?tipo=compania|desarmadero&id=<receptor_id>
-// -> CSV con el detalle completo de la cuenta corriente de ese tercero:
+// -> Excel con el detalle completo de la cuenta corriente de ese tercero:
 // una fila por factura, con el detalle de cobros y notas de crédito
 // incluido en columnas aparte (no solo el agregado que ya se ve en pantalla).
 export async function GET(request: NextRequest) {
@@ -93,23 +93,27 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  const csv = toCsv(filas, [
-    { key: "numero_factura", label: "N° Factura" },
-    { key: "caso", label: "Caso" },
-    { key: "dominio", label: "Dominio" },
-    { key: "vehiculo", label: "Marca/Modelo/Año" },
-    { key: "servicios", label: "Servicio(s)" },
-    { key: "fecha_emision", label: "Fecha Emisión" },
-    { key: "total", label: "Total" },
-    { key: "cobrado", label: "Cobrado" },
-    { key: "notas_credito", label: "Notas de Crédito" },
-    { key: "saldo", label: "Saldo" },
-    { key: "estado", label: "Estado" },
-    { key: "detalle_cobros", label: "Detalle de Cobros" },
-    { key: "detalle_notas_credito", label: "Detalle de Notas de Crédito" }
-  ]);
+  const buffer = await generarXlsxTabla(
+    "Cuenta corriente",
+    [
+      { key: "numero_factura", label: "N° Factura", tipo: "texto", ancho: 12 },
+      { key: "caso", label: "Caso", tipo: "texto", ancho: 18 },
+      { key: "dominio", label: "Dominio", tipo: "texto", ancho: 11 },
+      { key: "vehiculo", label: "Marca/Modelo/Año", ancho: 32 },
+      { key: "servicios", label: "Servicio(s)", ancho: 32 },
+      { key: "fecha_emision", label: "Fecha Emisión", tipo: "fecha" },
+      { key: "total", label: "Total", tipo: "moneda" },
+      { key: "cobrado", label: "Cobrado", tipo: "moneda" },
+      { key: "notas_credito", label: "Notas de Crédito", tipo: "moneda" },
+      { key: "saldo", label: "Saldo", tipo: "moneda" },
+      { key: "estado", label: "Estado", ancho: 16 },
+      { key: "detalle_cobros", label: "Detalle de Cobros", ancho: 50 },
+      { key: "detalle_notas_credito", label: "Detalle de Notas de Crédito", ancho: 50 }
+    ],
+    filas
+  );
 
   const nombreTercero = (tercero?.nombre ?? "tercero").replace(/[^a-zA-Z0-9]+/g, "_");
   const fecha = new Date().toISOString().slice(0, 10);
-  return csvResponse(csv, `cuenta_corriente_${nombreTercero}_${fecha}.csv`);
+  return xlsxResponse(buffer, `cuenta_corriente_${nombreTercero}_${fecha}.xlsx`);
 }

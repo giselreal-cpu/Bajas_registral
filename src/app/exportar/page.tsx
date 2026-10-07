@@ -28,18 +28,18 @@ export default async function ExportarPage() {
           destacado
         />
         <ExportCard
-          titulo="Bitácora (CSV)"
-          descripcion="Todos los eventos de bitácora de todos los casos, con el número de siniestro correspondiente."
+          titulo="Bitácora (Excel)"
+          descripcion="Todos los eventos de bitácora de todos los casos, con el número de siniestro correspondiente y fechas reales."
           href="/api/export/bitacora"
         />
         <ExportCard
-          titulo="Documentos (CSV)"
+          titulo="Documentos (Excel)"
           descripcion="Listado de documentos registrados (imágenes de dominio y documentación para la compañía) con su URL."
           href="/api/export/documentos"
         />
         <ExportCard
-          titulo="Casos por gestor (CSV)"
-          descripcion="Un renglón por caso asignado a un gestor de campo, con el último evento cargado en su bitácora, su fecha y su observación."
+          titulo="Casos por gestor (Excel)"
+          descripcion="Un renglón por caso asignado a un gestor de campo, con el último evento cargado en su bitácora, su fecha y su observación, más el pago de honorarios por gestoría (monto, estado, fecha de pago y la observación del movimiento: N° de factura o comprobante)."
           href="/api/export/casos-por-gestor"
         />
         <ExportCard

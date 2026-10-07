@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { toCsv, csvResponse } from "@/lib/csv";
+import { generarXlsxTabla, xlsxResponse } from "@/lib/xlsxTabla";
 
 const PAGO_COMPANIA = "Pago a la compañía";
 // Este reporte es específico del trámite 04D/04 Digital (a pedido del
@@ -75,20 +75,24 @@ export async function GET() {
       fecha_cierre: c.fecha_cierre ?? ""
     }));
 
-  const csv = toCsv(filas, [
-    { key: "numero_siniestro", label: "N° Siniestro" },
-    { key: "compania", label: "Compañía" },
-    { key: "tipo_baja", label: "Tipo de Baja" },
-    { key: "dominio", label: "Dominio" },
-    { key: "vehiculo", label: "Marca/Modelo/Año" },
-    { key: "desarmadero", label: "Desarmadero" },
-    { key: "tramitador", label: "Tramitador" },
-    { key: "valor_restos", label: "Pendiente de pago" },
-    { key: "ya_pagado", label: "Ya pagado" },
-    { key: "estado_pago", label: "Estado del pago" },
-    { key: "fecha_cierre", label: "Fecha de Cierre" }
-  ]);
+  const buffer = await generarXlsxTabla(
+    "Pendientes de pago",
+    [
+      { key: "numero_siniestro", label: "N° Siniestro", tipo: "texto", ancho: 18 },
+      { key: "compania", label: "Compañía", ancho: 26 },
+      { key: "tipo_baja", label: "Tipo de Baja", ancho: 14 },
+      { key: "dominio", label: "Dominio", tipo: "texto", ancho: 11 },
+      { key: "vehiculo", label: "Marca/Modelo/Año", ancho: 34 },
+      { key: "desarmadero", label: "Desarmadero", ancho: 24 },
+      { key: "tramitador", label: "Tramitador", ancho: 24 },
+      { key: "valor_restos", label: "Pendiente de pago", tipo: "moneda" },
+      { key: "ya_pagado", label: "Ya pagado", tipo: "moneda" },
+      { key: "estado_pago", label: "Estado del pago", ancho: 28 },
+      { key: "fecha_cierre", label: "Fecha de Cierre", tipo: "fecha" }
+    ],
+    filas
+  );
 
   const fecha = new Date().toISOString().slice(0, 10);
-  return csvResponse(csv, `pendientes_pago_compania_${fecha}.csv`);
+  return xlsxResponse(buffer, `pendientes_pago_compania_${fecha}.xlsx`);
 }

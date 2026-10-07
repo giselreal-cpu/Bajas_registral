@@ -3,7 +3,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
-import { toCsv, csvResponse } from "@/lib/csv";
 import { calcularCierre } from "@/lib/cierreMensual";
 import { obtenerDatosCierre } from "@/lib/cierreMensualDatos";
 
@@ -22,7 +21,7 @@ function mesesEntre(desde: string, hasta: string): string[] {
   return out;
 }
 
-// GET /api/cierre-mensual/export-rango?desde=AAAA-MM&hasta=AAAA-MM&formato=xlsx|csv
+// GET /api/cierre-mensual/export-rango?desde=AAAA-MM&hasta=AAAA-MM
 // Un renglón por mes con los indicadores del cierre, para comparar períodos.
 export async function GET(request: NextRequest) {
   const usuario = await getUsuarioActual();
@@ -44,48 +43,6 @@ export async function GET(request: NextRequest) {
   const filas = meses.map((m) => calcularCierre(m, datos));
   const hoy = new Date().toISOString().slice(0, 10);
   const nombre = `cierre_${desde}_a_${hasta}_generado_${hoy}`;
-
-  if (request.nextUrl.searchParams.get("formato") === "csv") {
-    return csvResponse(
-      toCsv(
-        filas.map((r) => ({
-          mes: r.mes,
-          a1: r.A1_cobrado_mes,
-          a2: r.A2_pendiente_cierre,
-          ingresos: r.ingresos,
-          b1: r.B1_pagado_mes,
-          b2: r.B2_pendiente_cierre,
-          egresos: r.egresos,
-          ganancia: r.ganancia,
-          roi: r.roi ?? "N/A",
-          margen: r.margen ?? "N/A",
-          c1: r.C1_cobranzas_anteriores,
-          c2: r.C2_pagos_anteriores,
-          saldo: r.saldo_cajas_total,
-          bancos: r.saldo_bancos,
-          efectivo: r.saldo_efectivo
-        })),
-        [
-          { key: "mes", label: "Mes" },
-          { key: "a1", label: "A1 Cobrado en el mes" },
-          { key: "a2", label: "A2 Pendiente de cobro" },
-          { key: "ingresos", label: "Ingresos" },
-          { key: "b1", label: "B1 Pagado en el mes" },
-          { key: "b2", label: "B2 Pendiente de pago" },
-          { key: "egresos", label: "Egresos" },
-          { key: "ganancia", label: "Ganancia" },
-          { key: "roi", label: "ROI %" },
-          { key: "margen", label: "Margen %" },
-          { key: "c1", label: "C1 Cobranzas anteriores" },
-          { key: "c2", label: "C2 Pagos anteriores" },
-          { key: "saldo", label: "Saldo de cajas" },
-          { key: "bancos", label: "Bancos" },
-          { key: "efectivo", label: "Efectivo" }
-        ]
-      ),
-      `${nombre}.csv`
-    );
-  }
 
   const libro = new ExcelJS.Workbook();
   const hoja = libro.addWorksheet("Comparativo");

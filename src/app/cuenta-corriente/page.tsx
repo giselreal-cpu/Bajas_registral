@@ -175,7 +175,7 @@ export default async function CuentaCorrientePage() {
                     href={`/api/cuenta-corriente/export?tipo=${t.tipo}&id=${t.id}`}
                     className="btn-secondary text-xs"
                   >
-                    Descargar reporte (CSV)
+                    Descargar reporte (Excel)
                   </a>
                 </div>
                 <AnticipoForm

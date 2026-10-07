@@ -64,7 +64,7 @@ export default async function AdministracionPage({
 
   // El Libro de movimientos es un libro de CAJA (plata que efectivamente
   // entró o salió), no de lo devengado — ver src/lib/libroMovimientos.ts
-  // (compartido con la exportación a CSV en /api/administracion/libro-export).
+  // (compartido con la exportación a Excel en /api/administracion/libro-export).
   const { filasUnificadas, filas, entradas, salidas } = await obtenerFilasLibro(searchParams);
 
   // Liquidez: mismo criterio de caja del Libro (egresos pagados +
@@ -425,7 +425,7 @@ export default async function AdministracionPage({
               ).toString()}`}
               className="btn-secondary text-xs shrink-0"
             >
-              Exportar CSV
+              Exportar Excel
             </a>
           </div>
           <p className="text-xs text-slate-500 mb-2">

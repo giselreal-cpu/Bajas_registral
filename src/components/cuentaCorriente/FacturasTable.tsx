@@ -62,11 +62,11 @@ export default function FacturasTable({
               href={`/api/cuenta-corriente/export-seleccion?ids=${Array.from(seleccion).join(",")}`}
               className="btn-secondary text-xs"
             >
-              Descargar CSV de {seleccion.size} seleccionada{seleccion.size === 1 ? "" : "s"}
+              Descargar Excel de {seleccion.size} seleccionada{seleccion.size === 1 ? "" : "s"}
             </a>
           ) : (
             <span className="text-xs text-slate-400">
-              Tildá las facturas con saldo para armar un reporte CSV.
+              Tildá las facturas con saldo para armar un reporte en Excel.
             </span>
           )}
         </div>

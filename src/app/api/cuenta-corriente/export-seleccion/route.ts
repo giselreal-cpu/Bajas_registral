@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { toCsv, csvResponse } from "@/lib/csv";
+import { generarXlsxTabla, xlsxResponse } from "@/lib/xlsxTabla";
 
 interface FacturaSeleccion {
   id: string;
@@ -16,7 +16,7 @@ interface FacturaSeleccion {
 }
 
 // GET /api/cuenta-corriente/export-seleccion?ids=<id1>,<id2>,...
-// -> CSV de las facturas elegidas en pantalla (con saldo pendiente): tipo
+// -> Excel de las facturas elegidas en pantalla (con saldo pendiente): tipo
 // de baja, dominio, marca/modelo/año, Valor InfoAuto, % que representa lo facturado
 // sobre el Valor InfoAuto, y saldo a cobrar.
 export async function GET(request: NextRequest) {
@@ -65,15 +65,19 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  const csv = toCsv(filas, [
-    { key: "dominio", label: "Dominio" },
-    { key: "tipo_baja", label: "Tipo de Baja" },
-    { key: "vehiculo", label: "Marca/Modelo/Año" },
-    { key: "valor_infoauto", label: "Valor InfoAuto" },
-    { key: "porcentaje", label: "% sobre Valor InfoAuto" },
-    { key: "saldo", label: "Saldo a Cobrar" }
-  ]);
+  const buffer = await generarXlsxTabla(
+    "Facturas a cobrar",
+    [
+      { key: "dominio", label: "Dominio", tipo: "texto", ancho: 11 },
+      { key: "tipo_baja", label: "Tipo de Baja", ancho: 14 },
+      { key: "vehiculo", label: "Marca/Modelo/Año", ancho: 34 },
+      { key: "valor_infoauto", label: "Valor InfoAuto", tipo: "moneda" },
+      { key: "porcentaje", label: "% sobre Valor InfoAuto", tipo: "porcentaje", ancho: 18 },
+      { key: "saldo", label: "Saldo a Cobrar", tipo: "moneda" }
+    ],
+    filas
+  );
 
   const fecha = new Date().toISOString().slice(0, 10);
-  return csvResponse(csv, `facturas_a_cobrar_${fecha}.csv`);
+  return xlsxResponse(buffer, `facturas_a_cobrar_${fecha}.xlsx`);
 }

@@ -353,30 +353,8 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
           </a>
           <span className="text-xs text-slate-500">
             {cerrado ? "Sale del reporte congelado al cierre." : "Mes abierto: sale en vivo."} El Resumen usa fórmulas
-            SUMIFS sobre las hojas de detalle.
+            SUMIFS sobre las hojas de detalle, e incluye una hoja por cada bloque.
           </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs text-slate-600">
-          <span className="font-medium">CSV por bloque:</span>
-          {[
-            ["A", "A Ingresos"],
-            ["B", "B Egresos"],
-            ["C", "C Otros períodos"],
-            ["D", "D Cajas"],
-            ["conciliacion", "Conciliación"],
-            ["transferencias", "Transferencias"],
-            ["comparativo", "Comparativo 12m"],
-            ["rentabilidad", "Rentabilidad por caso"],
-            ["rentabilidad_aseguradora", "Rentabilidad por aseguradora"]
-          ].map(([bloque, texto]) => (
-            <a
-              key={bloque}
-              href={`/api/cierre-mensual/${mes}/export?formato=csv&bloque=${bloque}`}
-              className="text-brand-600 hover:underline"
-            >
-              {texto}
-            </a>
-          ))}
         </div>
         <form method="get" action="/api/cierre-mensual/export-rango" className="flex flex-wrap items-end gap-3 mt-4">
           <span className="text-xs font-medium text-slate-600 self-center">Comparar un rango de meses:</span>
@@ -388,15 +366,8 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
             <label className="label">Hasta</label>
             <input type="month" name="hasta" required defaultValue={mes} className="input w-40" />
           </div>
-          <div>
-            <label className="label">Formato</label>
-            <select name="formato" className="input w-28" defaultValue="xlsx">
-              <option value="xlsx">Excel</option>
-              <option value="csv">CSV</option>
-            </select>
-          </div>
           <button className="btn-secondary text-sm" type="submit">
-            Exportar rango
+            Exportar rango (Excel)
           </button>
         </form>
       </section>

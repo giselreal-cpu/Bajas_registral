@@ -240,10 +240,18 @@ siguiendo el `CLAUDE.md` del proyecto.
     "Ver enlace de encuesta" si ya existe), que muestra la misma caja en
     cualquier momento — no hace falta reeditar el evento. El alta sigue
     siendo get-or-create, así que no duplica la fila si ya había una.
-- **Exportar datos** (`/exportar`): CSV de casos (incluye el nombre del
-  **trámitador de la compañía**), bitácora y documentos (con relaciones ya
-  resueltas, listo para Excel) más un backup completo en JSON de todas las
-  tablas.
+- **Exportar datos** (`/exportar`): **todos los reportes se descargan en
+  Excel (.xlsx)** — casos (incluye el nombre del **trámitador de la
+  compañía**), bitácora, documentos y casos por gestor, con relaciones ya
+  resueltas, fechas e importes reales y los identificadores (siniestro,
+  dominio, DNI, comprobantes) guardados como texto, para que Excel no pierda
+  ceros, convierta a notación científica ni corte filas por saltos de línea
+  (helper común en `src/lib/xlsxTabla.ts`). "Casos por gestor" incluye además
+  el pago de **Honorarios por Gestoría** (monto, estado, fecha de pago y la
+  observación del movimiento, donde se anota el N° de factura o comprobante).
+  Más un backup completo en JSON de todas las tablas. La única plantilla en
+  CSV es la de importación masiva del Libro, porque es el formato que esa
+  importación lee.
 - **Documentos**: al agregar uno, se elige **"Pegar un link"** (por ejemplo
   una carpeta de Drive — sigue siendo el uso habitual del equipo interno) o
   **"Subir un archivo"** (fotos JPG/PNG/WEBP/HEIC o PDF, hasta 10MB) a un
@@ -498,7 +506,7 @@ siguiendo el `CLAUDE.md` del proyecto.
     crédito—, saldo, anticipos disponibles) desplegable a una tabla con
     el detalle de cada factura: N°, caso (con link), dominio y
     marca/modelo/año del vehículo, servicio facturado, fecha, cobrado,
-    saldo y estado. Botón **"Descargar reporte (CSV)"** dentro de cada
+    saldo y estado. Botón **"Descargar reporte (Excel)"** dentro de cada
     tercero desplegado (`GET /api/cuenta-corriente/export?tipo=...&id=...`),
     una fila por factura con el detalle de sus cobros y notas de crédito.
   - **Seguimiento financiero** (`/seguimiento-financiero`): por cada
@@ -512,7 +520,7 @@ siguiendo el `CLAUDE.md` del proyecto.
     — este reporte es específico de ese trámite, a pedido del usuario)
     donde el movimiento "Pago a la compañía" todavía no está cargado o
     está cargado pero sin tildar como pagado, con botón de exportación a
-    CSV (`GET /api/seguimiento-financiero/pendientes-pago-compania/export`,
+    Excel (`GET /api/seguimiento-financiero/pendientes-pago-compania/export`,
     mismo filtro de tipo de baja) con siniestro, dominio, marca/modelo/año,
     desarmadero, trámitador, **tipo de baja**, valor restos y fecha de
     cierre.
@@ -792,7 +800,7 @@ la hoja *Resumen* usa fórmulas SUMIFS que leen las hojas de detalle
 (`A_Ingresos_mes`, `B_Egresos_mes`, `C_Movimientos_anteriores`, `D_Cajas`,
 `Conciliacion_Cajas`, `Transferencias_internas`, `Comparativo_12m`,
 `Rentabilidad_por_caso`) y una columna de control contra el valor del
-sistema. También hay CSV por bloque y exportación de un rango de meses.
+sistema. También hay exportación de un rango de meses (Excel). Ya no hay CSV por bloque: el libro trae una hoja por cada bloque.
 
 **Permisos.** Administrador y operador ven el módulo, cargan saldos y
 registran transferencias; cerrar y reabrir es solo de administrador.

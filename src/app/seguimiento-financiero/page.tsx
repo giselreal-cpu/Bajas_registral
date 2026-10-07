@@ -322,7 +322,7 @@ export default async function SeguimientoFinancieroPage() {
               href="/api/seguimiento-financiero/pendientes-pago-compania/export"
               className="btn-secondary text-xs"
             >
-              Descargar reporte (CSV)
+              Descargar reporte (Excel)
             </a>
           )}
         </div>
