@@ -16,6 +16,9 @@ export interface PanelFiltros {
   mes?: string;
   tipo_baja_id?: string;
   tramitador_id?: string;
+  // Responsable interno del caso (usuario que lo lleva). Solo se ofrece a
+  // administrador/operador: separa los casos de cada persona.
+  responsable_id?: string;
 }
 
 interface VencimientoRow {
@@ -143,6 +146,9 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   if (filtros.tramitador_id) {
     casosQuery = casosQuery.eq("tramitador_id", filtros.tramitador_id);
   }
+  if (filtros.responsable_id) {
+    casosQuery = casosQuery.eq("responsable_id", filtros.responsable_id);
+  }
   if (filtros.mes) {
     const [anio, mes] = filtros.mes.split("-").map(Number);
     const desde = `${filtros.mes}-01`;
@@ -166,6 +172,9 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   if (filtros.tramitador_id) {
     casosCerradosQuery = casosCerradosQuery.eq("tramitador_id", filtros.tramitador_id);
   }
+  if (filtros.responsable_id) {
+    casosCerradosQuery = casosCerradosQuery.eq("responsable_id", filtros.responsable_id);
+  }
   if (filtros.mes) {
     const [anio, mes] = filtros.mes.split("-").map(Number);
     const desde = `${filtros.mes}-01`;
@@ -173,6 +182,23 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     const hasta = hastaDate.toISOString().slice(0, 10);
     casosCerradosQuery = casosCerradosQuery.gte("fecha_ingreso", desde).lt("fecha_ingreso", hasta);
   }
+
+  // Con filtro por responsable, los vencimientos son solo los de sus casos
+  // (join interno contra el caso); sin filtro, los de toda la cartera.
+  let vencimientosQuery = supabase
+    .from("bitacora")
+    .select(
+      `
+        id, caso_id, tipo_evento, fecha_fin, completado,
+        caso:casos${filtros.responsable_id ? "!inner" : ""}(numero_siniestro, estado, responsable_id, asegurado:asegurados(nombre), responsable:usuarios(nombre))
+      `
+    )
+    .eq("completado", false)
+    .not("fecha_fin", "is", null);
+  if (filtros.responsable_id) {
+    vencimientosQuery = vencimientosQuery.eq("caso.responsable_id", filtros.responsable_id);
+  }
+  vencimientosQuery = vencimientosQuery.order("fecha_fin", { ascending: true }).limit(8);
 
   const [
     { data: casos, error: errorCasos },
@@ -184,21 +210,11 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     { data: contactosExistentes, error: errorContactos },
     { data: aseguradoras },
     { data: tiposBaja },
-    { data: tramitadores }
+    { data: tramitadores },
+    { data: responsables }
   ] = await Promise.all([
     casosQuery,
-    supabase
-      .from("bitacora")
-      .select(
-        `
-        id, caso_id, tipo_evento, fecha_fin, completado,
-        caso:casos(numero_siniestro, estado, asegurado:asegurados(nombre), responsable:usuarios(nombre))
-      `
-      )
-      .eq("completado", false)
-      .not("fecha_fin", "is", null)
-      .order("fecha_fin", { ascending: true })
-      .limit(8),
+    vencimientosQuery,
     traerTodo((d, h) =>
       supabase.from("bitacora").select("caso_id, created_at, fecha_inicio, fecha_fin").order("id").range(d, h)
     ),
@@ -214,14 +230,16 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     supabase.from("bitacora").select("caso_id").eq("tipo_evento", "Contacto con el asegurado"),
     supabase.from("aseguradoras").select("id, nombre").order("nombre"),
     supabase.from("tipos_baja").select("id, nombre").order("nombre"),
-    supabase.from("tramitadores").select("id, nombre, aseguradora_id, aseguradora:aseguradoras(nombre)").order("nombre")
+    supabase.from("tramitadores").select("id, nombre, aseguradora_id, aseguradora:aseguradoras(nombre)").order("nombre"),
+    supabase.from("usuarios").select("id, nombre").in("rol", ["administrador", "operador"]).order("nombre")
   ]);
 
   const hayFiltrosPanel = !!(
     filtros.aseguradora_id ||
     filtros.mes ||
     filtros.tipo_baja_id ||
-    filtros.tramitador_id
+    filtros.tramitador_id ||
+    filtros.responsable_id
   );
 
   const totalCasos = casos?.length ?? 0;
@@ -552,12 +570,20 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   // rediseñado — A cobrar = todas las facturas sin cobrar del todo, sean
   // a la compañía o al desarmadero; A rendir = gastos de campo con
   // aprobado=false — sumados en toda la cartera en vez de por caso.
+  // Con filtro por responsable, se limitan a los casos de esa persona.
+  let facturasPendientesQuery = supabase
+    .from("facturas")
+    .select("caso_id, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)")
+    .neq("estado", "cobrado_total");
+  let sinAprobarQuery = supabase.from("movimientos_caso").select("id, monto").eq("aprobado", false).eq("anulado", false);
+  if (filtros.responsable_id) {
+    facturasPendientesQuery = facturasPendientesQuery.in("caso_id", casoIds);
+    sinAprobarQuery = sinAprobarQuery.in("caso_id", casoIds);
+  }
+  const sinCasosDelResponsable = !!filtros.responsable_id && casoIds.length === 0;
   const [{ data: facturasPendientesRaw }, { data: movimientosSinAprobar }] = await Promise.all([
-    supabase
-      .from("facturas")
-      .select("caso_id, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)")
-      .neq("estado", "cobrado_total"),
-    supabase.from("movimientos_caso").select("id, monto").eq("aprobado", false).eq("anulado", false)
+    sinCasosDelResponsable ? Promise.resolve({ data: [] as any[] }) : facturasPendientesQuery,
+    sinCasosDelResponsable ? Promise.resolve({ data: [] as any[] }) : sinAprobarQuery
   ]);
 
   const facturasPendientesSaldo = (facturasPendientesRaw ?? []) as unknown as {
@@ -622,6 +648,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     aseguradoras: aseguradoras ?? [],
     tiposBaja: tiposBaja ?? [],
     tramitadores: tramitadores ?? [],
+    responsables: responsables ?? [],
     hayFiltrosPanel,
     totalCasos,
     casosAbiertos,

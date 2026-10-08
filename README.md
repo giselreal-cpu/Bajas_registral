@@ -36,6 +36,12 @@ siguiendo el `CLAUDE.md` del proyecto.
 - **Agenda de vencimientos** (`/agenda`): eventos de bitácora pendientes de
   todos los casos abiertos, agrupados en Vencidos / Próximos 7 días / Más
   adelante / Sin fecha, con filtro por responsable.
+- **Panel — filtro por Responsable** (solo administrador/operador; la
+  compañía tiene su propio panel): `?responsable_id=` limita todo el Panel
+  a los casos de esa persona — KPIs, "Los casos que piden atención",
+  vencimientos de la semana, avance por etapa, A cobrar y Pendiente de
+  aprobar — para que cada integrante del equipo vea solo lo suyo. Se
+  propaga a `/panel/detalle`.
 - **Panel de control** (`/panel`, página de inicio): filtro por
   **compañía/aseguradora, mes de ingreso y tipo de baja** (afecta todo el
   panel — por ejemplo, para ver cuánto tarda en promedio un 04C

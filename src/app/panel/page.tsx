@@ -31,6 +31,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
     aseguradoras,
     tiposBaja,
     tramitadores,
+    responsables,
     hayFiltrosPanel,
     totalCasos,
     casosAbiertos,
@@ -94,6 +95,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
   if (searchParams.mes) queryFiltros.set("mes", searchParams.mes);
   if (searchParams.tipo_baja_id) queryFiltros.set("tipo_baja_id", searchParams.tipo_baja_id);
   if (searchParams.tramitador_id) queryFiltros.set("tramitador_id", searchParams.tramitador_id);
+  if (searchParams.responsable_id) queryFiltros.set("responsable_id", searchParams.responsable_id);
   const qs = queryFiltros.toString();
   const hrefDetalle = (ancla: string) => `/panel/detalle${qs ? `?${qs}` : ""}#${ancla}`;
 
@@ -188,6 +190,21 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
                   {!searchParams.aseguradora_id && t.aseguradora ? ` — ${t.aseguradora.nombre}` : ""}
                 </option>
               ))}
+          </select>
+        </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Responsable</label>
+          <select
+            name="responsable_id"
+            defaultValue={searchParams.responsable_id ?? ""}
+            className="input"
+          >
+            <option value="">Todos</option>
+            {responsables.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.nombre}
+              </option>
+            ))}
           </select>
         </div>
         <button className="btn-secondary" type="submit">
