@@ -149,6 +149,55 @@ export async function recalcularEstado(casoId: string) {
   return { intentado: true, ok: true, nuevoEstado: actualizado[0].estado };
 }
 
+// Estado más avanzado que sugiere la bitácora, partiendo desde cero (sin
+// tener en cuenta el estado actual del caso).
+function estadoSugeridoPorBitacora(
+  eventos: { tipo_evento: string; completado: boolean }[]
+): Estado {
+  let mejorRank = 0;
+  let mejorEstado: Estado = ORDEN_ESTADOS[0];
+  for (const ev of eventos) {
+    const candidatos: Estado[] = [];
+    if (EVENTO_EN_PROGRESO_A_ESTADO[ev.tipo_evento]) candidatos.push(EVENTO_EN_PROGRESO_A_ESTADO[ev.tipo_evento]);
+    if (ev.completado && EVENTO_COMPLETADO_A_ESTADO[ev.tipo_evento]) {
+      candidatos.push(EVENTO_COMPLETADO_A_ESTADO[ev.tipo_evento]);
+    }
+    for (const c of candidatos) {
+      const rank = ORDEN_ESTADOS.indexOf(c);
+      if (rank > mejorRank) {
+        mejorRank = rank;
+        mejorEstado = c;
+      }
+    }
+  }
+  return mejorEstado;
+}
+
+// Se usa cuando a un caso se le SACA el gestor de campo: "Gestor Asignado"
+// solo lo había puesto la asignación, así que al quitarla el estado vuelve
+// al que corresponde según la bitácora. Si el caso ya estaba en otro estado
+// (por ejemplo presentado en el registro) no se toca, y nunca baja de un
+// estado que la bitácora ya justifique.
+export async function revertirEstadoGestorAsignado(casoId: string) {
+  const supabase = createClient();
+  const [{ data: caso }, { data: eventos }] = await Promise.all([
+    supabase.from("casos").select("estado").eq("id", casoId).maybeSingle(),
+    supabase.from("bitacora").select("tipo_evento, completado").eq("caso_id", casoId)
+  ]);
+  if (!caso || caso.estado !== "gestor_asignado") return null;
+
+  const sugerido = estadoSugeridoPorBitacora(eventos ?? []);
+  if (ORDEN_ESTADOS.indexOf(sugerido) >= ORDEN_ESTADOS.indexOf("gestor_asignado")) return null;
+
+  const { data: actualizado } = await supabase
+    .from("casos")
+    .update({ estado: sugerido })
+    .eq("id", casoId)
+    .select("estado")
+    .maybeSingle();
+  return actualizado;
+}
+
 // Empuja el estado del caso hasta `estadoMinimo` si eso representa un
 // avance real (nunca lo retrocede). A diferencia de recalcularEstado, esta
 // no mira la bitácora: se usa para acciones puntuales del caso que por sí

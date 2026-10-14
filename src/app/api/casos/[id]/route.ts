@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
-import { avanzarEstadoAlMenosHasta } from "@/lib/estadoAutomatico";
+import { avanzarEstadoAlMenosHasta, revertirEstadoGestorAsignado } from "@/lib/estadoAutomatico";
 import { resolverTramitador } from "@/lib/tramitadores";
 
 const CASO_SELECT = `
@@ -105,6 +105,7 @@ export async function PUT(
   // público viejo debe dejar de servir: regeneramos el token en la misma
   // operación.
   let seAsignoGestorNuevo = false;
+  let seQuitoGestor = false;
   if ("gestor_id" in update) {
     const { data: actual } = await supabase
       .from("casos")
@@ -114,6 +115,7 @@ export async function PUT(
     if (actual && actual.gestor_id !== update.gestor_id) {
       update.token_gestor = randomUUID();
       seAsignoGestorNuevo = !!update.gestor_id;
+      seQuitoGestor = !!actual.gestor_id && !update.gestor_id;
     }
   }
 
@@ -138,6 +140,13 @@ export async function PUT(
       data.estado = actualizado.estado;
       data.fecha_cierre = actualizado.fecha_cierre;
     }
+  }
+
+  // Si se le sacó el gestor al caso, "Gestor Asignado" ya no corresponde:
+  // vuelve al estado que indica la bitácora.
+  if (seQuitoGestor) {
+    const revertido = await revertirEstadoGestorAsignado(params.id);
+    if (revertido) data.estado = revertido.estado;
   }
 
   // Si se cambió la aseguradora, ajustamos el número correlativo: si pasa
