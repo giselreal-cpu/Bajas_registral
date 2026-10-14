@@ -191,9 +191,33 @@ function camposEnLinea(w: EscritorPdf, pares: [string, string | null][]) {
   w.linea(segmentos);
 }
 
-export async function generarAutorizacionPdf(datos: DatosAutorizacion): Promise<Buffer> {
+// Los textos libres (nombres, domicilios, observaciones) llegan a veces
+// pegados desde Excel o un mail, con tabulaciones, saltos de línea o
+// símbolos que la fuente estándar no sabe dibujar — pdf-lib corta con error
+// en vez de omitirlos. Se normalizan todos los strings antes de escribir.
+function sanearTextos<T>(valor: T, soportados: Set<number>): T {
+  if (typeof valor === "string") {
+    const limpio = Array.from(valor.replace(/[\r\n\t]+/g, " "))
+      .map((c) => (soportados.has(c.codePointAt(0)!) ? c : c === " " ? " " : "?"))
+      .join("")
+      .replace(/ {2,}/g, " ")
+      .trim();
+    return limpio as unknown as T;
+  }
+  if (Array.isArray(valor)) return valor.map((v) => sanearTextos(v, soportados)) as unknown as T;
+  if (valor && typeof valor === "object" && Object.getPrototypeOf(valor) === Object.prototype) {
+    return Object.fromEntries(
+      Object.entries(valor as Record<string, unknown>).map(([k, v]) => [k, sanearTextos(v, soportados)])
+    ) as T;
+  }
+  return valor;
+}
+
+export async function generarAutorizacionPdf(datosOriginales: DatosAutorizacion): Promise<Buffer> {
   const doc = await PDFDocument.create();
   const w = await EscritorPdf.crear(doc);
+  const fuenteBase = await doc.embedFont(StandardFonts.Helvetica);
+  const datos = sanearTextos(datosOriginales, new Set(fuenteBase.getCharacterSet()));
 
   const ALTO_LOGO = 40;
   if (datos.logoAseguradoraBuffer) {
