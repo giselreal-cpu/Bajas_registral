@@ -67,10 +67,36 @@ function partirEnLineas(
 // autorizacionRetiroPdf.ts. Con `asegurarEspacio` puede saltar de
 // página si el detalle de servicios es largo, aunque en la práctica
 // suele entrar en una sola.
-export async function generarOrdenCobroDesarmadero(datos: DatosOrdenCobro): Promise<Buffer> {
+export async function generarOrdenCobroDesarmadero(datosOriginales: DatosOrdenCobro): Promise<Buffer> {
   const doc = await PDFDocument.create();
   const regular = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+
+  // Los textos libres (cuenta bancaria, nombres, observaciones) suelen
+  // llegar pegados desde Excel o un mail, con tabulaciones, saltos de línea
+  // o símbolos que la fuente estándar del PDF no sabe dibujar — y pdf-lib
+  // corta con error en vez de omitirlos (daba HTTP 500 al descargar la
+  // orden). Se normalizan antes de dibujar.
+  const caracteresSoportados = new Set(regular.getCharacterSet());
+  const sanear = (texto: string): string =>
+    Array.from(texto.replace(/[\r\n\t]+/g, " "))
+      .map((c) => (caracteresSoportados.has(c.codePointAt(0)!) ? c : c === "\u00a0" ? " " : "?"))
+      .join("")
+      .replace(/ {2,}/g, " ")
+      .trim();
+  const saneadoOpcional = (t: string | null) => (t === null ? null : sanear(t));
+  const datos: DatosOrdenCobro = {
+    ...datosOriginales,
+    numeroSiniestro: sanear(datosOriginales.numeroSiniestro),
+    formaPago: saneadoOpcional(datosOriginales.formaPago),
+    desarmaderoNombre: sanear(datosOriginales.desarmaderoNombre),
+    tipoBajaNombre: saneadoOpcional(datosOriginales.tipoBajaNombre),
+    vehiculoDominio: sanear(datosOriginales.vehiculoDominio),
+    vehiculoMarca: saneadoOpcional(datosOriginales.vehiculoMarca),
+    vehiculoModelo: saneadoOpcional(datosOriginales.vehiculoModelo),
+    servicios: datosOriginales.servicios.map((sv) => ({ ...sv, concepto: sanear(sv.concepto) })),
+    cuentasPago: datosOriginales.cuentasPago.map((c) => ({ ...c, cuenta_bancaria: sanear(c.cuenta_bancaria) }))
+  };
 
   const TITLE_SIZE = 14;
   const LABEL_SIZE = 10;
