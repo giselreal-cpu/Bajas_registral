@@ -512,7 +512,7 @@ siguiendo el `CLAUDE.md` del proyecto.
     crédito—, saldo, anticipos disponibles) desplegable a una tabla con
     el detalle de cada factura: N°, caso (con link), dominio y
     marca/modelo/año del vehículo, servicio facturado, fecha, cobrado,
-    saldo y estado. Botón **"Descargar reporte (Excel)"** dentro de cada
+    saldo y estado. Botón **"Descargar Excel de todas las facturas"** (`GET /api/cuenta-corriente/export-seleccion?tipo=...&id=...`: dominio, tipo de baja, marca/modelo/año, Valor InfoAuto, % y saldo de cada factura del tercero, estén saldadas o no) y Botón **"Descargar reporte (Excel)"** dentro de cada
     tercero desplegado (`GET /api/cuenta-corriente/export?tipo=...&id=...`),
     una fila por factura con el detalle de sus cobros y notas de crédito.
   - **Seguimiento financiero** (`/seguimiento-financiero`): por cada

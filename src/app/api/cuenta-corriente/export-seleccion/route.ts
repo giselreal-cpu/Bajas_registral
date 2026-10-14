@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { generarXlsxTabla, xlsxResponse } from "@/lib/xlsxTabla";
+import { generarXlsxTabla, traerTodo, xlsxResponse } from "@/lib/xlsxTabla";
 
 interface FacturaSeleccion {
   id: string;
@@ -16,34 +16,56 @@ interface FacturaSeleccion {
 }
 
 // GET /api/cuenta-corriente/export-seleccion?ids=<id1>,<id2>,...
+// GET /api/cuenta-corriente/export-seleccion?tipo=compania|desarmadero&id=<receptor_id>
+//   -> todas las facturas de ese tercero, estén saldadas o no.
 // -> Excel de las facturas elegidas en pantalla (con saldo pendiente): tipo
 // de baja, dominio, marca/modelo/año, Valor InfoAuto, % que representa lo facturado
 // sobre el Valor InfoAuto, y saldo a cobrar.
 export async function GET(request: NextRequest) {
-  const ids = (request.nextUrl.searchParams.get("ids") ?? "").split(",").filter(Boolean);
-  if (ids.length === 0) {
+  const { searchParams } = request.nextUrl;
+  const ids = (searchParams.get("ids") ?? "").split(",").filter(Boolean);
+  const tipo = searchParams.get("tipo");
+  const receptorId = searchParams.get("id");
+  const porTercero = !!tipo && !!receptorId;
+
+  if (!porTercero && ids.length === 0) {
     return new Response("Elegí al menos una factura.", { status: 400 });
+  }
+  if (porTercero && tipo !== "compania" && tipo !== "desarmadero") {
+    return new Response("tipo debe ser compania o desarmadero.", { status: 400 });
   }
 
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("facturas")
-    .select(
-      `
+  let data: FacturaSeleccion[];
+  let nombreTercero = "";
+  try {
+    data = await traerTodo<FacturaSeleccion>((d, h) => {
+      let q = supabase
+        .from("facturas")
+        .select(
+          `
       id, numero_factura, monto_total,
       caso:casos(valor_infoauto, tipo_baja:tipos_baja(nombre), vehiculo:vehiculos(dominio, marca, modelo, anio)),
       cobros(monto, anulado),
       notas_credito(monto, anulado)
     `
-    )
-    .in("id", ids)
-    .order("numero_factura");
-
-  if (error) {
-    return new Response(error.message, { status: 500 });
+        );
+      q = porTercero ? q.eq("tipo_receptor", tipo!).eq("receptor_id", receptorId!) : q.in("id", ids);
+      return q.order("numero_factura").range(d, h) as unknown as PromiseLike<{ data: FacturaSeleccion[] | null }>;
+    });
+    if (porTercero) {
+      const { data: tercero } = await supabase
+        .from(tipo === "compania" ? "aseguradoras" : "desarmaderos")
+        .select("nombre")
+        .eq("id", receptorId!)
+        .maybeSingle();
+      nombreTercero = (tercero?.nombre ?? "").replace(/[^a-zA-Z0-9]+/g, "_");
+    }
+  } catch (e) {
+    return new Response(e instanceof Error ? e.message : "No se pudieron leer las facturas.", { status: 500 });
   }
 
-  const filas = ((data as unknown as FacturaSeleccion[] | null) ?? []).map((f) => {
+  const filas = data.map((f) => {
     const cobrado =
       (f.cobros ?? []).filter((c) => !c.anulado).reduce((acc, c) => acc + Number(c.monto), 0) +
       (f.notas_credito ?? []).filter((n) => !n.anulado).reduce((acc, n) => acc + Number(n.monto), 0);
@@ -79,5 +101,8 @@ export async function GET(request: NextRequest) {
   );
 
   const fecha = new Date().toISOString().slice(0, 10);
-  return xlsxResponse(buffer, `facturas_a_cobrar_${fecha}.xlsx`);
+  return xlsxResponse(
+    buffer,
+    porTercero ? `facturas_${nombreTercero || "tercero"}_${fecha}.xlsx` : `facturas_a_cobrar_${fecha}.xlsx`
+  );
 }

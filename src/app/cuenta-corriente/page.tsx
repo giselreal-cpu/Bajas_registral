@@ -170,7 +170,14 @@ export default async function CuentaCorrientePage() {
               </summary>
 
               <div className="border-t border-slate-100 px-4 py-3 space-y-3">
-                <div className="flex justify-end">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <a
+                    href={`/api/cuenta-corriente/export-seleccion?tipo=${t.tipo}&id=${t.id}`}
+                    className="btn-secondary text-xs"
+                    title="Dominio, tipo de baja, marca/modelo/año, Valor InfoAuto, % y saldo de todas las facturas, estén saldadas o no"
+                  >
+                    Descargar Excel de todas las facturas
+                  </a>
                   <a
                     href={`/api/cuenta-corriente/export?tipo=${t.tipo}&id=${t.id}`}
                     className="btn-secondary text-xs"
