@@ -830,6 +830,10 @@ Para no duplicar información entre módulos:
 - **Cuenta corriente** (`/cuenta-corriente`): facturas, cobros y anticipos —
   ya no se resume en Análisis.
 
+## Seguimiento financiero: 04C sin cobro a la compañía
+
+En `/seguimiento-financiero`, listado de casos de tipo de baja **04C** con el evento "Envío de documentación Cía" **completado** que todavía no se cobraron por completo a la compañía. Situaciones: *Sin cargar* (no hay movimiento "Cobro a la aseguradora" ni factura), *Cargado, sin facturar*, *Facturado, sin cobrar* y *Cobrado parcial* (queda saldo). Filtro por compañía (`?compania_04c=`) y exportación a Excel (`GET /api/seguimiento-financiero/04c-sin-cobro-compania/export?aseguradora_id=`). La lógica vive en `src/lib/seguimiento04c.ts`.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

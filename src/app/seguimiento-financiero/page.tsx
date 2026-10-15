@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
-import { EstadoFactura, ESTADOS_FACTURA } from "@/types/database";
+import { ESTADOS, EstadoFactura, ESTADOS_FACTURA } from "@/types/database";
 import MovimientoPagadoToggle from "@/components/casos/MovimientoPagadoToggle";
 import { puedeAprobarMovimiento } from "@/lib/permisosFinancieros";
 import { obtenerCashFlow } from "@/lib/cashFlow";
+import { ETIQUETA_ESTADO_COBRO, obtenerCasos04cSinCobro } from "@/lib/seguimiento04c";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +78,11 @@ interface CasoReporte {
   }[];
 }
 
-export default async function SeguimientoFinancieroPage() {
+export default async function SeguimientoFinancieroPage({
+  searchParams
+}: {
+  searchParams: { compania_04c?: string };
+}) {
   const usuarioActual = await getUsuarioActual();
 
   if (usuarioActual?.rol === "compania") {
@@ -89,6 +95,12 @@ export default async function SeguimientoFinancieroPage() {
   }
 
   const supabase = createClient();
+  const companiaFiltro04c = searchParams.compania_04c || "";
+
+  const [casos04c, { data: aseguradorasLista }] = await Promise.all([
+    obtenerCasos04cSinCobro(supabase as unknown as SupabaseClient, companiaFiltro04c || null).catch(() => null),
+    supabase.from("aseguradoras").select("id, nombre").order("nombre")
+  ]);
 
   const [{ data: casos, error }, { data: casosCerrados, error: errorCerrados }, cashFlow] = await Promise.all([
     supabase
@@ -389,6 +401,114 @@ export default async function SeguimientoFinancieroPage() {
                 </details>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      <section className="card p-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h2 className="font-medium text-slate-800">
+            Casos 04C con documentación enviada y sin cobro a la compañía
+            {casos04c ? ` (${casos04c.length})` : ""}
+          </h2>
+          {casos04c && casos04c.length > 0 && (
+            <a
+              href={`/api/seguimiento-financiero/04c-sin-cobro-compania/export${
+                companiaFiltro04c ? `?aseguradora_id=${companiaFiltro04c}` : ""
+              }`}
+              className="btn-secondary text-xs"
+            >
+              Descargar reporte (Excel)
+            </a>
+          )}
+        </div>
+        <p className="text-xs text-slate-400 mb-3">
+          Casos de tipo de baja 04C donde el evento &quot;Envío de documentación Cía&quot; ya está
+          completado y todavía no se cobró a la compañía por completo: sin cargar el cobro, cargado
+          sin facturar, facturado sin cobrar o cobrado en forma parcial. Ordenados del envío más
+          antiguo al más reciente.
+        </p>
+
+        <form method="get" className="flex flex-wrap items-end gap-2 mb-3">
+          <div>
+            <label className="label">Compañía</label>
+            <select name="compania_04c" defaultValue={companiaFiltro04c} className="input w-64">
+              <option value="">Todas</option>
+              {(aseguradorasLista ?? []).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="btn-secondary text-sm" type="submit">
+            Filtrar
+          </button>
+          {companiaFiltro04c && (
+            <Link href="/seguimiento-financiero" className="btn-secondary text-sm">
+              Quitar filtro
+            </Link>
+          )}
+        </form>
+
+        {casos04c === null ? (
+          <p className="text-sm text-red-600">No se pudo cargar el listado de casos 04C.</p>
+        ) : casos04c.length === 0 ? (
+          <p className="text-sm text-slate-500">
+            No hay casos 04C con documentación enviada pendientes de cobro a la compañía.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-left text-slate-500">
+                <tr>
+                  <th className="py-1 pr-4 font-medium">Caso</th>
+                  <th className="py-1 pr-4 font-medium">Compañía</th>
+                  <th className="py-1 pr-4 font-medium">Estado</th>
+                  <th className="py-1 pr-4 font-medium">Envío de documentación</th>
+                  <th className="py-1 pr-4 font-medium">Situación del cobro</th>
+                  <th className="py-1 pr-4 font-medium text-right">A cobrar</th>
+                </tr>
+              </thead>
+              <tbody>
+                {casos04c.map((c) => (
+                  <tr key={c.id} className="border-t border-slate-100">
+                    <td className="py-1.5 pr-4">
+                      <Link href={`/casos/${c.id}`} className="text-brand-600 hover:underline">
+                        {c.numero_siniestro}
+                        {c.dominio && <span className="text-slate-400"> · {c.dominio}</span>}
+                      </Link>
+                    </td>
+                    <td className="py-1.5 pr-4 text-slate-600">{c.aseguradora}</td>
+                    <td className="py-1.5 pr-4 text-slate-500">
+                      {ESTADOS.find((e) => e.value === c.estado)?.label ?? c.estado}
+                    </td>
+                    <td className="py-1.5 pr-4 text-slate-500 whitespace-nowrap">
+                      {c.fecha_envio ? new Date(c.fecha_envio + "T00:00:00").toLocaleDateString("es-AR") : "—"}
+                      {c.dias_desde_envio !== null && (
+                        <span className="text-slate-400"> · hace {c.dias_desde_envio} d</span>
+                      )}
+                    </td>
+                    <td className="py-1.5 pr-4">
+                      <span
+                        className={`badge ${
+                          c.estado_cobro === "cobrado_parcial"
+                            ? "bg-amber-100 text-amber-700"
+                            : c.estado_cobro === "sin_cargar"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-slate-100 text-slate-600"
+                        }`}
+                      >
+                        {ETIQUETA_ESTADO_COBRO[c.estado_cobro]}
+                      </span>
+                    </td>
+                    <td className="py-1.5 pr-4 text-right font-medium">
+                      {c.importe !== null ? formatCurrency(c.importe) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </section>
