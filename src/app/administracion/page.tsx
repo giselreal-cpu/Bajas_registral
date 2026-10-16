@@ -98,16 +98,24 @@ export default async function AdministracionPage({
     .not("caja_id", "is", null);
   if (searchParams.desde) queryLiquidezGenerales = queryLiquidezGenerales.gte("fecha", searchParams.desde);
   if (searchParams.hasta) queryLiquidezGenerales = queryLiquidezGenerales.lte("fecha", searchParams.hasta);
+  let queryLiquidezTransferencias = supabase
+    .from("transferencias_internas")
+    .select("caja_origen_id, caja_destino_id, monto")
+    .eq("anulado", false);
+  if (searchParams.desde) queryLiquidezTransferencias = queryLiquidezTransferencias.gte("fecha", searchParams.desde);
+  if (searchParams.hasta) queryLiquidezTransferencias = queryLiquidezTransferencias.lte("fecha", searchParams.hasta);
   const [
     { data: movsLiquidezRaw },
     { data: cobrosLiquidezRaw },
     { data: anticiposLiquidezRaw },
-    { data: generalesLiquidezRaw }
+    { data: generalesLiquidezRaw },
+    { data: transferenciasLiquidezRaw }
   ] = await Promise.all([
     queryLiquidez,
     queryCobrosLiquidez,
     queryAnticiposLiquidez,
-    queryLiquidezGenerales
+    queryLiquidezGenerales,
+    queryLiquidezTransferencias
   ]);
   const movsLiquidez = [
     ...((movsLiquidezRaw ?? []) as unknown as {
@@ -127,7 +135,16 @@ export default async function AdministracionPage({
     })),
     ...((generalesLiquidezRaw ?? []) as unknown as { caja_id: string; monto: number; tipo: string }[]).map(
       (m) => ({ caja_id: m.caja_id, monto: m.monto, concepto: { tipo: m.tipo } })
-    )
+    ),
+    // Transferencias internas: sale de la caja de origen y entra a la de destino.
+    ...((transferenciasLiquidezRaw ?? []) as unknown as {
+      caja_origen_id: string;
+      caja_destino_id: string;
+      monto: number;
+    }[]).flatMap((t) => [
+      { caja_id: t.caja_origen_id, monto: Number(t.monto), concepto: { tipo: "egreso" } },
+      { caja_id: t.caja_destino_id, monto: Number(t.monto), concepto: { tipo: "ingreso" } }
+    ])
   ];
 
   const sinCaja = filasUnificadas.filter((f) => !f.cajaNombre);

@@ -834,6 +834,8 @@ Para no duplicar información entre módulos:
 
 En `/seguimiento-financiero`, listado de casos de tipo de baja **04C** con el evento "Envío de documentación Cía" **completado** que todavía no se cobraron por completo a la compañía. Situaciones: *Sin cargar* (no hay movimiento "Cobro a la aseguradora" ni factura), *Cargado, sin facturar*, *Facturado, sin cobrar* y *Cobrado parcial* (queda saldo). Filtro por compañía (`?compania_04c=`) y exportación a Excel (`GET /api/seguimiento-financiero/04c-sin-cobro-compania/export?aseguradora_id=`). La lógica vive en `src/lib/seguimiento04c.ts`.
 
+**Libro y Liquidez incluyen las transferencias internas.** Cada transferencia entre cajas aparece en el Libro de movimientos (y en su Excel) como dos filas — salida en la caja de origen, entrada en la de destino — y se suma al saldo de cada caja en Liquidez, para que ambos cierren con el Cierre mensual. Con filtro de caja se muestra solo la pata que toca esa caja; sin filtro no suman a los totales de entradas/salidas (se compensan).
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

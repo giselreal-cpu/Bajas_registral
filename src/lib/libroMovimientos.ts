@@ -27,6 +27,9 @@ export interface FilaLibro {
   centroDeCosto: string;
   tipo: "ingreso" | "egreso";
   monto: number;
+  // Pata de una transferencia interna entre cajas: mueve plata de una caja
+  // a otra sin ser un ingreso ni un egreso del negocio.
+  esTransferencia?: boolean;
 }
 
 interface MovimientoAdmin extends MovimientoCaso {
@@ -171,6 +174,72 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
   const { data: generalesRaw } = await queryGenerales;
   const generales = (generalesRaw ?? []) as unknown as MovimientoGeneral[];
 
+  // Transferencias internas entre cajas: cada una aparece como dos filas, la
+  // salida en la caja de origen y la entrada en la de destino, para que el
+  // saldo de cada caja del Libro cierre con el de Liquidez y el Cierre
+  // mensual. No tienen cuenta contable ni caso, así que con esos filtros
+  // puestos no corresponde mostrarlas.
+  interface TransferenciaLibro {
+    id: string;
+    fecha: string;
+    monto: number;
+    referencia: string | null;
+    origen: { id: string; nombre: string } | null;
+    destino: { id: string; nombre: string } | null;
+  }
+  let transferencias: TransferenciaLibro[] = [];
+  if (!filtros.cuenta_contable_id && !filtros.aseguradora_id) {
+    let queryTransferencias = supabase
+      .from("transferencias_internas")
+      .select(
+        "id, fecha, monto, referencia, origen:cajas!transferencias_internas_caja_origen_id_fkey(id, nombre), destino:cajas!transferencias_internas_caja_destino_id_fkey(id, nombre)"
+      )
+      .eq("anulado", false)
+      .order("fecha", { ascending: true })
+      .order("created_at", { ascending: true });
+    if (filtros.desde) queryTransferencias = queryTransferencias.gte("fecha", filtros.desde);
+    if (filtros.hasta) queryTransferencias = queryTransferencias.lte("fecha", filtros.hasta);
+    const { data: transferenciasRaw } = await queryTransferencias;
+    transferencias = (transferenciasRaw ?? []) as unknown as TransferenciaLibro[];
+  }
+  const filasTransferencias: FilaLibro[] = transferencias.flatMap((t) => {
+    const ref = t.referencia ? ` — ${t.referencia}` : "";
+    const filas: FilaLibro[] = [
+      {
+        key: `transf-sale-${t.id}`,
+        fecha: t.fecha,
+        casoHref: null,
+        casoLabel: null,
+        descripcion: `Transferencia interna a ${t.destino?.nombre ?? "otra caja"}${ref}`,
+        cuentaCodigo: null,
+        cajaNombre: t.origen?.nombre ?? null,
+        centroDeCosto: "Transferencia interna",
+        tipo: "egreso",
+        monto: Number(t.monto),
+        esTransferencia: true
+      },
+      {
+        key: `transf-entra-${t.id}`,
+        fecha: t.fecha,
+        casoHref: null,
+        casoLabel: null,
+        descripcion: `Transferencia interna desde ${t.origen?.nombre ?? "otra caja"}${ref}`,
+        cuentaCodigo: null,
+        cajaNombre: t.destino?.nombre ?? null,
+        centroDeCosto: "Transferencia interna",
+        tipo: "ingreso",
+        monto: Number(t.monto),
+        esTransferencia: true
+      }
+    ];
+    // Con filtro de caja se muestra solo la pata que toca esa caja.
+    if (!filtros.caja_id) return filas;
+    return [
+      ...(t.origen?.id === filtros.caja_id ? [filas[0]] : []),
+      ...(t.destino?.id === filtros.caja_id ? [filas[1]] : [])
+    ];
+  });
+
   const filasCaso: FilaLibro[] = movimientos.map((m) => ({
     key: `caso-${m.id}`,
     fecha: m.fecha,
@@ -224,7 +293,7 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
         monto: m.monto
       }));
 
-  const filasUnificadas = [...filasCaso, ...filasCobros, ...filasAnticipos, ...filasGenerales].sort(
+  const filasUnificadas = [...filasCaso, ...filasCobros, ...filasAnticipos, ...filasGenerales, ...filasTransferencias].sort(
     (a, b) => a.fecha.localeCompare(b.fecha)
   );
 
@@ -235,12 +304,11 @@ export async function obtenerFilasLibro(filtros: LibroFiltros) {
     return { f, importe, saldo };
   });
 
-  const entradas = filasUnificadas
-    .filter((f) => f.tipo === "ingreso")
-    .reduce((a, f) => a + f.monto, 0);
-  const salidas = filasUnificadas
-    .filter((f) => f.tipo === "egreso")
-    .reduce((a, f) => a + f.monto, 0);
+  // Sin filtrar por caja, las transferencias se compensan (sale de una,
+  // entra a otra) y solo inflarían los totales — se dejan afuera.
+  const paraTotales = filtros.caja_id ? filasUnificadas : filasUnificadas.filter((f) => !f.esTransferencia);
+  const entradas = paraTotales.filter((f) => f.tipo === "ingreso").reduce((a, f) => a + f.monto, 0);
+  const salidas = paraTotales.filter((f) => f.tipo === "egreso").reduce((a, f) => a + f.monto, 0);
 
   // El saldo acumulado se calcula siempre en orden cronológico; si se pide
   // el orden inverso solo se da vuelta la lista (cada fila conserva su saldo).
