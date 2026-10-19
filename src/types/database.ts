@@ -10,6 +10,7 @@ export type Estado =
   | "presentado_en_registro"
   | "documentacion_enviada"
   | "baja_patentes_pendiente"
+  | "cierre_pendiente"
   | "cerrado";
 
 export const ESTADOS: { value: Estado; label: string }[] = [
@@ -24,6 +25,7 @@ export const ESTADOS: { value: Estado; label: string }[] = [
   { value: "presentado_en_registro", label: "Presentado en el registro" },
   { value: "documentacion_enviada", label: "Documentación enviada a la Cía" },
   { value: "baja_patentes_pendiente", label: "Baja de Patentes Pendiente" },
+  { value: "cierre_pendiente", label: "Cierre de Caso Pendiente" },
   { value: "cerrado", label: "Cerrado" }
 ];
 

@@ -16,6 +16,7 @@ const ORDEN_ESTADOS: Estado[] = [
   "presentado_en_registro",
   "documentacion_enviada",
   "baja_patentes_pendiente",
+  "cierre_pendiente",
   "cerrado"
 ];
 
@@ -48,6 +49,10 @@ const EVENTO_COMPLETADO_A_ESTADO: Record<string, Estado> = {
   "Formulario de Baja": "baja_en_tramite",
   "Presentación de Baja": "presentado_en_registro",
   "Envío de documentación Cía": "documentacion_enviada",
+  // Con la baja de patentes ya resuelta, lo único que falta es cerrar el
+  // caso: el estado pasa de "Baja de Patentes Pendiente" a "Cierre de Caso
+  // Pendiente" (sigue sin cerrar el caso por sí sola).
+  "Baja de Patentes": "cierre_pendiente",
   "Cierre de Caso": "cerrado"
 };
 

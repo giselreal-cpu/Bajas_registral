@@ -836,6 +836,8 @@ En `/seguimiento-financiero`, listado de casos de tipo de baja **04C** con el ev
 
 **Libro y Liquidez incluyen las transferencias internas.** Cada transferencia entre cajas aparece en el Libro de movimientos (y en su Excel) como dos filas — salida en la caja de origen, entrada en la de destino — y se suma al saldo de cada caja en Liquidez, para que ambos cierren con el Cierre mensual. Con filtro de caja se muestra solo la pata que toca esa caja; sin filtro no suman a los totales de entradas/salidas (se compensan).
 
+**Estado "Cierre de Caso Pendiente"** (migración `0071`): cuando el evento "Baja de Patentes" se completa, el caso deja de figurar como "Baja de Patentes Pendiente" y pasa a "Cierre de Caso Pendiente" (lo único que falta es cerrar). Va entre "Baja de Patentes Pendiente" y "Cerrado"; la migración también corrige los casos que ya estaban en esa situación.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase
