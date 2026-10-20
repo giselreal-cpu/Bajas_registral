@@ -76,6 +76,20 @@ export async function PUT(
     if (field in body) update[field] = body[field];
   }
 
+  // Un caso cerrado no puede quedar sin fecha de cierre: de ella dependen
+  // el Cierre mensual y los reportes. Si llega vacía (formulario con datos
+  // viejos), se conserva la que ya tiene.
+  if ("fecha_cierre" in update && !update.fecha_cierre) {
+    const { data: actualCierre } = await supabase
+      .from("casos")
+      .select("estado, fecha_cierre")
+      .eq("id", params.id)
+      .maybeSingle();
+    if (actualCierre?.estado === "cerrado" && actualCierre.fecha_cierre) {
+      delete update.fecha_cierre;
+    }
+  }
+
   // El trámitador se elige del desplegable de la compañía (tramitador_id);
   // nombre y email del caso se completan desde el catálogo para que
   // notificaciones y exports sigan leyéndolos igual. Si cambia solo el

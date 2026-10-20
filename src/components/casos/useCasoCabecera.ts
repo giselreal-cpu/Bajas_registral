@@ -1,5 +1,5 @@
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Aseguradora,
   CasoConRelaciones,
@@ -98,8 +98,12 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
   // vieja del caso, y "Guardar" pisaría ese cambio con el valor
   // desactualizado. Por eso el snapshot del formulario se toma recién al
   // entrar en modo edición, nunca al montar el componente.
+  // Fecha de cierre con la que se abrió la edición: si el usuario no la
+  // tocó, no se manda al guardar (ver handleSave).
+  const fechaCierreAlEditar = useRef(caso.fecha_cierre ?? "");
   function iniciarEdicion() {
     setForm(formDesdeCaso(caso));
+    fechaCierreAlEditar.current = caso.fecha_cierre ?? "";
     setEditing(true);
   }
 
@@ -107,19 +111,26 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
     setSaving(true);
     setError(null);
 
+    // La fecha de cierre la pone sola el evento "Cierre de Caso" de la
+    // bitácora. Si el usuario no la editó a mano, no se manda: así un
+    // formulario abierto antes del cierre no la pisa con el valor viejo
+    // (el caso quedaba "Cerrado" sin fecha y desaparecía de los reportes).
+    const { fecha_cierre: _fechaCierreForm, ...formSinFechaCierre } = form;
+    const fechaCierreEditada = form.fecha_cierre !== fechaCierreAlEditar.current;
+
     const [resCaso, resVehiculo, resAsegurado] = await Promise.all([
       fetch(`/api/casos/${caso.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...form,
+          ...formSinFechaCierre,
+          ...(fechaCierreEditada ? { fecha_cierre: form.fecha_cierre || null } : {}),
           rama: form.rama || null,
           tipo_tramite: form.tipo_tramite || null,
           registro_id: form.registro_id || null,
           tipo_baja_id: form.tipo_baja_id || null,
           responsable_id: form.responsable_id || null,
-          gestor_id: form.gestor_id || null,
-          fecha_cierre: form.fecha_cierre || null
+          gestor_id: form.gestor_id || null
         })
       }),
       fetch(`/api/vehiculos/${caso.vehiculo_id}`, {
