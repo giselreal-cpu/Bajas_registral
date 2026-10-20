@@ -27,10 +27,11 @@ function mensajeContacto(caso: CasoConRelaciones): string {
   const dominio = caso.vehiculo?.dominio ?? "";
   const hora = new Date().getHours();
   const saludo = hora < 12 ? "buen día" : hora < 20 ? "buenas tardes" : "buenas noches";
+  // Los asteriscos son el negrita de WhatsApp: resaltan los datos del caso.
   const presentacion = responsable
-    ? `Soy ${responsable}, de ${GESTORIA_NOMBRE}.`
+    ? `Soy *${responsable}*, de ${GESTORIA_NOMBRE}.`
     : `Le escribimos desde ${GESTORIA_NOMBRE}.`;
-  return `Hola ${nombreTitular}, ${saludo}. ${presentacion} ${aseguradora} nos derivó la gestión de la baja de su vehículo (dominio ${dominio}, siniestro N° ${caso.numero_siniestro}) ante el Registro Automotor. Lo asesoramos, retiramos la unidad, completamos los formularios y lo acompañamos en la presentación de la baja. Quisiera comunicarme con usted para explicarle cómo sigue el proceso y resolver cualquier duda. ¿En qué horario le resulta cómodo que lo llame?`;
+  return `Hola *${nombreTitular}*, ${saludo}. ${presentacion} ${aseguradora} nos derivó la gestión de la baja de su vehículo (dominio *${dominio}*, siniestro N° *${caso.numero_siniestro}*) ante el Registro Automotor, y nos encargamos de asesorarlo y guiarlo en todo el trámite. Quisiera comunicarme con usted para explicarle cómo sigue el proceso y resolver cualquier duda. ¿En qué horario le resulta cómodo que lo llame?`;
 }
 
 function MensajeContactoBox({ caso }: { caso: CasoConRelaciones }) {
