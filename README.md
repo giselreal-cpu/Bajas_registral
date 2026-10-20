@@ -838,6 +838,8 @@ En `/seguimiento-financiero`, listado de casos de tipo de baja **04C** con el ev
 
 **Estado "Cierre de Caso Pendiente"** (migración `0071`): cuando el evento "Baja de Patentes" se completa, el caso deja de figurar como "Baja de Patentes Pendiente" y pasa a "Cierre de Caso Pendiente" (lo único que falta es cerrar). Va entre "Baja de Patentes Pendiente" y "Cerrado"; la migración también corrige los casos que ya estaban en esa situación.
 
+**Tipo de baja "Solo Informes".** No pasa por gestor, traslado, formularios ni presentación en el registro: su bitácora es la secuencia corta Ingreso de caso → Petición de Informes → Revisión de documentación → Envío de documentación Cía → Cierre de Caso (más Observaciones). Al crear un caso de ese tipo (o cambiarle el tipo de baja) se cargan esos eventos como pendientes (`src/lib/eventosSoloInformes.ts`); solo se ofrecen esos eventos en la bitácora (escritorio y móvil); "Cierre de Caso" exige solo Petición, Revisión y Envío de documentación; "Envío de documentación Cía" no exige desarmadero; el aviso de inicio de trámite usa el texto de Pedido de Informes (el registro emite el informe de dominio histórico en 48/72 hs hábiles); y estos casos no cuentan como "sin contactar" en el Panel. "Revisión de documentación" es un tipo de evento nuevo que solo se ofrece en este tipo de baja.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

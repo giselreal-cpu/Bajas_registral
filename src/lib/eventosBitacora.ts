@@ -16,6 +16,9 @@ export interface TipoEventoDef {
 export const TIPOS_EVENTO: TipoEventoDef[] = [
   { value: "ingreso_caso", label: "Ingreso de caso", requiere: null },
   { value: "peticion_informes", label: "Petición de Informes", requiere: null },
+  // Paso propio de los trámites "Solo Informes": se revisa la documentación
+  // que llegó antes de mandársela a la compañía.
+  { value: "revision_documentacion", label: "Revisión de documentación", requiere: null },
   { value: "contacto_asegurado", label: "Contacto con el asegurado", requiere: null },
   {
     value: "autorizacion_traslado",
@@ -67,6 +70,32 @@ export const TIPOS_EVENTO: TipoEventoDef[] = [
   { value: "observaciones", label: "Observaciones", requiere: null }
 ];
 
+// Tipo de baja "Solo Informes": se piden y entregan los informes del dominio y
+// nada más — no hay gestor, traslado, formularios ni presentación en el
+// registro. Su bitácora es siempre esta secuencia corta.
+export const TIPO_BAJA_SOLO_INFORMES = "Solo Informes";
+export const EVENTOS_SOLO_INFORMES = [
+  "Ingreso de caso",
+  "Petición de Informes",
+  "Revisión de documentación",
+  "Envío de documentación Cía",
+  "Cierre de Caso"
+];
+// Además de la secuencia, "Observaciones" sigue disponible (registro libre).
+export const EVENTOS_PERMITIDOS_SOLO_INFORMES = [...EVENTOS_SOLO_INFORMES, "Observaciones"];
+
+export function esSoloInformes(nombreTipoBaja: string | null | undefined): boolean {
+  return nombreTipoBaja === TIPO_BAJA_SOLO_INFORMES;
+}
+
+// Prerrequisitos propios de "Solo Informes": para cerrar el caso alcanza con
+// haber pedido los informes, revisado y enviado la documentación; el envío a
+// la compañía no depende de ningún desarmadero.
+const REQUISITOS_SOLO_INFORMES: Record<string, string | string[] | null> = {
+  "Envío de documentación Cía": null,
+  "Cierre de Caso": ["Petición de Informes", "Revisión de documentación", "Envío de documentación Cía"]
+};
+
 export function tipoEventoDe(label: string): TipoEventoDef | undefined {
   return TIPOS_EVENTO.find((t) => t.label === label);
 }
@@ -78,12 +107,18 @@ export function tipoEventoDe(label: string): TipoEventoDef | undefined {
 export function motivoBloqueo(
   label: string,
   eventosExistentes: { id: string; tipo_evento: string; completado: boolean }[],
-  idEventoActual?: string
+  idEventoActual?: string,
+  tipoBaja?: string | null
 ): string | null {
   const tipo = tipoEventoDe(label);
-  if (!tipo || !tipo.requiere) return null;
+  if (!tipo) return null;
+  const requiere =
+    esSoloInformes(tipoBaja) && label in REQUISITOS_SOLO_INFORMES
+      ? REQUISITOS_SOLO_INFORMES[label]
+      : tipo.requiere;
+  if (!requiere) return null;
 
-  const requisitos = Array.isArray(tipo.requiere) ? tipo.requiere : [tipo.requiere];
+  const requisitos = Array.isArray(requiere) ? requiere : [requiere];
   const faltantes = requisitos.filter(
     (req) =>
       !eventosExistentes.some(

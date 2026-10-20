@@ -4,6 +4,8 @@ import { getUsuarioActual, getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { recalcularEstado } from "@/lib/estadoAutomatico";
 import { registrarCambio } from "@/lib/historial";
 import { motivoBloqueo } from "@/lib/eventosBitacora";
+import { nombreTipoBajaDeCaso } from "@/lib/eventosSoloInformes";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { casoEstaSaldado } from "@/lib/estadoFinanciero";
 
 const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
@@ -130,7 +132,8 @@ export async function POST(
       .select("id, tipo_evento, completado")
       .eq("caso_id", params.id);
 
-    const bloqueo = motivoBloqueo(tipo_evento, eventosExistentes ?? []);
+    const tipoBaja = await nombreTipoBajaDeCaso(supabase as unknown as SupabaseClient, params.id);
+    const bloqueo = motivoBloqueo(tipo_evento, eventosExistentes ?? [], undefined, tipoBaja);
     if (bloqueo) {
       return NextResponse.json({ error: bloqueo }, { status: 409 });
     }

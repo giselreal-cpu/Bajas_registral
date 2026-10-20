@@ -5,6 +5,9 @@ import { enviarEmail } from "@/lib/email/enviarEmail";
 import { asuntoYCuerpo, destinatariosDisponibles, Destinatario } from "@/lib/email/notificacionesCaso";
 import { resolverTramitador } from "@/lib/tramitadores";
 import { CasoConRelaciones } from "@/types/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { esSoloInformes } from "@/lib/eventosBitacora";
+import { asegurarEventosSoloInformes } from "@/lib/eventosSoloInformes";
 
 const CASO_SELECT = `
   *,
@@ -226,6 +229,12 @@ export async function POST(request: NextRequest) {
     completado: seNotifico,
     creado_por: responsable_id ?? null
   });
+
+  // Los trámites "Solo Informes" arrancan con su secuencia corta de eventos
+  // (petición, revisión, envío a la compañía y cierre) ya cargada.
+  if (esSoloInformes((caso as unknown as CasoConRelaciones).tipo_baja?.nombre)) {
+    await asegurarEventosSoloInformes(supabase as unknown as SupabaseClient, caso.id, responsable_id ?? null);
+  }
 
   await registrarCambio(caso.id, "Creó el caso");
 

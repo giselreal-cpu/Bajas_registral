@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BitacoraEvento } from "@/types/database";
-import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
+import { EVENTOS_SOLO_INFORMES, TIPOS_EVENTO, esSoloInformes, motivoBloqueo } from "@/lib/eventosBitacora";
 
 // Los pasos fijos del timeline móvil son el catálogo real menos
 // "Observaciones" (no es un hito de avance sino un registro libre y
@@ -14,6 +14,7 @@ import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
 const ORDEN_TIMELINE = [
   "ingreso_caso",
   "peticion_informes",
+  "revision_documentacion",
   "contacto_asegurado",
   "autorizacion_traslado",
   "asignacion_desarmadero",
@@ -31,6 +32,9 @@ const PASOS = ORDEN_TIMELINE.map((v) => TIPOS_EVENTO.find((t) => t.value === v))
 interface Props {
   casoId: string;
   soloLectura?: boolean;
+  // Nombre del tipo de baja del caso: "Solo Informes" tiene una secuencia
+  // corta propia (sin gestor, traslado, formularios ni presentación).
+  tipoBaja?: string | null;
 }
 
 interface EditFormState {
@@ -145,7 +149,10 @@ function EditForm({
   );
 }
 
-export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
+export default function BitacoraTimeline({ casoId, soloLectura, tipoBaja }: Props) {
+  const PASOS_CASO = esSoloInformes(tipoBaja)
+    ? PASOS.filter((p) => EVENTOS_SOLO_INFORMES.includes(p.label))
+    : PASOS.filter((p) => p.value !== "revision_documentacion");
   const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingLabel, setSavingLabel] = useState<string | null>(null);
@@ -249,7 +256,7 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
     return <p className="text-sm text-slate-500 p-1">Cargando bitácora...</p>;
   }
 
-  const completados = PASOS.filter((p) =>
+  const completados = PASOS_CASO.filter((p) =>
     eventos.some((ev) => ev.tipo_evento === p.label && ev.completado)
   ).length;
 
@@ -262,7 +269,7 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
   return (
     <div>
       <p className="text-xs mb-3 tabular-nums" style={{ color: "var(--mv-neutral-600)" }}>
-        {completados} de {PASOS.length} eventos completados
+        {completados} de {PASOS_CASO.length} eventos completados
       </p>
 
       {error && (
@@ -275,11 +282,11 @@ export default function BitacoraTimeline({ casoId, soloLectura }: Props) {
       )}
 
       <div className="flex flex-col">
-        {PASOS.map((paso, i) => {
+        {PASOS_CASO.map((paso, i) => {
           const ev = eventos.find((e) => e.tipo_evento === paso.label);
           const completado = !!ev?.completado;
-          const bloqueo = !completado ? motivoBloqueo(paso.label, eventos) : null;
-          const esUltimo = i === PASOS.length - 1;
+          const bloqueo = !completado ? motivoBloqueo(paso.label, eventos, undefined, tipoBaja) : null;
+          const esUltimo = i === PASOS_CASO.length - 1;
           const enEdicion = ev && editingId === ev.id;
 
           return (

@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { avanzarEstadoAlMenosHasta, revertirEstadoGestorAsignado } from "@/lib/estadoAutomatico";
 import { resolverTramitador } from "@/lib/tramitadores";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { esSoloInformes } from "@/lib/eventosBitacora";
+import { asegurarEventosSoloInformes } from "@/lib/eventosSoloInformes";
 
 const CASO_SELECT = `
   *,
@@ -154,6 +157,12 @@ export async function PUT(
       data.estado = actualizado.estado;
       data.fecha_cierre = actualizado.fecha_cierre;
     }
+  }
+
+  // Si el caso pasó a ser (o ya era) "Solo Informes", se completa su
+  // secuencia corta de eventos con los que falten.
+  if ("tipo_baja_id" in update && esSoloInformes((data as { tipo_baja?: { nombre: string } | null }).tipo_baja?.nombre)) {
+    await asegurarEventosSoloInformes(supabase as unknown as SupabaseClient, params.id, null);
   }
 
   // Si se le sacó el gestor al caso, "Gestor Asignado" ya no corresponde:

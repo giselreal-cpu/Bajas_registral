@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS } from "@/types/database";
-import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
+import { TIPOS_EVENTO, TIPO_BAJA_SOLO_INFORMES } from "@/lib/eventosBitacora";
 import { horasHabilesTranscurridas } from "@/lib/fechas";
 
 // Toda la data del Panel de control (`/panel`) y de su página de
@@ -288,11 +288,17 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     .filter((c) => c.dias >= DIAS_SIN_MOVIMIENTO)
     .sort((a, b) => b.dias - a.dias);
 
+  // "Solo Informes" no lleva contacto con el asegurado (no hay traslado ni
+  // gestión en el terreno), así que no cuenta como "sin contactar".
+  const idSoloInformes = (tiposBaja ?? []).find((t) => t.nombre === TIPO_BAJA_SOLO_INFORMES)?.id;
   const casosConContactoIniciado = new Set((contactosExistentes ?? []).map((c) => c.caso_id));
   const casosSinContactar = errorContactos
     ? []
-    : ((casos as CasoResumen[] | null) ?? []).filter(
-        (c) => c.estado !== "cerrado" && !casosConContactoIniciado.has(c.id)
+    : ((casos as (CasoResumen & { tipo_baja_id?: string | null })[] | null) ?? []).filter(
+        (c) =>
+          c.estado !== "cerrado" &&
+          !casosConContactoIniciado.has(c.id) &&
+          !(idSoloInformes && c.tipo_baja_id === idSoloInformes)
       );
 
   const casosPorGestorMap = new Map<

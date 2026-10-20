@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BitacoraEvento, CasoConRelaciones, Desarmadero, EncuestaSatisfaccion } from "@/types/database";
-import { TIPOS_EVENTO, motivoBloqueo } from "@/lib/eventosBitacora";
+import { TIPOS_EVENTO, EVENTOS_PERMITIDOS_SOLO_INFORMES, esSoloInformes, motivoBloqueo } from "@/lib/eventosBitacora";
 import { TipoNotificacion } from "@/lib/email/notificacionesCaso";
 import { linkWhatsapp, mensajeEncuesta } from "@/lib/whatsapp";
 import SelectorNotificacion from "./SelectorNotificacion";
@@ -323,6 +323,7 @@ export default function BitacoraSection({
   esAdministrador = false
 }: Props) {
   const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
+  const tipoBajaNombre = caso.tipo_baja?.nombre ?? null;
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [origin, setOrigin] = useState("");
@@ -394,7 +395,7 @@ export default function BitacoraSection({
     }
 
     if (form.completado) {
-      const bloqueo = motivoBloqueo(form.tipo_evento, eventos ?? []);
+      const bloqueo = motivoBloqueo(form.tipo_evento, eventos ?? [], undefined, tipoBajaNombre);
       if (bloqueo) {
         setError(bloqueo);
         return;
@@ -485,7 +486,7 @@ export default function BitacoraSection({
     const vaACompletarAhora = editForm.completado && !yaEstabaCompletado;
 
     if (editForm.completado) {
-      const bloqueo = motivoBloqueo(editForm.tipo_evento, eventos ?? [], id);
+      const bloqueo = motivoBloqueo(editForm.tipo_evento, eventos ?? [], id, tipoBajaNombre);
       if (bloqueo) {
         setError(bloqueo);
         return;
@@ -569,7 +570,7 @@ export default function BitacoraSection({
     const vaACompletar = !evento.completado;
 
     if (vaACompletar) {
-      const bloqueo = motivoBloqueo(evento.tipo_evento, eventos ?? [], evento.id);
+      const bloqueo = motivoBloqueo(evento.tipo_evento, eventos ?? [], evento.id, tipoBajaNombre);
       if (bloqueo) {
         setError(bloqueo);
         return;
@@ -644,8 +645,14 @@ export default function BitacoraSection({
   }
 
   const tiposYaCargados = new Set((eventos ?? []).map((ev) => ev.tipo_evento));
+  // "Solo Informes" no pasa por gestor, traslado, formularios ni
+  // presentación: solo se ofrecen los eventos de su secuencia corta.
   const tiposDisponiblesNuevo = TIPOS_EVENTO.filter(
-    (t) => t.label === "Observaciones" || !tiposYaCargados.has(t.label)
+    (t) =>
+      (t.label === "Observaciones" || !tiposYaCargados.has(t.label)) &&
+      (esSoloInformes(tipoBajaNombre)
+        ? EVENTOS_PERMITIDOS_SOLO_INFORMES.includes(t.label)
+        : t.label !== "Revisión de documentación")
   );
 
   return (

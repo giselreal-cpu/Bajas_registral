@@ -29,6 +29,7 @@ const ORDEN_ESTADOS: Estado[] = [
 const EVENTO_EN_PROGRESO_A_ESTADO: Record<string, Estado> = {
   "Petición de Informes": "informes_solicitados",
   "Contacto con el asegurado": "en_verificacion",
+  "Revisión de documentación": "en_verificacion",
   "Baja de Patentes": "baja_patentes_pendiente"
 };
 
