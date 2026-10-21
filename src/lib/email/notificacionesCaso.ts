@@ -54,7 +54,7 @@ export function asuntoYCuerpo(
   const cuerpos: Record<TipoNotificacion, string> = {
     ingreso_caso: esSoloInformes(caso.tipo_baja?.nombre)
       ? `Le informamos que se dio inicio al trámite de Pedido de Informes del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}). El registro es quien emite el informe de dominio histórico, lo cual suele demorar entre 48/72hs hábiles en emitirlo.`
-      : `Le informamos que se dio inicio al trámite de baja registral del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}). Inicialmente nosotros consultamos mediante informes el estado registral de la unidad, nos comunicaremos dentro de las próximas 24hs para indicarles todo el procedimiento a seguir.`,
+      : `Le informamos que se dio inicio al trámite de baja registral del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}). Como primer paso solicitaremos los informes de dominio para conocer la situación registral de la unidad, y nos comunicaremos dentro de las próximas 24 hs hábiles para detallarle el procedimiento a seguir.`,
     contacto_asegurado: `Le informamos que se contactó al asegurado ${nombreAsegurado} para coordinar los próximos pasos de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}). Se comunicó estado de multas por ${formatMoneda(
       caso.deuda_multas
     )} y patentes por ${formatMoneda(caso.deuda_patentes)}.`,
