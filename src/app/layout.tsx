@@ -119,7 +119,8 @@ export default async function RootLayout({
         <div className="min-h-screen flex flex-col">
           <header className="bg-brand-900 relative">
             <div className="mx-auto max-w-[1440px] px-4 py-3 flex items-center justify-between">
-              <Link href="/panel" className="flex items-center gap-2.5 group shrink-0">
+              {/* Sin sesión el logo vuelve a la portada pública; con sesión, al panel. */}
+              <Link href={user ? "/panel" : "/"} className="flex items-center gap-2.5 group shrink-0">
                 <Image
                   src="/logo-oltra.jpg"
                   alt="Oltra Gestión Integral"
