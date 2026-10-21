@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Oltra Bajas — Gestión Integral Automotor",
   description:
-    "Gestionamos trámites de baja por siniestro. Prioridad absoluta en el servicio a asegurados, productores y compañías de seguros."
+    "Menos trámites para vos, más respuestas para todos. Gestionamos la baja por siniestro con prioridad absoluta en el servicio a asegurados, productores y compañías de seguros."
 };
 
 // Portada pública: quien ya tiene sesión sigue yendo directo al panel.

@@ -100,7 +100,13 @@ const DATOS = [
       "M9.5 9c.4 2 2.5 4.3 5 5l1.2-1.2-1.9-1-.8.8c-.8-.4-1.5-1.1-1.9-1.9l.8-.8-1-1.9z"
     ]
   },
-  { rotulo: "Email", valor: EMAIL_CONTACTO, paths: ["M4 6h16v12H4z", "M4 7l8 6 8-6"] },
+  {
+    rotulo: "Email",
+    valor: EMAIL_CONTACTO,
+    href: `mailto:${EMAIL_CONTACTO}`,
+    ancho: true,
+    paths: ["M4 6h16v12H4z", "M4 7l8 6 8-6"]
+  },
   {
     rotulo: "Horario de atención",
     valor: HORARIO_ATENCION,
@@ -170,10 +176,10 @@ export default function Portada() {
         <div className="mx-auto max-w-[960px] px-4 md:px-8 py-14 md:py-28 flex flex-col items-center text-center gap-7">
           <span className={`${EYEBROW} text-accent-700`}>Gestión Integral Automotor</span>
           <h1 className="font-heading font-bold text-[clamp(34px,5.2vw,58px)] leading-[1.12]">
-            Gestionamos trámites de baja por siniestro
+            Menos trámites para vos, más respuestas para todos.
           </h1>
           <p className="text-[clamp(18px,2vw,21px)] leading-relaxed text-brand-700 max-w-[720px]">
-            Prioridad absoluta en el servicio a asegurados, productores y compañías de seguros.
+            Nos ocupamos de todo el trámite y te mantenemos informado en cada paso. Prioridad absoluta en el servicio a asegurados, productores y compañías de seguros.
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-1">
             <a
@@ -181,10 +187,10 @@ export default function Portada() {
               className={`${BTN_WA} min-h-[52px] px-[26px] text-base`}
             >
               <IconoWhatsApp size={26} />
-              Escribinos por WhatsApp
+              Consultá ahora por WhatsApp
             </a>
             <a href="#servicios" className={`${BTN_LINEA_CLARA} min-h-[52px] px-[26px] text-base`}>
-              Conocer más
+              Ver servicios
             </a>
           </div>
           <ul className="flex flex-wrap justify-center gap-3 mt-5">
@@ -330,11 +336,22 @@ export default function Portada() {
           </div>
           <dl className="flex flex-wrap gap-8 border-t border-white/15 pt-7">
             {DATOS.map((d) => (
-              <div key={d.rotulo} className="flex-1 basis-[220px] min-w-0 flex items-start gap-3.5">
+              <div
+                key={d.rotulo}
+                className={`min-w-0 flex items-start gap-3.5 ${d.ancho ? "flex-[2_1_340px]" : "flex-1 basis-[220px]"}`}
+              >
                 <Icono paths={d.paths} size={22} className="shrink-0 mt-0.5 text-accent-400" />
                 <div className="flex flex-col gap-1 min-w-0">
                   <dt className="text-[13px] text-brand-300">{d.rotulo}</dt>
-                  <dd className="text-[15px] break-words">{d.valor}</dd>
+                  <dd className="text-[15px] break-words">
+                    {d.href ? (
+                      <a href={d.href} className="hover:text-accent-300 transition-colors">
+                        {d.valor}
+                      </a>
+                    ) : (
+                      d.valor
+                    )}
+                  </dd>
                 </div>
               </div>
             ))}
