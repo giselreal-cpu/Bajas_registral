@@ -338,6 +338,10 @@ export interface ConceptoMovimiento {
 
 export interface MovimientoCaso {
   factura_a?: boolean;
+  // Solo "Pago a la compañía": si la compañía ya mandó su factura.
+  factura_compania_recibida?: boolean;
+  factura_compania_numero?: string | null;
+  factura_compania_fecha?: string | null;
   id: string;
   caso_id: string;
   concepto_id: string;

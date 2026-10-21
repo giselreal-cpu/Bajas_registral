@@ -6,6 +6,7 @@ import MovimientoPagadoToggle from "@/components/casos/MovimientoPagadoToggle";
 import { puedeAprobarMovimiento } from "@/lib/permisosFinancieros";
 import { obtenerCashFlow } from "@/lib/cashFlow";
 import { ETIQUETA_ESTADO_COBRO, obtenerCasos04cSinCobro } from "@/lib/seguimiento04c";
+import { obtenerBajasPagadasSinFactura } from "@/lib/seguimientoFacturaCompania";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
@@ -81,7 +82,7 @@ interface CasoReporte {
 export default async function SeguimientoFinancieroPage({
   searchParams
 }: {
-  searchParams: { compania_04c?: string };
+  searchParams: { compania_04c?: string; compania_fc?: string };
 }) {
   const usuarioActual = await getUsuarioActual();
 
@@ -97,8 +98,11 @@ export default async function SeguimientoFinancieroPage({
   const supabase = createClient();
   const companiaFiltro04c = searchParams.compania_04c || "";
 
-  const [casos04c, { data: aseguradorasLista }] = await Promise.all([
+  const companiaFiltroFc = searchParams.compania_fc || "";
+
+  const [casos04c, bajasSinFactura, { data: aseguradorasLista }] = await Promise.all([
     obtenerCasos04cSinCobro(supabase as unknown as SupabaseClient, companiaFiltro04c || null).catch(() => null),
+    obtenerBajasPagadasSinFactura(supabase as unknown as SupabaseClient, companiaFiltroFc || null).catch(() => null),
     supabase.from("aseguradoras").select("id, nombre").order("nombre")
   ]);
 
@@ -430,6 +434,7 @@ export default async function SeguimientoFinancieroPage({
         </p>
 
         <form method="get" className="flex flex-wrap items-end gap-2 mb-3">
+          {companiaFiltroFc && <input type="hidden" name="compania_fc" value={companiaFiltroFc} />}
           <div>
             <label className="label">Compañía</label>
             <select name="compania_04c" defaultValue={companiaFiltro04c} className="input w-64">
@@ -445,7 +450,10 @@ export default async function SeguimientoFinancieroPage({
             Filtrar
           </button>
           {companiaFiltro04c && (
-            <Link href="/seguimiento-financiero" className="btn-secondary text-sm">
+            <Link
+              href={`/seguimiento-financiero${companiaFiltroFc ? `?compania_fc=${companiaFiltroFc}` : ""}`}
+              className="btn-secondary text-sm"
+            >
               Quitar filtro
             </Link>
           )}
@@ -510,6 +518,105 @@ export default async function SeguimientoFinancieroPage({
               </tbody>
             </table>
           </div>
+        )}
+      </section>
+
+      <section className="card p-4 mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
+          <h2 className="font-medium text-slate-800">
+            Bajas pagadas sin factura de la compañía
+            {bajasSinFactura ? ` (${bajasSinFactura.length})` : ""}
+          </h2>
+          {bajasSinFactura && bajasSinFactura.length > 0 && (
+            <a
+              href={`/api/seguimiento-financiero/bajas-pagadas-sin-factura/export${
+                companiaFiltroFc ? `?aseguradora_id=${companiaFiltroFc}` : ""
+              }`}
+              className="btn-secondary text-xs"
+            >
+              Descargar reporte (Excel)
+            </a>
+          )}
+        </div>
+        <p className="text-xs text-slate-400 mb-3">
+          Casos con &quot;Pago a la compañía&quot; ya pagado de los que todavía no se registró la factura
+          que emite la compañía. Se marca como recibida desde el detalle financiero del caso, en el
+          movimiento de pago. Ordenadas del pago más antiguo al más reciente.
+        </p>
+
+        <form method="get" className="flex flex-wrap items-end gap-2 mb-3">
+          {companiaFiltro04c && <input type="hidden" name="compania_04c" value={companiaFiltro04c} />}
+          <div>
+            <label className="label">Compañía</label>
+            <select name="compania_fc" defaultValue={companiaFiltroFc} className="input w-64">
+              <option value="">Todas</option>
+              {(aseguradorasLista ?? []).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button className="btn-secondary text-sm" type="submit">
+            Filtrar
+          </button>
+          {companiaFiltroFc && (
+            <Link
+              href={`/seguimiento-financiero${companiaFiltro04c ? `?compania_04c=${companiaFiltro04c}` : ""}`}
+              className="btn-secondary text-sm"
+            >
+              Quitar filtro
+            </Link>
+          )}
+        </form>
+
+        {bajasSinFactura === null ? (
+          <p className="text-sm text-red-600">
+            No se pudo cargar el listado. Verificá que esté aplicada la migración 0072.
+          </p>
+        ) : bajasSinFactura.length === 0 ? (
+          <p className="text-sm text-slate-500">No hay bajas pagadas pendientes de factura de la compañía.</p>
+        ) : (
+          <>
+            <p className="text-sm text-slate-600 mb-2">
+              Total pagado sin factura:{" "}
+              <b className="font-medium">{formatCurrency(bajasSinFactura.reduce((a, b) => a + b.monto, 0))}</b>
+            </p>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-slate-500">
+                  <tr>
+                    <th className="py-1 pr-4 font-medium">Caso</th>
+                    <th className="py-1 pr-4 font-medium">Compañía</th>
+                    <th className="py-1 pr-4 font-medium">Tipo de baja</th>
+                    <th className="py-1 pr-4 font-medium">Fecha de pago</th>
+                    <th className="py-1 pr-4 font-medium text-right">Monto pagado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bajasSinFactura.map((b) => (
+                    <tr key={b.caso_id} className="border-t border-slate-100">
+                      <td className="py-1.5 pr-4">
+                        <Link href={`/casos/${b.caso_id}/rentabilidad`} className="text-brand-600 hover:underline">
+                          {b.numero_siniestro}
+                          {b.dominio && <span className="text-slate-400"> · {b.dominio}</span>}
+                        </Link>
+                      </td>
+                      <td className="py-1.5 pr-4 text-slate-600">{b.aseguradora}</td>
+                      <td className="py-1.5 pr-4 text-slate-500">{b.tipo_baja || "—"}</td>
+                      <td className="py-1.5 pr-4 text-slate-500 whitespace-nowrap">
+                        {b.fecha_pago ? new Date(b.fecha_pago + "T00:00:00").toLocaleDateString("es-AR") : "—"}
+                        {b.dias_desde_pago !== null && (
+                          <span className="text-slate-400"> · hace {b.dias_desde_pago} d</span>
+                        )}
+                      </td>
+                      <td className="py-1.5 pr-4 text-right font-medium">{formatCurrency(b.monto)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
 

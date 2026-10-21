@@ -16,6 +16,7 @@ import {
 } from "@/types/database";
 import { puedeAprobarMovimiento } from "@/lib/permisosFinancieros";
 import MovimientoPagadoToggle from "./MovimientoPagadoToggle";
+import FacturaCompaniaMovimiento from "./FacturaCompaniaMovimiento";
 
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) return "—";
@@ -931,6 +932,17 @@ export default function RentabilidadSection({ casoId, caso, esAdministrador, rol
                   )}
                 </p>
                 {m.observacion && <p className="text-slate-500">{m.observacion}</p>}
+                {m.concepto?.nombre === "Pago a la compañía" && !m.anulado && (
+                  <p className="mt-0.5">
+                    <FacturaCompaniaMovimiento
+                      movimientoId={m.id}
+                      recibida={!!m.factura_compania_recibida}
+                      numero={m.factura_compania_numero ?? null}
+                      fecha={m.factura_compania_fecha ?? null}
+                      onChange={loadMovimientos}
+                    />
+                  </p>
+                )}
                 <p className="text-xs text-slate-400">
                   {new Date(m.fecha + "T00:00:00").toLocaleDateString("es-AR")}
                   {m.caja && ` · ${m.caja.nombre}`}

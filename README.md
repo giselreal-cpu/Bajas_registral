@@ -851,6 +851,8 @@ grant select, insert, update, delete on public.mi_tabla to service_role;
 
 No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publicas por token usan el cliente de servicio, `service_role`). Para una vista, alcanza con `grant select`. El acceso fino sigue controlandolo RLS (`rol_del_usuario_actual()`), como hasta ahora.
 
+**Factura de la compañía por el pago (migración `0072`).** En el detalle financiero del caso, cada movimiento "Pago a la compañía" muestra si ya se recibió la factura de la compañía (con N° y fecha opcionales, "Marcar recibida" / "Quitar"); es un control administrativo que no mueve plata, así que no se bloquea por período cerrado. En `/seguimiento-financiero`, el listado **"Bajas pagadas sin factura de la compañía"** muestra los casos con pago a la compañía ya pagado y sin factura recibida (suma los pagos parciales de un mismo caso), con filtro por compañía (`?compania_fc=`) y Excel (`/api/seguimiento-financiero/bajas-pagadas-sin-factura/export`). La lógica vive en `src/lib/seguimientoFacturaCompania.ts`.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

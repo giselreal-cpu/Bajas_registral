@@ -15,8 +15,21 @@ const ALLOWED_FIELDS = [
   "caja_id",
   "cuenta_contable_id",
   "aprobado",
-  "factura_a"
+  "factura_a",
+  "factura_compania_recibida",
+  "factura_compania_numero",
+  "factura_compania_fecha"
 ];
+
+// Control administrativo de la factura de la compañía: no mueve plata ni
+// cambia el resultado, así que no se bloquea por período cerrado ni por
+// estar el movimiento en una factura.
+const CAMPOS_FACTURA_COMPANIA = [
+  "factura_compania_recibida",
+  "factura_compania_numero",
+  "factura_compania_fecha"
+];
+const CONCEPTO_PAGO_COMPANIA = "Pago a la compañía";
 
 export async function PUT(
   request: NextRequest,
@@ -62,18 +75,31 @@ export async function PUT(
     }
   }
 
-  if (existente?.factura_id) {
-    return NextResponse.json(
-      { error: "No se puede editar un movimiento que ya está en una factura." },
-      { status: 409 }
-    );
-  }
+  const soloFacturaCompania =
+    Object.keys(body).length > 0 && Object.keys(body).every((k) => CAMPOS_FACTURA_COMPANIA.includes(k));
 
-  if (existente && (await periodoCerrado(supabase, existente.fecha))) {
-    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
-  }
-  if (typeof body.fecha === "string" && body.fecha && (await periodoCerrado(supabase, body.fecha))) {
-    return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+  if (soloFacturaCompania) {
+    const nombreConcepto = (existente?.concepto as unknown as { nombre: string } | null)?.nombre;
+    if (nombreConcepto !== CONCEPTO_PAGO_COMPANIA) {
+      return NextResponse.json(
+        { error: "La factura de la compañía solo se registra en movimientos de \"Pago a la compañía\"." },
+        { status: 400 }
+      );
+    }
+  } else {
+    if (existente?.factura_id) {
+      return NextResponse.json(
+        { error: "No se puede editar un movimiento que ya está en una factura." },
+        { status: 409 }
+      );
+    }
+
+    if (existente && (await periodoCerrado(supabase, existente.fecha))) {
+      return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+    }
+    if (typeof body.fecha === "string" && body.fecha && (await periodoCerrado(supabase, body.fecha))) {
+      return NextResponse.json({ error: ERROR_PERIODO_CERRADO }, { status: 409 });
+    }
   }
 
   const update: Record<string, unknown> = {};
@@ -106,6 +132,18 @@ export async function PUT(
 
   const soloCambioPagado = Object.keys(update).length === 1 && "pagado" in update;
   const soloCambioAprobado = Object.keys(update).length === 1 && "aprobado" in update;
+  if (soloFacturaCompania) {
+    await registrarCambio(
+      data.caso_id,
+      data.factura_compania_recibida
+        ? `Registró la factura de la compañía por el pago${
+            data.factura_compania_numero ? ` (N° ${data.factura_compania_numero})` : ""
+          }`
+        : "Quitó el registro de factura de la compañía del pago"
+    );
+    return NextResponse.json({ data });
+  }
+
   await registrarCambio(
     data.caso_id,
     soloCambioPagado
