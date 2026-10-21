@@ -101,6 +101,18 @@ implementadas — ver `README.md` para el detalle. Fase 3 (RBAC granular) y
 
 ## Convenciones de código
 
+### Migraciones: permisos (GRANT) en tablas nuevas
+
+Desde el 30/10/2026 Supabase deja de dar acceso automatico a la API de datos a las tablas nuevas del esquema `public` (las existentes no cambian). Toda migracion que cree una tabla (o vista) nueva debe incluir, en la misma migracion, los permisos del rol que la usa:
+
+```sql
+grant select, insert, update, delete on public.mi_tabla to authenticated;
+grant select, insert, update, delete on public.mi_tabla to service_role;
+```
+
+No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publicas por token usan el cliente de servicio, `service_role`). Para una vista, alcanza con `grant select`. El acceso fino sigue controlandolo RLS (`rol_del_usuario_actual()`), como hasta ahora.
+
+
 (completar a medida que se defina el proyecto: estructura de carpetas, estilo
 de componentes, manejo de formularios, etc.)
 

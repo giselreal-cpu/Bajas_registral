@@ -840,6 +840,17 @@ En `/seguimiento-financiero`, listado de casos de tipo de baja **04C** con el ev
 
 **Tipo de baja "Solo Informes".** No pasa por gestor, traslado, formularios ni presentación en el registro: su bitácora es la secuencia corta Ingreso de caso → Petición de Informes → Revisión de documentación → Envío de documentación Cía → Cierre de Caso (más Observaciones). Al crear un caso de ese tipo (o cambiarle el tipo de baja) se cargan esos eventos como pendientes (`src/lib/eventosSoloInformes.ts`); solo se ofrecen esos eventos en la bitácora (escritorio y móvil); "Cierre de Caso" exige solo Petición, Revisión y Envío de documentación; "Envío de documentación Cía" no exige desarmadero; el aviso de inicio de trámite usa el texto de Pedido de Informes (el registro emite el informe de dominio histórico en 48/72 hs hábiles); y estos casos no cuentan como "sin contactar" en el Panel. "Revisión de documentación" es un tipo de evento nuevo que solo se ofrece en este tipo de baja.
 
+### Migraciones: permisos (GRANT) en tablas nuevas
+
+Desde el 30/10/2026 Supabase deja de dar acceso automatico a la API de datos a las tablas nuevas del esquema `public` (las existentes no cambian). Toda migracion que cree una tabla (o vista) nueva debe incluir, en la misma migracion, los permisos del rol que la usa:
+
+```sql
+grant select, insert, update, delete on public.mi_tabla to authenticated;
+grant select, insert, update, delete on public.mi_tabla to service_role;
+```
+
+No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publicas por token usan el cliente de servicio, `service_role`). Para una vista, alcanza con `grant select`. El acceso fino sigue controlandolo RLS (`rol_del_usuario_actual()`), como hasta ahora.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase
