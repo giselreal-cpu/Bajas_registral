@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter, Lora, Poppins } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 import HeaderNav from "@/components/HeaderNav";
 import LogoutButton from "@/components/LogoutButton";
 import MobileNav from "@/components/MobileNav";
@@ -86,6 +87,10 @@ export default async function RootLayout({
   // sistema hasta que un administrador lo apruebe.
   const pendienteDeAprobacion = !!user && !usuarioActual;
 
+  // La portada pública (/) trae su propia barra y pie: sin sesión se
+  // renderiza a pantalla completa, sin el marco de la plataforma.
+  const esPortada = !user && headers().get("x-pathname") === "/";
+
   const esCompania = usuarioActual?.rol === "compania";
   const navLinksPrimarios = NAV_LINKS_PRIMARIOS.filter(
     (link) => !(link.ocultarParaCompania && esCompania)
@@ -108,6 +113,9 @@ export default async function RootLayout({
       className={`${inter.variable} ${poppins.variable} ${lora.variable} ${cormorantGaramond.variable}`}
     >
       <body>
+        {esPortada ? (
+          children
+        ) : (
         <div className="min-h-screen flex flex-col">
           <header className="bg-brand-900 relative">
             <div className="mx-auto max-w-[1440px] px-4 py-3 flex items-center justify-between">
@@ -172,6 +180,7 @@ export default async function RootLayout({
           </div>
           {user && !pendienteDeAprobacion && <MobileNav soloLectura={esCompania} />}
         </div>
+        )}
       </body>
     </html>
   );

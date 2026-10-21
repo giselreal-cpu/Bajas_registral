@@ -2,6 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
+  // El layout raíz lo lee para saber si está renderizando la portada (/),
+  // que lleva su propia barra y pie en vez del marco de la plataforma.
+  request.headers.set("x-pathname", request.nextUrl.pathname);
   let response = NextResponse.next({ request: { headers: request.headers } });
 
   const supabase = createServerClient(
@@ -66,6 +69,9 @@ export async function updateSession(request: NextRequest) {
   // publicar la app de OAuth (además de ser información que cualquiera
   // debería poder leer sin cuenta).
   const esPrivacidadPublica = pathname.startsWith("/privacidad");
+  // Portada pública (solo la raíz exacta): presenta a Oltra a quien no
+  // tiene cuenta. Con sesión, page.tsx redirige al panel.
+  const esPortadaPublica = pathname === "/";
 
   if (!user) {
     if (
@@ -77,7 +83,8 @@ export async function updateSession(request: NextRequest) {
       esDesarmaderoPublico ||
       esDesarmaderoHubPublico ||
       esManifestPublico ||
-      esPrivacidadPublica
+      esPrivacidadPublica ||
+      esPortadaPublica
     ) {
       return response;
     }

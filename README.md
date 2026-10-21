@@ -1173,6 +1173,24 @@ Supabase. El código ya está listo (botón "Continuar con Google" en
   se modifica el esquema SQL hay que actualizarlos (o generarlos con
   `supabase gen types typescript`).
 
+## Portada pública (`/`)
+
+- Quien entra a `/` sin sesión ve la portada de Oltra (inicio, servicios,
+  portal para compañías y contacto); con sesión, `src/app/page.tsx`
+  redirige a `/panel` como antes. Componente:
+  `src/components/portada/Portada.tsx`.
+- La raíz exacta `/` es pública en `src/lib/supabase/middleware.ts`
+  (`esPortadaPublica`). El mismo middleware manda el header
+  `x-pathname` para que `src/app/layout.tsx` renderice la portada a
+  pantalla completa, sin el marco de la plataforma (barra y sidebar).
+- Datos de contacto (WhatsApp comercial, email, horario, zona) en un solo
+  lugar: `src/lib/contacto.ts`. Los botones de WhatsApp abren el chat con
+  un mensaje precargado según quién escribe (compañía, productor,
+  asegurado).
+- Decisiones de contenido: sin logos de compañías y sin detalle del
+  proceso/seguimiento de casos; los textos salen del objetivo del
+  servicio (asegurados, productores y compañías).
+
 ## Próximos pasos sugeridos (ver `CLAUDE.md`)
 
 - Módulo financiero — Fase 3: RBAC granular en paralelo al sistema de
