@@ -4,17 +4,12 @@ import { createServiceClient } from "@/lib/supabase/serviceClient";
 import InstallBanner from "@/components/InstallBanner";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
+import { GRUPOS_VISIBLES_EXTERNOS, clasificarDocumentosVisibles } from "@/lib/documentosVisiblesExternos";
 import { PIEZAS_RUDAC } from "@/lib/anexo04";
 import Anexo04Form from "./Anexo04Form";
 import ObservacionesDesarmadero, { ObservacionRow } from "./ObservacionesDesarmadero";
 import UploadFormDesarmadero from "./UploadFormDesarmadero";
 
-function normalizar(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(new RegExp("[\\u0300-\\u036f]", "g"), "")
-    .toLowerCase();
-}
 
 export const dynamic = "force-dynamic";
 
@@ -120,36 +115,27 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     .eq("id", caso.desarmadero_id)
     .maybeSingle();
 
-  // El desarmadero ve solo cinco tipos de documentación del caso: Título,
-  // Cédulas, Informe de dominio, Foto del titular y Fotos. Se reconocen por
-  // el nombre con el que el equipo carga el documento (así se viene
-  // trabajando), salvo las Fotos, que tienen su propia categoría fija
-  // (imagen_dominio). Lo demás del caso (multas, patentes, autorizaciones,
-  // documentación de la compañía, Anexo 04) no se le muestra. Además ve lo
-  // que él mismo subió (Multas / Patentes / Otros), para que su carga no
-  // "desaparezca".
+  // El desarmadero ve solo Título, Cédulas, Informe de dominio, Foto del
+  // titular y Fotos (ver documentosVisiblesExternos.ts). Multas, patentes,
+  // autorizaciones, documentación de la compañía y Anexo 04 no se le
+  // muestran, ni siquiera lo que él mismo suba en esas categorías.
   const { data: documentosRaw } = await supabase
     .from("documentos")
     .select("id, nombre, url, categoria")
     .eq("caso_id", caso.id)
     .order("created_at", { ascending: false });
 
-  const todos = documentosRaw ?? [];
-  const firmar = async (docs: typeof todos): Promise<DocumentoConUrl[]> =>
+  const visibles = clasificarDocumentosVisibles(documentosRaw ?? []);
+  const firmar = async (docs: typeof visibles.fotos): Promise<DocumentoConUrl[]> =>
     Promise.all(
       docs.map(async (d) => ({ id: d.id, nombre: d.nombre, url_firmada: await obtenerUrlFirmada(d.url) }))
     );
-  const esFotoTitular = (nombre: string) => /foto(s)?\s+(del\s+)?titular/.test(normalizar(nombre));
-
   const documentacion = {
-    titulo: await firmar(todos.filter((d) => /\btitulo\b/.test(normalizar(d.nombre)))),
-    cedulas: await firmar(todos.filter((d) => normalizar(d.nombre).includes("cedula"))),
-    informeDominio: await firmar(todos.filter((d) => normalizar(d.nombre).includes("informe de dominio"))),
-    fotoTitular: await firmar(todos.filter((d) => esFotoTitular(d.nombre))),
-    fotos: await firmar(todos.filter((d) => d.categoria === "imagen_dominio" && !esFotoTitular(d.nombre))),
-    multas: await firmar(todos.filter((d) => d.categoria === "multa_desarmadero")),
-    patentes: await firmar(todos.filter((d) => d.categoria === "patente_desarmadero")),
-    otros: await firmar(todos.filter((d) => d.categoria === "otro_desarmadero"))
+    titulo: await firmar(visibles.titulo),
+    cedulas: await firmar(visibles.cedulas),
+    informeDominio: await firmar(visibles.informeDominio),
+    fotoTitular: await firmar(visibles.fotoTitular),
+    fotos: await firmar(visibles.fotos)
   };
 
   const { data: observacionesRaw } = await supabase
@@ -265,20 +251,9 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Documentación</h2>
         <div className="space-y-4">
-          <GrupoDocumentos titulo="Título" documentos={documentacion.titulo} />
-          <GrupoDocumentos titulo="Cédulas" documentos={documentacion.cedulas} />
-          <GrupoDocumentos titulo="Informe de dominio" documentos={documentacion.informeDominio} />
-          <GrupoDocumentos titulo="Foto del titular" documentos={documentacion.fotoTitular} />
-          <GrupoDocumentos titulo="Fotos" documentos={documentacion.fotos} />
-          {(documentacion.multas.length > 0 ||
-            documentacion.patentes.length > 0 ||
-            documentacion.otros.length > 0) && (
-            <>
-              <GrupoDocumentos titulo="Multas (cargadas por vos)" documentos={documentacion.multas} />
-              <GrupoDocumentos titulo="Patentes (cargadas por vos)" documentos={documentacion.patentes} />
-              <GrupoDocumentos titulo="Otros (cargados por vos)" documentos={documentacion.otros} />
-            </>
-          )}
+          {GRUPOS_VISIBLES_EXTERNOS.map((g) => (
+            <GrupoDocumentos key={g.clave} titulo={g.titulo} documentos={documentacion[g.clave]} />
+          ))}
         </div>
         <UploadFormDesarmadero token={params.token} />
       </section>

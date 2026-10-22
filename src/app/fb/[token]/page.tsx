@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
+import { GRUPOS_VISIBLES_EXTERNOS, clasificarDocumentosVisibles } from "@/lib/documentosVisiblesExternos";
 import InstallBanner from "@/components/InstallBanner";
 import UploadForm from "./UploadForm";
 
@@ -19,7 +20,6 @@ interface EventoFormularioBaja {
   formulario_baja_nombre: string | null;
   caso: {
     numero_siniestro: string;
-    aseguradora: { nombre: string } | null;
     vehiculo: { dominio: string; marca: string | null; modelo: string | null } | null;
   } | null;
 }
@@ -40,7 +40,6 @@ export default async function EnlaceFormularioBajaPage({
       formulario_baja_nombre,
       caso:casos(
         numero_siniestro,
-        aseguradora:aseguradoras(nombre),
         vehiculo:vehiculos(dominio, marca, modelo)
       )
     `
@@ -69,12 +68,12 @@ export default async function EnlaceFormularioBajaPage({
     .eq("caso_id", evento.caso_id)
     .order("created_at", { ascending: false });
 
-  // La carpeta del dominio (imágenes, documentos para la compañía, o
-  // cualquier link pegado) es lo que la persona necesita para completar
-  // el formulario — se muestra aparte de lo que ya subió por este enlace.
-  const documentosDelCaso = (todosLosDocumentos ?? []).filter(
-    (d) => d.categoria !== "formulario_baja"
-  );
+  // Para completar el formulario la persona ve solo Título, Cédulas,
+  // Informe de dominio, Foto del titular y Fotos (ver
+  // documentosVisiblesExternos.ts) — no multas, patentes ni documentación de
+  // la compañía. Se muestra aparte de lo que ya subió por este enlace.
+  const visibles = clasificarDocumentosVisibles(todosLosDocumentos ?? []);
+  const documentosDelCaso = GRUPOS_VISIBLES_EXTERNOS.flatMap((g) => visibles[g.clave]);
   const formulariosCargados = (todosLosDocumentos ?? []).filter(
     (d) => d.categoria === "formulario_baja"
   );
@@ -91,6 +90,11 @@ export default async function EnlaceFormularioBajaPage({
     conUrlFirmada(documentosDelCaso),
     conUrlFirmada(formulariosCargados)
   ]);
+  const urlPorId = new Map(documentosCaso.map((d) => [d.id, d.url_firmada]));
+  const gruposCaso = GRUPOS_VISIBLES_EXTERNOS.map((g) => ({
+    titulo: g.titulo,
+    documentos: visibles[g.clave].map((d) => ({ ...d, url_firmada: urlPorId.get(d.id) ?? null }))
+  })).filter((g) => g.documentos.length > 0);
 
   const caso = evento.caso;
 
@@ -112,10 +116,6 @@ export default async function EnlaceFormularioBajaPage({
         <h2 className="font-medium text-slate-800 mb-3">Datos del caso</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div>
-            <div className="label">Aseguradora</div>
-            <div className="text-slate-800">{caso?.aseguradora?.nombre ?? "—"}</div>
-          </div>
-          <div>
             <div className="label">Vehículo</div>
             <div className="text-slate-800 uppercase">
               {caso?.vehiculo?.dominio ?? "—"}
@@ -128,23 +128,30 @@ export default async function EnlaceFormularioBajaPage({
         </div>
       </section>
 
-      {documentosCaso.length > 0 && (
+      {gruposCaso.length > 0 && (
         <section className="card p-4">
           <h2 className="font-medium text-slate-800 mb-3">Documentación del caso</h2>
-          <ul className="space-y-1 text-sm">
-            {documentosCaso.map((d) => (
-              <li key={d.id}>
-                <a
-                  href={d.url_firmada ?? "#"}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-brand-600 hover:underline"
-                >
-                  {d.nombre}
-                </a>
-              </li>
+          <div className="space-y-4">
+            {gruposCaso.map((g) => (
+              <div key={g.titulo}>
+                <p className="text-xs font-semibold uppercase text-slate-500 mb-1">{g.titulo}</p>
+                <ul className="space-y-1 text-sm">
+                  {g.documentos.map((d) => (
+                    <li key={d.id}>
+                      <a
+                        href={d.url_firmada ?? "#"}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-brand-600 hover:underline"
+                      >
+                        {d.nombre}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       )}
 
