@@ -34,7 +34,7 @@ const TITULOS: Record<TipoNotificacion, string> = {
   contacto_asegurado: "Contacto con el asegurado",
   gestor_asignado: "Gestor de campo asignado",
   traslado: "Traslado de la unidad",
-  presentacion_baja: "Baja presentada en el registro"
+  presentacion_baja: "Presentación de la baja finalizada"
 };
 
 export function asuntoYCuerpo(
@@ -60,7 +60,7 @@ export function asuntoYCuerpo(
     )} y patentes por ${formatMoneda(caso.deuda_patentes)}.`,
     gestor_asignado: `Le informamos que se asignó un gestor de campo (${gestor}) para continuar los trámites de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}). Este tomará contacto con el asegurado o asegurada a la brevedad, y continuará con el proceso de presentación de la baja ante el registro automotor de radicación.`,
     traslado: `Le informamos que se trasladó la unidad dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) hacia el desarmadero asignado.`,
-    presentacion_baja: `Le informamos que se presentó la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) en el registro automotor.`
+    presentacion_baja: `Le informamos que ha finalizado la presentación de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) en el registro automotor. Con este paso se completa la gestión de la baja ante el registro. Cualquier trámite posterior, como la baja de patentes, se informará por separado. Quedamos a disposición ante cualquier consulta.`
   };
 
   const text = `Hola,\n\n${cuerpos[tipo]}\n\nSaludos,\nOltra Gestión Integral`;
