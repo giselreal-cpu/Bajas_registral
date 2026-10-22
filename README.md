@@ -853,6 +853,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Factura de la compañía por el pago (migración `0072`).** En el detalle financiero del caso, cada movimiento "Pago a la compañía" muestra si ya se recibió la factura de la compañía (con N° y fecha opcionales, "Marcar recibida" / "Quitar"); es un control administrativo que no mueve plata, así que no se bloquea por período cerrado. En `/seguimiento-financiero`, el listado **"Bajas pagadas sin factura de la compañía"** muestra los casos con pago a la compañía ya pagado y sin factura recibida (suma los pagos parciales de un mismo caso), con filtro por compañía (`?compania_fc=`) y Excel (`/api/seguimiento-financiero/bajas-pagadas-sin-factura/export`). La lógica vive en `src/lib/seguimientoFacturaCompania.ts`.
 
+**Documentación visible para el desarmadero (`/d/<token>`).** Ve solo Título, Cédulas, Informe de dominio, Foto del titular y Fotos del caso. Se reconocen por el nombre con el que el equipo carga el documento ("Título", "Cédula", "Informe de dominio", "Foto titular"); las Fotos son la categoría de imágenes del dominio, sin las que se llamen "Foto titular". Multas, patentes, autorizaciones, documentación de la compañía y Anexo 04 no se le muestran. Lo que él mismo sube (Multas / Patentes / Otros) sí lo ve.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

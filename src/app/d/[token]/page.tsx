@@ -120,11 +120,14 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     .eq("id", caso.desarmadero_id)
     .maybeSingle();
 
-  // El desarmadero solo puede ver 5 tipos de documentación (informe de
-  // dominio, fotos del vehículo, comprobantes de multas/patentes, y el
-  // Anexo 04 de piezas RUDAC) — sin importar en qué categoría interna
-  // esté archivado cada uno, salvo fotos y anexo04 que sí tienen su
-  // propia categoría fija (imagen_dominio / anexo04_rudac).
+  // El desarmadero ve solo cinco tipos de documentación del caso: Título,
+  // Cédulas, Informe de dominio, Foto del titular y Fotos. Se reconocen por
+  // el nombre con el que el equipo carga el documento (así se viene
+  // trabajando), salvo las Fotos, que tienen su propia categoría fija
+  // (imagen_dominio). Lo demás del caso (multas, patentes, autorizaciones,
+  // documentación de la compañía, Anexo 04) no se le muestra. Además ve lo
+  // que él mismo subió (Multas / Patentes / Otros), para que su carga no
+  // "desaparezca".
   const { data: documentosRaw } = await supabase
     .from("documentos")
     .select("id, nombre, url, categoria")
@@ -136,18 +139,17 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     Promise.all(
       docs.map(async (d) => ({ id: d.id, nombre: d.nombre, url_firmada: await obtenerUrlFirmada(d.url) }))
     );
+  const esFotoTitular = (nombre: string) => /foto(s)?\s+(del\s+)?titular/.test(normalizar(nombre));
 
   const documentacion = {
+    titulo: await firmar(todos.filter((d) => /\btitulo\b/.test(normalizar(d.nombre)))),
+    cedulas: await firmar(todos.filter((d) => normalizar(d.nombre).includes("cedula"))),
     informeDominio: await firmar(todos.filter((d) => normalizar(d.nombre).includes("informe de dominio"))),
-    fotos: await firmar(todos.filter((d) => d.categoria === "imagen_dominio")),
-    multas: await firmar(
-      todos.filter((d) => normalizar(d.nombre).includes("multa") || d.categoria === "multa_desarmadero")
-    ),
-    patentes: await firmar(
-      todos.filter((d) => normalizar(d.nombre).includes("patente") || d.categoria === "patente_desarmadero")
-    ),
-    otros: await firmar(todos.filter((d) => d.categoria === "otro_desarmadero")),
-    anexo04: await firmar(todos.filter((d) => d.categoria === "anexo04_rudac"))
+    fotoTitular: await firmar(todos.filter((d) => esFotoTitular(d.nombre))),
+    fotos: await firmar(todos.filter((d) => d.categoria === "imagen_dominio" && !esFotoTitular(d.nombre))),
+    multas: await firmar(todos.filter((d) => d.categoria === "multa_desarmadero")),
+    patentes: await firmar(todos.filter((d) => d.categoria === "patente_desarmadero")),
+    otros: await firmar(todos.filter((d) => d.categoria === "otro_desarmadero"))
   };
 
   const { data: observacionesRaw } = await supabase
@@ -263,12 +265,20 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Documentación</h2>
         <div className="space-y-4">
+          <GrupoDocumentos titulo="Título" documentos={documentacion.titulo} />
+          <GrupoDocumentos titulo="Cédulas" documentos={documentacion.cedulas} />
           <GrupoDocumentos titulo="Informe de dominio" documentos={documentacion.informeDominio} />
+          <GrupoDocumentos titulo="Foto del titular" documentos={documentacion.fotoTitular} />
           <GrupoDocumentos titulo="Fotos" documentos={documentacion.fotos} />
-          <GrupoDocumentos titulo="Multas" documentos={documentacion.multas} />
-          <GrupoDocumentos titulo="Patentes" documentos={documentacion.patentes} />
-          <GrupoDocumentos titulo="Otros" documentos={documentacion.otros} />
-          <GrupoDocumentos titulo="Anexo 04 (Piezas RUDAC)" documentos={documentacion.anexo04} />
+          {(documentacion.multas.length > 0 ||
+            documentacion.patentes.length > 0 ||
+            documentacion.otros.length > 0) && (
+            <>
+              <GrupoDocumentos titulo="Multas (cargadas por vos)" documentos={documentacion.multas} />
+              <GrupoDocumentos titulo="Patentes (cargadas por vos)" documentos={documentacion.patentes} />
+              <GrupoDocumentos titulo="Otros (cargados por vos)" documentos={documentacion.otros} />
+            </>
+          )}
         </div>
         <UploadFormDesarmadero token={params.token} />
       </section>
