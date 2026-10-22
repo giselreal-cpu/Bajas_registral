@@ -159,7 +159,7 @@ function mensajeFormularioBaja(
   const responsable = caso.responsable?.nombre ?? "";
   const base = `Hola ${
     nombre || ""
-  }, ya se encuentra disponible en la carpeta del dominio toda la documentación necesaria para completar el formulario/carga 04D del siniestro N° ${caso.numero_siniestro} (dominio ${dominio}). Por favor completalo y cargalo en el sistema. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
+  }, ya se encuentra disponible en la carpeta del dominio toda la documentación necesaria para completar el formulario/carga 04D del dominio ${dominio}. Por favor completalo y cargalo en el sistema. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
   return enlace ? `${base}\nLo podés cargar acá: ${enlace}` : base;
 }
 
