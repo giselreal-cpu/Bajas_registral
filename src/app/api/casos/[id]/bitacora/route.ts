@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual, getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { recalcularEstado } from "@/lib/estadoAutomatico";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { registrarCambio } from "@/lib/historial";
 import { motivoBloqueo } from "@/lib/eventosBitacora";
 import { nombreTipoBajaDeCaso } from "@/lib/eventosSoloInformes";
@@ -98,6 +99,11 @@ export async function POST(
       { error: "El tipo de evento es obligatorio." },
       { status: 400 }
     );
+  }
+
+  const errorFecha = errorDeFechas({ fecha_inicio, fecha_fin });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
   }
 
   // Un evento no se puede volver a cargar dos veces para el mismo caso

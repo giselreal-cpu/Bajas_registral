@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { recalcularEstado } from "@/lib/estadoAutomatico";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { registrarCambio } from "@/lib/historial";
 import { motivoBloqueo } from "@/lib/eventosBitacora";
 import { nombreTipoBajaDeCaso } from "@/lib/eventosSoloInformes";
@@ -37,6 +38,11 @@ export async function PUT(
   const update: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (field in body) update[field] = body[field];
+  }
+
+  const errorFecha = errorDeFechas({ fecha_inicio: update.fecha_inicio, fecha_fin: update.fecha_fin });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
   }
 
   const { data: existente } = await supabase
@@ -194,6 +200,13 @@ export async function PUT(
   }
 
   const estadoDebug = await recalcularEstado(data.caso_id);
+
+  // La fecha de cierre del caso es la del evento "Cierre de Caso": si se
+  // corrige la fecha de ese evento ya completado, el caso la sigue (antes
+  // quedaba con la fecha vieja y los tiempos de trámite no se corregían).
+  if (data.tipo_evento === "Cierre de Caso" && data.completado && data.fecha_fin && "fecha_fin" in update) {
+    await supabase.from("casos").update({ fecha_cierre: data.fecha_fin }).eq("id", data.caso_id).eq("estado", "cerrado");
+  }
 
   const marcoCompletado = "completado" in update && update.completado && !existente?.completado;
   await registrarCambio(

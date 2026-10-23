@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { avanzarEstadoAlMenosHasta, revertirEstadoGestorAsignado } from "@/lib/estadoAutomatico";
 import { resolverTramitador } from "@/lib/tramitadores";
+import { errorDeFechas } from "@/lib/validarFechas";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { esSoloInformes } from "@/lib/eventosBitacora";
 import { asegurarEventosSoloInformes } from "@/lib/eventosSoloInformes";
@@ -77,6 +78,11 @@ export async function PUT(
   const update: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (field in body) update[field] = body[field];
+  }
+
+  const errorFecha = errorDeFechas({ fecha_cierre: update.fecha_cierre });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
   }
 
   // Un caso cerrado no puede quedar sin fecha de cierre: de ella dependen
