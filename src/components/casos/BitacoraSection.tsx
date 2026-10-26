@@ -770,7 +770,9 @@ export default function BitacoraSection({
                 onChange={(e) => setForm((f) => ({ ...f, desarmadero_id: e.target.value }))}
               >
                 <option value="">Seleccionar...</option>
-                {desarmaderos.map((d) => (
+                {desarmaderos
+                  .filter((d) => d.estado !== "inactivo" || d.id === form.desarmadero_id)
+                  .map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.nombre}
                   </option>
@@ -924,7 +926,9 @@ export default function BitacoraSection({
                       onChange={(e) => setEditForm((f) => ({ ...f, desarmadero_id: e.target.value }))}
                     >
                       <option value="">Seleccionar...</option>
-                      {desarmaderos.map((d) => (
+                      {desarmaderos
+                        .filter((d) => d.estado !== "inactivo" || d.id === editForm.desarmadero_id)
+                        .map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.nombre}
                         </option>

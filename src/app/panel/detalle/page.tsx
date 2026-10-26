@@ -45,6 +45,7 @@ export default async function PanelDetallePage({
   if (searchParams.tipo_baja_id) queryFiltros.set("tipo_baja_id", searchParams.tipo_baja_id);
   if (searchParams.tramitador_id) queryFiltros.set("tramitador_id", searchParams.tramitador_id);
   if (searchParams.responsable_id) queryFiltros.set("responsable_id", searchParams.responsable_id);
+  if (searchParams.desarmadero_id) queryFiltros.set("desarmadero_id", searchParams.desarmadero_id);
   const qs = queryFiltros.toString();
 
   const gestorSeleccionado = rankingGestores.find((g) => g.id === searchParams.gestor_id);
@@ -80,6 +81,9 @@ export default async function PanelDetallePage({
             )}
             {searchParams.responsable_id && (
               <input type="hidden" name="responsable_id" value={searchParams.responsable_id} />
+            )}
+            {searchParams.desarmadero_id && (
+              <input type="hidden" name="desarmadero_id" value={searchParams.desarmadero_id} />
             )}
             <div className="flex-1 min-w-[220px]">
               <label className="label">Ver detalle de</label>

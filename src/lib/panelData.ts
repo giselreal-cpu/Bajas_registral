@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS } from "@/types/database";
 import { TIPOS_EVENTO, TIPO_BAJA_SOLO_INFORMES } from "@/lib/eventosBitacora";
+import { SIN_DESARMADERO } from "@/lib/desarmaderoFiltro";
 import { horasHabilesTranscurridas } from "@/lib/fechas";
 
 // Toda la data del Panel de control (`/panel`) y de su página de
@@ -19,6 +20,8 @@ export interface PanelFiltros {
   // Responsable interno del caso (usuario que lo lleva). Solo se ofrece a
   // administrador/operador: separa los casos de cada persona.
   responsable_id?: string;
+  // id de un desarmadero, o "sin_asignar" para los casos sin desarmadero.
+  desarmadero_id?: string;
 }
 
 interface VencimientoRow {
@@ -41,6 +44,7 @@ export interface CasoResumen {
   numero_siniestro: string;
   created_at: string;
   gestor_id: string | null;
+  desarmadero_id?: string | null;
   gestor: { nombre: string } | null;
   asegurado: { nombre: string } | null;
   responsable: { nombre: string } | null;
@@ -134,7 +138,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   let casosQuery = supabase
     .from("casos")
     .select(
-      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, gestor_id, gestor:gestores(nombre), asegurado:asegurados(nombre), responsable:usuarios(nombre), vehiculo:vehiculos(dominio, marca, modelo)"
+      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, gestor_id, desarmadero_id, gestor:gestores(nombre), asegurado:asegurados(nombre), responsable:usuarios(nombre), vehiculo:vehiculos(dominio, marca, modelo)"
     );
 
   if (filtros.aseguradora_id) {
@@ -148,6 +152,12 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   }
   if (filtros.responsable_id) {
     casosQuery = casosQuery.eq("responsable_id", filtros.responsable_id);
+  }
+  if (filtros.desarmadero_id) {
+    casosQuery =
+      filtros.desarmadero_id === SIN_DESARMADERO
+        ? casosQuery.is("desarmadero_id", null)
+        : casosQuery.eq("desarmadero_id", filtros.desarmadero_id);
   }
   if (filtros.mes) {
     const [anio, mes] = filtros.mes.split("-").map(Number);
@@ -175,6 +185,12 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   if (filtros.responsable_id) {
     casosCerradosQuery = casosCerradosQuery.eq("responsable_id", filtros.responsable_id);
   }
+  if (filtros.desarmadero_id) {
+    casosCerradosQuery =
+      filtros.desarmadero_id === SIN_DESARMADERO
+        ? casosCerradosQuery.is("desarmadero_id", null)
+        : casosCerradosQuery.eq("desarmadero_id", filtros.desarmadero_id);
+  }
   if (filtros.mes) {
     const [anio, mes] = filtros.mes.split("-").map(Number);
     const desde = `${filtros.mes}-01`;
@@ -190,13 +206,19 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     .select(
       `
         id, caso_id, tipo_evento, fecha_fin, completado,
-        caso:casos${filtros.responsable_id ? "!inner" : ""}(numero_siniestro, estado, responsable_id, asegurado:asegurados(nombre), responsable:usuarios(nombre))
+        caso:casos${filtros.responsable_id || filtros.desarmadero_id ? "!inner" : ""}(numero_siniestro, estado, responsable_id, asegurado:asegurados(nombre), responsable:usuarios(nombre))
       `
     )
     .eq("completado", false)
     .not("fecha_fin", "is", null);
   if (filtros.responsable_id) {
     vencimientosQuery = vencimientosQuery.eq("caso.responsable_id", filtros.responsable_id);
+  }
+  if (filtros.desarmadero_id) {
+    vencimientosQuery =
+      filtros.desarmadero_id === SIN_DESARMADERO
+        ? vencimientosQuery.is("caso.desarmadero_id", null)
+        : vencimientosQuery.eq("caso.desarmadero_id", filtros.desarmadero_id);
   }
   vencimientosQuery = vencimientosQuery.order("fecha_fin", { ascending: true }).limit(8);
 
@@ -211,7 +233,8 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     { data: aseguradoras },
     { data: tiposBaja },
     { data: tramitadores },
-    { data: responsables }
+    { data: responsables },
+    { data: desarmaderos }
   ] = await Promise.all([
     casosQuery,
     vencimientosQuery,
@@ -231,7 +254,8 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     supabase.from("aseguradoras").select("id, nombre").order("nombre"),
     supabase.from("tipos_baja").select("id, nombre").order("nombre"),
     supabase.from("tramitadores").select("id, nombre, aseguradora_id, aseguradora:aseguradoras(nombre)").order("nombre"),
-    supabase.from("usuarios").select("id, nombre").in("rol", ["administrador", "operador"]).order("nombre")
+    supabase.from("usuarios").select("id, nombre").in("rol", ["administrador", "operador"]).order("nombre"),
+    supabase.from("desarmaderos").select("id, nombre").order("nombre")
   ]);
 
   const hayFiltrosPanel = !!(
@@ -239,7 +263,8 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     filtros.mes ||
     filtros.tipo_baja_id ||
     filtros.tramitador_id ||
-    filtros.responsable_id
+    filtros.responsable_id ||
+    filtros.desarmadero_id
   );
 
   const totalCasos = casos?.length ?? 0;
@@ -300,6 +325,17 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
           !casosConContactoIniciado.has(c.id) &&
           !(idSoloInformes && c.tipo_baja_id === idSoloInformes)
       );
+
+  // Casos abiertos que ya tienen autorizado el traslado y todavía no tienen
+  // desarmadero asignado (los "Solo Informes" no pasan por un desarmadero).
+  const rankAutorizacion = ESTADOS.findIndex((e) => e.value === "autorizacion_traslado");
+  const casosSinDesarmadero = ((casos as (CasoResumen & { tipo_baja_id?: string | null })[] | null) ?? []).filter(
+    (c) =>
+      c.estado !== "cerrado" &&
+      !c.desarmadero_id &&
+      ESTADOS.findIndex((e) => e.value === c.estado) >= rankAutorizacion &&
+      !(idSoloInformes && c.tipo_baja_id === idSoloInformes)
+  );
 
   const casosPorGestorMap = new Map<
     string,
@@ -582,11 +618,11 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     .select("caso_id, monto_total, cobros(monto, anulado), notas_credito(monto, anulado)")
     .neq("estado", "cobrado_total");
   let sinAprobarQuery = supabase.from("movimientos_caso").select("id, monto").eq("aprobado", false).eq("anulado", false);
-  if (filtros.responsable_id) {
+  if (filtros.responsable_id || filtros.desarmadero_id) {
     facturasPendientesQuery = facturasPendientesQuery.in("caso_id", casoIds);
     sinAprobarQuery = sinAprobarQuery.in("caso_id", casoIds);
   }
-  const sinCasosDelResponsable = !!filtros.responsable_id && casoIds.length === 0;
+  const sinCasosDelResponsable = !!(filtros.responsable_id || filtros.desarmadero_id) && casoIds.length === 0;
   const [{ data: facturasPendientesRaw }, { data: movimientosSinAprobar }] = await Promise.all([
     sinCasosDelResponsable ? Promise.resolve({ data: [] as any[] }) : facturasPendientesQuery,
     sinCasosDelResponsable ? Promise.resolve({ data: [] as any[] }) : sinAprobarQuery
@@ -655,6 +691,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     tiposBaja: tiposBaja ?? [],
     tramitadores: tramitadores ?? [],
     responsables: responsables ?? [],
+    desarmaderos: desarmaderos ?? [],
     hayFiltrosPanel,
     totalCasos,
     casosAbiertos,
@@ -663,6 +700,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     maxConteo,
     casosSinMovimiento,
     casosSinContactar,
+    casosSinDesarmadero,
     rankingGestores,
     casosConTiempos,
     casosCerradosOrdenados,

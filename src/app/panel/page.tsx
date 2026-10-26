@@ -5,6 +5,7 @@ import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
 import { obtenerDatosPanel, obtenerDatosPanelCompania, PanelFiltros } from "@/lib/panelData";
 import { avanceCaso } from "@/lib/avanceCaso";
 import AvanceBar from "@/components/AvanceBar";
+import { SIN_DESARMADERO } from "@/lib/desarmaderoFiltro";
 import PanelCompania from "@/components/panel/PanelCompania";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +41,8 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
     maxConteo,
     casosSinMovimiento,
     casosSinContactar,
+    casosSinDesarmadero,
+    desarmaderos,
     rankingGestores,
     eventosPorTipo,
     itemsAtencionLimitados,
@@ -65,6 +68,14 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
       responsable: c.responsable,
       motivo: `${c.dias} días sin movimiento`,
       clase: "bg-amber-100 text-amber-800"
+    })),
+    ...casosSinDesarmadero.map((c) => ({
+      id: c.id,
+      vehiculo: c.vehiculo,
+      asegurado: c.asegurado,
+      responsable: c.responsable,
+      motivo: "Sin desarmadero asignado",
+      clase: "bg-violet-100 text-violet-800"
     })),
     ...casosSinContactar.map((c) => ({
       id: c.id,
@@ -96,6 +107,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
   if (searchParams.tipo_baja_id) queryFiltros.set("tipo_baja_id", searchParams.tipo_baja_id);
   if (searchParams.tramitador_id) queryFiltros.set("tramitador_id", searchParams.tramitador_id);
   if (searchParams.responsable_id) queryFiltros.set("responsable_id", searchParams.responsable_id);
+  if (searchParams.desarmadero_id) queryFiltros.set("desarmadero_id", searchParams.desarmadero_id);
   const qs = queryFiltros.toString();
   const hrefDetalle = (ancla: string) => `/panel/detalle${qs ? `?${qs}` : ""}#${ancla}`;
 
@@ -203,6 +215,22 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
             {responsables.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="flex-1 min-w-[160px]">
+          <label className="label">Desarmadero</label>
+          <select
+            name="desarmadero_id"
+            defaultValue={searchParams.desarmadero_id ?? ""}
+            className="input"
+          >
+            <option value="">Todos</option>
+            <option value={SIN_DESARMADERO}>Sin asignar</option>
+            {desarmaderos.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.nombre}
               </option>
             ))}
           </select>

@@ -857,6 +857,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Localidad en el Traslado (migración `0073`).** Al asignar un gruero en el evento "Traslado" es obligatorio indicar en qué localidad está la unidad (se puede copiar la del asegurado). El mensaje al gruero y su enlace público (`/gr/<token>`) muestran el dominio y esa localidad en lugar del número de siniestro, que al transportista no le sirve.
 
+**Seguimiento por desarmadero (migración `0074`).** Cada caso ya guarda su desarmadero (`casos.desarmadero_id`, se completa con el evento "Asignación de desarmadero"). Ahora el listado de **Casos** (solo equipo interno) tiene filtro "Desarmadero" (con la opción "Sin asignar") y una columna con el nombre; el **Panel** tiene el mismo filtro (`?desarmadero_id=`, también "sin_asignar"), que recorta KPIs, casos que piden atención, vencimientos, A cobrar y Pendiente de aprobar y se propaga a `/panel/detalle`, y suma un aviso "Sin desarmadero asignado" para casos abiertos con traslado autorizado y sin desarmadero (los "Solo Informes" quedan afuera). El catálogo de desarmaderos tiene un **Estado** (activo/inactivo): uno inactivo no se ofrece al asignar, pero sigue visible en los casos que ya lo tienen y en los filtros.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

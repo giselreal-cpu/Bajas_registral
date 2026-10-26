@@ -106,6 +106,8 @@ export interface Desarmadero {
   direccion: string | null;
   provincia: string | null;
   token_acceso: string | null;
+  // "activo" | "inactivo": un desarmadero inactivo no se ofrece al asignar.
+  estado?: string | null;
 }
 
 export interface RegistroAutomotor {

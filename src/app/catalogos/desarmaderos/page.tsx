@@ -13,7 +13,16 @@ export default function DesarmaderosPage() {
         { key: "cuit", label: "CUIT" },
         { key: "contacto", label: "Contacto" },
         { key: "direccion", label: "Dirección" },
-        { key: "provincia", label: "Provincia" }
+        { key: "provincia", label: "Provincia" },
+        {
+          key: "estado",
+          label: "Estado",
+          type: "select",
+          options: [
+            { value: "activo", label: "Activo" },
+            { value: "inactivo", label: "Inactivo" }
+          ]
+        }
       ]}
     />
   );

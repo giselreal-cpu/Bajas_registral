@@ -5,5 +5,6 @@ export const { PUT, DELETE } = createCatalogItemHandlers("desarmaderos", [
   "cuit",
   "contacto",
   "direccion",
-  "provincia"
+  "provincia",
+  "estado"
 ]);

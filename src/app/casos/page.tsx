@@ -5,6 +5,7 @@ import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { estadoBadgeClass } from "@/lib/estadoBadge";
 import { avanceCaso } from "@/lib/avanceCaso";
 import AvanceBar from "@/components/AvanceBar";
+import { SIN_DESARMADERO } from "@/lib/desarmaderoFiltro";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,8 @@ const CASO_SELECT = `
   asegurado:asegurados(*),
   vehiculo:vehiculos!inner(*),
   responsable:usuarios(*),
-  tipo_baja:tipos_baja(*)
+  tipo_baja:tipos_baja(*),
+  desarmadero:desarmaderos(nombre)
 `;
 
 function diasAbiertos(fechaIngreso: string): number {
@@ -33,6 +35,7 @@ export default async function CasosPage({
     aseguradora_id?: string;
     tipo_baja_id?: string;
     tramitador_id?: string;
+    desarmadero_id?: string;
   };
 }) {
   const supabase = createClient();
@@ -63,6 +66,14 @@ export default async function CasosPage({
   const usuarioActual = await getUsuarioActual();
   const esCompania = usuarioActual?.rol === "compania";
 
+  // Filtro por desarmadero (solo equipo interno; la compañía no lo ve).
+  if (!esCompania && searchParams.desarmadero_id) {
+    query =
+      searchParams.desarmadero_id === SIN_DESARMADERO
+        ? query.is("desarmadero_id", null)
+        : query.eq("desarmadero_id", searchParams.desarmadero_id);
+  }
+
   // Cada compañía ve solo sus trámitadores (además de RLS, se acota acá).
   let tramitadoresQuery = supabase
     .from("tramitadores")
@@ -72,14 +83,23 @@ export default async function CasosPage({
     tramitadoresQuery = tramitadoresQuery.eq("aseguradora_id", usuarioActual.aseguradora_id);
   }
 
-  const [{ data: casos, error }, { data: aseguradoras }, { data: tiposBaja }, { data: tramitadores }] =
+  const [
+    { data: casos, error },
+    { data: aseguradoras },
+    { data: tiposBaja },
+    { data: tramitadores },
+    { data: desarmaderos }
+  ] =
     await Promise.all([
       query,
       esCompania && usuarioActual?.aseguradora_id
         ? supabase.from("aseguradoras").select("id, nombre").eq("id", usuarioActual.aseguradora_id)
         : supabase.from("aseguradoras").select("id, nombre").order("nombre"),
       supabase.from("tipos_baja").select("id, nombre").order("nombre"),
-      tramitadoresQuery
+      tramitadoresQuery,
+      esCompania
+        ? Promise.resolve({ data: [] as { id: string; nombre: string }[] })
+        : supabase.from("desarmaderos").select("id, nombre").order("nombre")
     ]);
 
   return (
@@ -174,6 +194,24 @@ export default async function CasosPage({
               ))}
           </select>
         </div>
+        {!esCompania && (
+          <div className="sm:flex-1 sm:min-w-[160px]">
+            <label className="label">Desarmadero</label>
+            <select
+              name="desarmadero_id"
+              defaultValue={searchParams.desarmadero_id ?? ""}
+              className="input"
+            >
+              <option value="">Todos</option>
+              <option value={SIN_DESARMADERO}>Sin asignar</option>
+              {desarmaderos?.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="sm:flex-1 sm:min-w-[140px]">
           <label className="label">Estado</label>
           <select
@@ -262,6 +300,13 @@ export default async function CasosPage({
                     </span>
                   )}
                 </div>
+                {!esCompania && (
+                  <div className="mt-1 text-[12px] truncate" style={{ color: "var(--mv-neutral-600)" }}>
+                    Desarmadero:{" "}
+                    {(caso as unknown as { desarmadero: { nombre: string } | null }).desarmadero?.nombre ??
+                      "sin asignar"}
+                  </div>
+                )}
                 <div className="mt-2.5 flex items-center justify-between gap-2">
                   <span className={`mv-badge ${abierto ? "" : "mv-badge-closed"}`}>
                     {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
@@ -289,6 +334,7 @@ export default async function CasosPage({
               <th className="px-4 py-2 font-medium">Dominio</th>
               <th className="px-4 py-2 font-medium">Aseguradora</th>
               <th className="px-4 py-2 font-medium">Tipo de baja</th>
+              {!esCompania && <th className="px-4 py-2 font-medium">Desarmadero</th>}
               <th className="px-4 py-2 font-medium">Responsable</th>
               <th className="px-4 py-2 font-medium">Estado</th>
               <th className="px-4 py-2 font-medium">Ingreso</th>
@@ -327,6 +373,13 @@ export default async function CasosPage({
                 </td>
                 <td className="px-4 py-2">{caso.aseguradora?.nombre ?? "—"}</td>
                 <td className="px-4 py-2">{caso.tipo_baja?.nombre ?? "—"}</td>
+                {!esCompania && (
+                  <td className="px-4 py-2">
+                    {(caso as unknown as { desarmadero: { nombre: string } | null }).desarmadero?.nombre ?? (
+                      <span className="text-slate-400">Sin asignar</span>
+                    )}
+                  </td>
+                )}
                 <td className="px-4 py-2">{caso.responsable?.nombre ?? "—"}</td>
                 <td className="px-4 py-2">
                   <span className={`badge ${estadoBadgeClass(caso.estado)}`}>
@@ -341,7 +394,7 @@ export default async function CasosPage({
             ))}
             {casos?.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
                   No hay casos cargados todavía.
                 </td>
               </tr>
