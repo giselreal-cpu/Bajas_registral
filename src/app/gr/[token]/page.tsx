@@ -55,6 +55,14 @@ export default async function EnlaceGrueroPage({
     );
   }
 
+  // Consulta aparte: si la columna todavía no existe, la página sigue andando.
+  const { data: eventoLocalidad } = await supabase
+    .from("bitacora")
+    .select("traslado_localidad")
+    .eq("id", evento.id)
+    .maybeSingle();
+  const localidad = (eventoLocalidad as { traslado_localidad?: string | null } | null)?.traslado_localidad ?? null;
+
   const { data: todosLosDocumentos } = await supabase
     .from("documentos")
     .select("id, nombre, url")
@@ -103,8 +111,8 @@ export default async function EnlaceGrueroPage({
             </div>
           </div>
           <div>
-            <div className="label">N° de siniestro</div>
-            <div className="text-slate-800">{caso?.numero_siniestro ?? "—"}</div>
+            <div className="label">Localidad donde está la unidad</div>
+            <div className="text-slate-800">{localidad ?? "—"}</div>
           </div>
         </div>
       </section>

@@ -217,6 +217,8 @@ export interface BitacoraEvento {
   fecha_fin: string | null;
   gruero_nombre: string | null;
   gruero_contacto: string | null;
+  // Localidad donde está la unidad a trasladar (evento "Traslado").
+  traslado_localidad?: string | null;
   token_gruero: string;
   formulario_baja_nombre: string | null;
   formulario_baja_contacto: string | null;

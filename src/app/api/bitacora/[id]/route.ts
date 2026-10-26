@@ -30,6 +30,7 @@ export async function PUT(
     "fecha_fin",
     "gruero_nombre",
     "gruero_contacto",
+    "traslado_localidad",
     "formulario_baja_nombre",
     "formulario_baja_contacto",
     "desarmadero_id"
@@ -109,6 +110,29 @@ export async function PUT(
 
       if (!puedeEditar) {
         delete update.observacion;
+      }
+    }
+  }
+
+  // Traslado con gruero asignado: la localidad de la unidad es obligatoria.
+  if (existente) {
+    const tipoTraslado = ("tipo_evento" in update ? update.tipo_evento : existente.tipo_evento) === "Traslado";
+    const grueroFinal = "gruero_nombre" in update ? update.gruero_nombre : existente.gruero_nombre;
+    if (tipoTraslado && grueroFinal) {
+      let localidadFinal: unknown = update.traslado_localidad;
+      if (!("traslado_localidad" in update)) {
+        const { data: loc } = await supabase
+          .from("bitacora")
+          .select("traslado_localidad")
+          .eq("id", params.id)
+          .maybeSingle();
+        localidadFinal = (loc as { traslado_localidad?: string | null } | null)?.traslado_localidad;
+      }
+      if (!String(localidadFinal ?? "").trim()) {
+        return NextResponse.json(
+          { error: "Indicá en qué localidad se encuentra la unidad para el traslado." },
+          { status: 400 }
+        );
       }
     }
   }

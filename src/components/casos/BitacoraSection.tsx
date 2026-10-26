@@ -69,6 +69,7 @@ function MensajeContactoBox({ caso }: { caso: CasoConRelaciones }) {
 function mensajeTraslado(
   caso: CasoConRelaciones,
   grueroNombre: string,
+  localidad: string,
   enlace?: string | null
 ): string {
   const dominio = caso.vehiculo?.dominio ?? "";
@@ -76,7 +77,7 @@ function mensajeTraslado(
   const responsable = caso.responsable?.nombre ?? "";
   const base = `Hola ${grueroNombre || ""}, te asignamos el traslado de la unidad ${
     vehiculo || "s/d"
-  }, dominio ${dominio}, correspondiente al siniestro N° ${caso.numero_siniestro}. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
+  }, dominio ${dominio}, que se encuentra en ${localidad.trim() || "[localidad]"}. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
   return enlace
     ? `${base}\nAcá tenés la autorización y el informe de dominio: ${enlace}`
     : base;
@@ -86,19 +87,24 @@ function GrueroBox({
   caso,
   nombre,
   contacto,
+  localidad,
   onNombreChange,
   onContactoChange,
+  onLocalidadChange,
   enlace
 }: {
   caso: CasoConRelaciones;
   nombre: string;
   contacto: string;
+  localidad: string;
   onNombreChange: (v: string) => void;
   onContactoChange: (v: string) => void;
+  onLocalidadChange: (v: string) => void;
   enlace?: string | null;
 }) {
   const [copiado, setCopiado] = useState(false);
-  const mensaje = mensajeTraslado(caso, nombre, enlace);
+  const mensaje = mensajeTraslado(caso, nombre, localidad, enlace);
+  const localidadAsegurado = caso.asegurado?.localidad?.trim() ?? "";
   const link = linkWhatsapp(contacto, mensaje);
 
   async function copiar() {
@@ -127,6 +133,27 @@ function GrueroBox({
             onChange={(e) => onContactoChange(e.target.value)}
           />
         </div>
+      </div>
+      <div>
+        <label className="label">Localidad donde está la unidad *</label>
+        <input
+          className="input"
+          value={localidad}
+          placeholder="Ej.: Morón, Mendoza capital, Rosario"
+          onChange={(e) => onLocalidadChange(e.target.value)}
+        />
+        {!localidad.trim() && localidadAsegurado && (
+          <button
+            type="button"
+            className="mt-1 text-xs text-brand-600 hover:underline"
+            onClick={() => onLocalidadChange(localidadAsegurado)}
+          >
+            Usar la localidad del asegurado: {localidadAsegurado}
+          </button>
+        )}
+        <p className="text-xs text-slate-400 mt-1">
+          Es lo que ve el transportista junto con el dominio, en lugar del número de siniestro.
+        </p>
       </div>
       <div className="space-y-2">
         <p className="text-slate-500">
@@ -297,6 +324,7 @@ interface FormEvento {
   fecha_fin: string;
   gruero_nombre: string;
   gruero_contacto: string;
+  traslado_localidad: string;
   formulario_baja_nombre: string;
   formulario_baja_contacto: string;
   desarmadero_id: string;
@@ -312,6 +340,7 @@ function formVacio(): FormEvento {
     fecha_fin: "",
     gruero_nombre: "",
     gruero_contacto: "",
+    traslado_localidad: "",
     formulario_baja_nombre: "",
     formulario_baja_contacto: "",
     desarmadero_id: ""
@@ -400,6 +429,11 @@ export default function BitacoraSection({
       return;
     }
 
+    if (form.tipo_evento === "Traslado" && form.gruero_nombre.trim() && !form.traslado_localidad.trim()) {
+      setError("Indicá en qué localidad se encuentra la unidad para el traslado.");
+      return;
+    }
+
     if (form.completado) {
       const bloqueo = motivoBloqueo(form.tipo_evento, eventos ?? [], undefined, tipoBajaNombre);
       if (bloqueo) {
@@ -433,7 +467,8 @@ export default function BitacoraSection({
         fecha_fin: form.fecha_fin || null,
         ...(form.tipo_evento === "Traslado" && {
           gruero_nombre: form.gruero_nombre || null,
-          gruero_contacto: form.gruero_contacto || null
+          gruero_contacto: form.gruero_contacto || null,
+          traslado_localidad: form.traslado_localidad.trim() || null
         }),
         ...(form.tipo_evento === "Formulario de Baja" && {
           formulario_baja_nombre: form.formulario_baja_nombre || null,
@@ -479,6 +514,7 @@ export default function BitacoraSection({
       fecha_fin: ev.fecha_fin ?? "",
       gruero_nombre: ev.gruero_nombre ?? "",
       gruero_contacto: ev.gruero_contacto ?? "",
+      traslado_localidad: ev.traslado_localidad ?? "",
       formulario_baja_nombre: ev.formulario_baja_nombre ?? "",
       formulario_baja_contacto: ev.formulario_baja_contacto ?? "",
       desarmadero_id: ev.desarmadero_id ?? ""
@@ -490,6 +526,11 @@ export default function BitacoraSection({
 
     const yaEstabaCompletado = eventos?.find((ev) => ev.id === id)?.completado ?? false;
     const vaACompletarAhora = editForm.completado && !yaEstabaCompletado;
+
+    if (editForm.tipo_evento === "Traslado" && editForm.gruero_nombre.trim() && !editForm.traslado_localidad.trim()) {
+      setError("Indicá en qué localidad se encuentra la unidad para el traslado.");
+      return;
+    }
 
     if (editForm.completado) {
       const bloqueo = motivoBloqueo(editForm.tipo_evento, eventos ?? [], id, tipoBajaNombre);
@@ -524,7 +565,8 @@ export default function BitacoraSection({
         fecha_fin: editForm.fecha_fin || null,
         ...(editForm.tipo_evento === "Traslado" && {
           gruero_nombre: editForm.gruero_nombre || null,
-          gruero_contacto: editForm.gruero_contacto || null
+          gruero_contacto: editForm.gruero_contacto || null,
+          traslado_localidad: editForm.traslado_localidad.trim() || null
         }),
         ...(editForm.tipo_evento === "Formulario de Baja" && {
           formulario_baja_nombre: editForm.formulario_baja_nombre || null,
@@ -704,8 +746,10 @@ export default function BitacoraSection({
               caso={caso}
               nombre={form.gruero_nombre}
               contacto={form.gruero_contacto}
+              localidad={form.traslado_localidad}
               onNombreChange={(v) => setForm((f) => ({ ...f, gruero_nombre: v }))}
               onContactoChange={(v) => setForm((f) => ({ ...f, gruero_contacto: v }))}
+              onLocalidadChange={(v) => setForm((f) => ({ ...f, traslado_localidad: v }))}
             />
           )}
           {form.tipo_evento === "Formulario de Baja" && (
@@ -852,8 +896,10 @@ export default function BitacoraSection({
                     caso={caso}
                     nombre={editForm.gruero_nombre}
                     contacto={editForm.gruero_contacto}
+                    localidad={editForm.traslado_localidad}
                     onNombreChange={(v) => setEditForm((f) => ({ ...f, gruero_nombre: v }))}
                     onContactoChange={(v) => setEditForm((f) => ({ ...f, gruero_contacto: v }))}
+                    onLocalidadChange={(v) => setEditForm((f) => ({ ...f, traslado_localidad: v }))}
                     enlace={origin ? `${origin}/gr/${ev.token_gruero}` : null}
                   />
                 )}

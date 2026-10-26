@@ -87,6 +87,7 @@ export async function POST(
     fecha_fin,
     gruero_nombre,
     gruero_contacto,
+    traslado_localidad,
     formulario_baja_nombre,
     formulario_baja_contacto,
     desarmadero_id,
@@ -97,6 +98,15 @@ export async function POST(
   if (!tipo_evento) {
     return NextResponse.json(
       { error: "El tipo de evento es obligatorio." },
+      { status: 400 }
+    );
+  }
+
+  // Al asignar un gruero al traslado hay que decir en qué localidad está la
+  // unidad: es lo que ve el transportista (junto con el dominio).
+  if (tipo_evento === "Traslado" && gruero_nombre && !String(traslado_localidad ?? "").trim()) {
+    return NextResponse.json(
+      { error: "Indicá en qué localidad se encuentra la unidad para el traslado." },
       { status: 400 }
     );
   }
@@ -190,6 +200,7 @@ export async function POST(
       fecha_fin: fecha_fin ?? null,
       gruero_nombre: gruero_nombre || null,
       gruero_contacto: gruero_contacto || null,
+      ...(tipo_evento === "Traslado" ? { traslado_localidad: String(traslado_localidad ?? "").trim() || null } : {}),
       formulario_baja_nombre: formulario_baja_nombre || null,
       formulario_baja_contacto: formulario_baja_contacto || null,
       desarmadero_id: desarmadero_id || null,

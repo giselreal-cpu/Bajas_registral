@@ -855,6 +855,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Documentación visible en los enlaces públicos de desarmadero (`/d/<token>`) y Formulario de Baja (`/fb/<token>`).** Ven solo Título, Cédulas, Informe de dominio, Foto del titular y Fotos del caso (`src/lib/documentosVisiblesExternos.ts`). Se reconocen por el nombre con el que el equipo carga el documento ("Título", "Cédula", "Informe de dominio", "Foto titular"); las Fotos son la categoría de imágenes del dominio, sin las que se llamen "Foto titular". Multas, patentes, autorizaciones, documentación de la compañía y Anexo 04 no se muestran, y el enlace del Formulario de Baja tampoco muestra la compañía (aseguradora).
 
+**Localidad en el Traslado (migración `0073`).** Al asignar un gruero en el evento "Traslado" es obligatorio indicar en qué localidad está la unidad (se puede copiar la del asegurado). El mensaje al gruero y su enlace público (`/gr/<token>`) muestran el dominio y esa localidad en lugar del número de siniestro, que al transportista no le sirve.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase
