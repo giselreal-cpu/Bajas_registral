@@ -4,10 +4,16 @@ import { useEffect, useState } from "react";
 import { CATEGORIAS_GESTOR, CATEGORIAS_DESARMADERO, Documento } from "@/types/database";
 import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
-const CATEGORIAS_STAFF: { value: "imagen_dominio" | "documento_compania" | "anexo04_rudac"; label: string }[] = [
+// "Formulario de baja" recibe lo que se carga desde el enlace público del
+// Formulario/04D (y también se puede subir desde acá).
+const CATEGORIAS_STAFF: {
+  value: "imagen_dominio" | "documento_compania" | "anexo04_rudac" | "formulario_baja";
+  label: string;
+}[] = [
   { value: "imagen_dominio", label: "Imagen del dominio" },
   { value: "documento_compania", label: "Documento para la compañía" },
-  { value: "anexo04_rudac", label: "Anexo 04 (Piezas RUDAC)" }
+  { value: "anexo04_rudac", label: "Anexo 04 (Piezas RUDAC)" },
+  { value: "formulario_baja", label: "Formulario de baja (04D)" }
 ];
 
 // Fotos subidas por el desarmadero quedan en 'imagen_dominio', así que
@@ -168,7 +174,8 @@ export default function DocumentosSection({
     imagen_dominio: documentos?.filter((d) => d.categoria === "imagen_dominio") ?? [],
     documento_compania:
       documentos?.filter((d) => d.categoria === "documento_compania") ?? [],
-    anexo04_rudac: documentos?.filter((d) => d.categoria === "anexo04_rudac") ?? []
+    anexo04_rudac: documentos?.filter((d) => d.categoria === "anexo04_rudac") ?? [],
+    formulario_baja: documentos?.filter((d) => d.categoria === "formulario_baja") ?? []
   };
 
   const documentosGestor = documentos?.filter((d) =>
