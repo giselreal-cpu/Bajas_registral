@@ -859,6 +859,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Seguimiento por desarmadero (migración `0074`).** Cada caso ya guarda su desarmadero (`casos.desarmadero_id`, se completa con el evento "Asignación de desarmadero"). Ahora el listado de **Casos** (solo equipo interno) tiene filtro "Desarmadero" (con la opción "Sin asignar") y una columna con el nombre; el **Panel** tiene el mismo filtro (`?desarmadero_id=`, también "sin_asignar"), que recorta KPIs, casos que piden atención, vencimientos, A cobrar y Pendiente de aprobar y se propaga a `/panel/detalle`, y suma un aviso "Sin desarmadero asignado" para casos abiertos con traslado autorizado y sin desarmadero (los "Solo Informes" quedan afuera). El catálogo de desarmaderos tiene un **Estado** (activo/inactivo): uno inactivo no se ofrece al asignar, pero sigue visible en los casos que ya lo tienen y en los filtros.
 
+**Excel de Casos con cobros y pagos.** Al final del Excel de `/exportar` hay 8 columnas: Cobro desarmadero, Pago a compañía, Cobro a compañía y Pago a gestoría, cada una con su Monto (suma de los movimientos vigentes de ese concepto, en pesos) y la Fecha de cobro/pago (la del último pago efectuado, o del último cobro registrado contra las facturas del receptor; vacía si todavía no se efectuó). El Excel ahora incluye información financiera interna, así que `/api/export/casos` responde 403 a usuarios de compañía.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

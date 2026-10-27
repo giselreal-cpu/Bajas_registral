@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SELECT_CASOS, aFila, generarXlsxCasos } from "@/lib/exportCasos";
+import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 
 // PostgREST corta cada respuesta en 1000 filas: se pide por páginas hasta
 // traer todos los casos.
@@ -23,6 +24,11 @@ async function traerTodosLosCasos(supabase: ReturnType<typeof createClient>) {
 // GET /api/export/casos -> Excel (.xlsx) con todos los casos: filtros en el
 // encabezado, fechas reales y los identificadores guardados como texto.
 export async function GET() {
+  const usuarioActual = await getUsuarioActual();
+  if (!usuarioActual || usuarioActual.rol === "compania") {
+    return new Response("Sin acceso.", { status: 403 });
+  }
+
   const supabase = createClient();
 
   let data: any[];

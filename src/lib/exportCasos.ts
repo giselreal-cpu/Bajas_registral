@@ -10,8 +10,67 @@ export const SELECT_CASOS = `
   desarmadero:desarmaderos(nombre),
   registro:registros_automotores(numero),
   tipo_baja:tipos_baja(nombre),
-  responsable:usuarios(nombre)
+  responsable:usuarios(nombre),
+  movimientos_caso(monto, moneda, pagado, fecha, fecha_pago, anulado, aprobado, concepto:conceptos_movimiento(nombre, tipo)),
+  facturas(tipo_receptor, cobros(monto, moneda, fecha, anulado))
 `;
+
+// Conceptos del circuito de cobros y pagos del caso que se vuelcan al Excel.
+const CONCEPTO_COBRO_DESARMADERO = "Cobro al desarmadero";
+const CONCEPTO_PAGO_COMPANIA = "Pago a la compañía";
+const CONCEPTO_COBRO_COMPANIA = "Cobro a la aseguradora";
+const CONCEPTO_PAGO_GESTORIA = "Honorarios por Gestoría";
+
+interface MovimientoExport {
+  monto: number;
+  moneda: string | null;
+  pagado: boolean;
+  fecha: string;
+  fecha_pago: string | null;
+  anulado: boolean;
+  aprobado: boolean;
+  concepto: { nombre: string; tipo: string } | null;
+}
+interface FacturaExport {
+  tipo_receptor: string;
+  cobros: { monto: number; moneda: string | null; fecha: string; anulado: boolean }[];
+}
+
+const esPesos = (moneda: string | null | undefined) => !moneda || moneda === "ARS";
+const masReciente = (fechas: (string | null | undefined)[]): string => {
+  const validas = fechas.filter((f): f is string => !!f).sort();
+  return validas.length ? validas[validas.length - 1] : "";
+};
+
+// Monto cargado (suma de los movimientos vigentes del concepto, en pesos) y
+// fecha del último pago efectuado — vacía si todavía no se pagó nada.
+function resumenEgreso(movs: MovimientoExport[], concepto: string) {
+  const propios = movs.filter(
+    (m) => m.concepto?.nombre === concepto && m.concepto.tipo === "egreso" && !m.anulado && m.aprobado && esPesos(m.moneda)
+  );
+  if (propios.length === 0) return { monto: "" as number | "", fecha: "" };
+  return {
+    monto: propios.reduce((a, m) => a + Number(m.monto), 0),
+    fecha: masReciente(propios.filter((m) => m.pagado).map((m) => m.fecha_pago ?? m.fecha))
+  };
+}
+
+// Monto cargado del ingreso y fecha del último cobro registrado contra las
+// facturas de ese receptor — vacía si todavía no se cobró nada.
+function resumenIngreso(movs: MovimientoExport[], facturas: FacturaExport[], concepto: string, receptor: string) {
+  const propios = movs.filter(
+    (m) => m.concepto?.nombre === concepto && m.concepto.tipo === "ingreso" && !m.anulado && esPesos(m.moneda)
+  );
+  const cobros = facturas
+    .filter((f) => f.tipo_receptor === receptor)
+    .flatMap((f) => f.cobros)
+    .filter((c) => !c.anulado && esPesos(c.moneda));
+  if (propios.length === 0 && cobros.length === 0) return { monto: "" as number | "", fecha: "" };
+  return {
+    monto: propios.reduce((a, m) => a + Number(m.monto), 0),
+    fecha: masReciente(cobros.map((c) => c.fecha))
+  };
+}
 
 // Columnas del reporte. `texto` = se guarda como texto en el Excel para que
 // no pierda ceros a la izquierda ni se convierta en notación científica
@@ -39,11 +98,33 @@ export const COLUMNAS: { key: string; label: string; ancho: number; tipo?: "text
   { key: "fecha_cierre", label: "Fecha Cierre", ancho: 13, tipo: "fecha" },
   { key: "deuda_patentes", label: "Deuda Patentes", ancho: 16, tipo: "moneda" },
   { key: "deuda_multas", label: "Deuda Multas", ancho: 16, tipo: "moneda" },
-  { key: "observaciones", label: "Observaciones", ancho: 50 }
+  { key: "observaciones", label: "Observaciones", ancho: 50 },
+  { key: "cobro_desarmadero_monto", label: "Cobro desarmadero - Monto", ancho: 18, tipo: "moneda" },
+  { key: "cobro_desarmadero_fecha", label: "Cobro desarmadero - Fecha de cobro", ancho: 18, tipo: "fecha" },
+  { key: "pago_compania_monto", label: "Pago a compañía - Monto", ancho: 18, tipo: "moneda" },
+  { key: "pago_compania_fecha", label: "Pago a compañía - Fecha de pago", ancho: 18, tipo: "fecha" },
+  { key: "cobro_compania_monto", label: "Cobro a compañía - Monto", ancho: 18, tipo: "moneda" },
+  { key: "cobro_compania_fecha", label: "Cobro a compañía - Fecha de cobro", ancho: 18, tipo: "fecha" },
+  { key: "pago_gestoria_monto", label: "Pago a gestoría - Monto", ancho: 18, tipo: "moneda" },
+  { key: "pago_gestoria_fecha", label: "Pago a gestoría - Fecha de pago", ancho: 18, tipo: "fecha" }
 ];
 
 export function aFila(c: any): Record<string, any> {
+  const movs: MovimientoExport[] = c.movimientos_caso ?? [];
+  const facturas: FacturaExport[] = c.facturas ?? [];
+  const cobroDesarmadero = resumenIngreso(movs, facturas, CONCEPTO_COBRO_DESARMADERO, "desarmadero");
+  const pagoCompania = resumenEgreso(movs, CONCEPTO_PAGO_COMPANIA);
+  const cobroCompania = resumenIngreso(movs, facturas, CONCEPTO_COBRO_COMPANIA, "compania");
+  const pagoGestoria = resumenEgreso(movs, CONCEPTO_PAGO_GESTORIA);
   return {
+    cobro_desarmadero_monto: cobroDesarmadero.monto,
+    cobro_desarmadero_fecha: cobroDesarmadero.fecha,
+    pago_compania_monto: pagoCompania.monto,
+    pago_compania_fecha: pagoCompania.fecha,
+    cobro_compania_monto: cobroCompania.monto,
+    cobro_compania_fecha: cobroCompania.fecha,
+    pago_gestoria_monto: pagoGestoria.monto,
+    pago_gestoria_fecha: pagoGestoria.fecha,
     numero_siniestro: (c.numero_siniestro ?? "").trim(),
     aseguradora: c.aseguradora?.nombre ?? "",
     asegurado: c.asegurado?.nombre ?? "",
@@ -104,7 +185,7 @@ export async function generarXlsxCasos(filas: Record<string, any>[]): Promise<Bu
       if (col.tipo === "texto") valores[col.key] = v === null || v === undefined ? "" : String(v);
       else if (col.tipo === "fecha") valores[col.key] = fechaComoDate(v);
       else if (col.tipo === "numero") valores[col.key] = v === "" || v === null ? null : Number(v);
-      else if (col.tipo === "moneda") valores[col.key] = Number(v) || 0;
+      else if (col.tipo === "moneda") valores[col.key] = v === "" || v === null || v === undefined ? null : Number(v) || 0;
     }
     hoja.addRow(valores);
   }
