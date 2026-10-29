@@ -528,3 +528,31 @@ describe("criterio de IVA según caja y factura A", () => {
     expect(r.egresos).toBe(1000 + 1210);
   });
 });
+
+describe("retiros de socios", () => {
+  it("no suman a los egresos ni a la ganancia, pero sí salen de la caja y se informan aparte", () => {
+    const d = datosVacios();
+    d.comprobantes.push(
+      comp({ comprobante_id: "i1", tipo: "ingreso", caso_id: "k1", fecha_devengo: "2026-10-05", monto_total: 1000 }),
+      comp({ comprobante_id: "e1", tipo: "egreso", origen: "movimiento_general", fecha_devengo: "2026-10-06", monto_total: 200, categoria: "Sueldos" }),
+      comp({
+        comprobante_id: "gen:r1",
+        tipo: "egreso",
+        origen: "movimiento_general",
+        fecha_devengo: "2026-10-07",
+        monto_total: 300,
+        categoria: "Retiros Socio Alejandro Oltra"
+      })
+    );
+    aplicar(d, "i1", "cobro", "2026-10-05", 1000);
+    aplicar(d, "e1", "pago", "2026-10-06", 200);
+    aplicar(d, "gen:r1", "pago", "2026-10-07", 300);
+    const r = calcularCierre("2026-10", d);
+    expect(r.ingresos).toBe(1000);
+    expect(r.egresos).toBe(200); // el retiro no es un gasto
+    expect(r.ganancia).toBe(800);
+    expect(r.retiros_socios).toBe(300);
+    expect(r.saldo_cajas_total).toBe(500); // 1000 − 200 − 300: el retiro sí salió de la caja
+    expect(r.control_diferencia).toBe(0);
+  });
+});

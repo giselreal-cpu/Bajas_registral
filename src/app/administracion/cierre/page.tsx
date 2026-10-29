@@ -376,6 +376,17 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
         <Kpi titulo="Ingresos del mes" valor={pesos(r.ingresos)} detalle="Devengado, neto de IVA" />
         <Kpi titulo="Egresos del mes" valor={pesos(r.egresos)} detalle="Devengado, neto de IVA" />
         <Kpi titulo="Ganancia real" valor={pesos(r.ganancia)} tono={r.ganancia >= 0 ? "bueno" : "malo"} />
+        <Kpi
+          titulo="Retiros de socios"
+          valor={pesos(r.retiros_socios ?? 0)}
+          detalle="Fuera del resultado: salen de la ganancia"
+        />
+        <Kpi
+          titulo="Ganancia después de retiros"
+          valor={pesos(r.ganancia - (r.retiros_socios ?? 0))}
+          detalle="Ganancia real − retiros de socios"
+          tono={r.ganancia - (r.retiros_socios ?? 0) >= 0 ? undefined : "malo"}
+        />
         <Kpi titulo="ROI operativo" valor={porcentaje(r.roi)} detalle="Ganancia / egresos" tono={r.roi !== null && r.roi < 0 ? "malo" : undefined} />
         <Kpi titulo="Margen" valor={porcentaje(r.margen)} detalle="Ganancia / ingresos" />
         <Kpi

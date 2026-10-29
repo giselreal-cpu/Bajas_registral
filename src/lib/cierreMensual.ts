@@ -12,6 +12,14 @@
 // vistas v_comprobantes / v_aplicaciones / v_movimientos_tesoreria /
 // v_cajas_liquidez); el acceso a la base está en cierreMensualDatos.ts.
 
+// Los retiros de socios son retiros parciales de las ganancias, no un gasto:
+// no entran al resultado del mes (ni a egresos, ni a por pagar) pero sí
+// mueven la caja y se informan aparte. Se reconocen por la cuenta contable
+// del movimiento general ("Retiros Socio …", dentro de Cuentas Particulares).
+export function esRetiroDeSocio(c: { origen: string; tipo: string; categoria: string | null }): boolean {
+  return c.origen === "movimiento_general" && c.tipo === "egreso" && /^retiros?\s+(de\s+)?socios?\b/i.test(c.categoria ?? "");
+}
+
 export interface Comprobante {
   comprobante_id: string;
   origen: string;
@@ -198,6 +206,8 @@ export interface ResultadoCierre {
   anticipos_recibidos: number;
   // Indicadores
   ganancia: number;
+  // Retiros de socios del mes (salidas de caja): fuera del resultado.
+  retiros_socios?: number;
   roi: number | null;
   margen: number | null;
   por_cobrar_acumulado: number;
@@ -248,7 +258,12 @@ export function mesDe(fecha: string): string {
 export function calcularCierre(mes: string, datos: DatosCierre, declarados: SaldoDeclarado[] = []): ResultadoCierre {
   const { desde, hasta } = rangoMes(mes);
 
-  const comprobantes = datos.comprobantes.filter((c) => !c.anulado);
+  // Los retiros de socios quedan fuera del resultado (se cuentan aparte, por
+  // la salida de caja); el resto de los comprobantes sigue igual.
+  const retiroIds = new Set(
+    datos.comprobantes.filter((c) => !c.anulado && esRetiroDeSocio(c)).map((c) => c.comprobante_id)
+  );
+  const comprobantes = datos.comprobantes.filter((c) => !c.anulado && !retiroIds.has(c.comprobante_id));
   const porId = new Map(comprobantes.map((c) => [c.comprobante_id, c]));
   const aplicaciones = datos.aplicaciones.filter((a) => !a.anulado && porId.has(a.comprobante_id));
 
@@ -431,11 +446,15 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
   const cajasPorId = new Map(datos.cajas.map((c) => [c.id, c]));
   const movs = datos.movimientos.filter((m) => cajasPorId.has(m.caja_id));
 
-  let cajaA1 = 0, cajaB1 = 0, C1 = 0, C2 = 0, C3 = 0, C4 = 0, anticipos = 0, cajaCasosAbiertos = 0;
+  let cajaA1 = 0, cajaB1 = 0, C1 = 0, C2 = 0, C3 = 0, C4 = 0, anticipos = 0, cajaCasosAbiertos = 0, retiros = 0;
   for (const m of movs) {
     if (m.fecha < desde || m.fecha > hasta || m.es_transferencia_interna) continue;
     if (m.origen === "anticipo") {
       anticipos += m.monto;
+      continue;
+    }
+    if (m.comprobante_id && retiroIds.has(m.comprobante_id)) {
+      retiros += m.sentido === "salida" ? m.monto : -m.monto;
       continue;
     }
     const c = m.comprobante_id ? porId.get(m.comprobante_id) : undefined;
@@ -540,6 +559,7 @@ export function calcularCierre(mes: string, datos: DatosCierre, declarados: Sald
     caja_B1_bruto: r2(cajaB1),
     anticipos_recibidos: r2(anticipos),
     ganancia,
+    retiros_socios: r2(retiros),
     roi,
     margen,
     por_cobrar_acumulado: r2(porCobrar),

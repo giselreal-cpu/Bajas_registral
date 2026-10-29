@@ -349,6 +349,8 @@ export async function generarXlsxCierre(r: ResultadoCierre, ctx: ContextoExport)
   const nGan = linea("Ganancia real = ingresos − egresos", `B${nIng}-B${nEgr}`, r.ganancia);
   linea("ROI operativo % = ganancia / egresos", `IF(B${nEgr}=0,"N/A",ROUND(B${nGan}/B${nEgr}*100,2))`, r.roi ?? "N/A", { porcentaje: true });
   linea("Margen % = ganancia / ingresos", `IF(B${nIng}=0,"N/A",ROUND(B${nGan}/B${nIng}*100,2))`, r.margen ?? "N/A", { porcentaje: true });
+  const nRet = linea("Retiros de socios (fuera del resultado)", String(r.retiros_socios ?? 0), r.retiros_socios ?? 0, { sinControl: true });
+  linea("Ganancia después de retiros", `B${nGan}-B${nRet}`, Math.round((r.ganancia - (r.retiros_socios ?? 0)) * 100) / 100);
   fila++;
 
   titulo("C – CAJA DE OTROS PERÍODOS (solo liquidez, con IVA, informativo)");
