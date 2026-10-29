@@ -204,6 +204,30 @@ export async function revertirEstadoGestorAsignado(casoId: string) {
   return actualizado;
 }
 
+// Un caso solo puede estar "cerrado" si su evento "Cierre de Caso" está
+// completado. Si ese evento vuelve a quedar pendiente (o se elimina), el
+// estado nunca retrocedía solo y el caso seguía figurando cerrado: acá se
+// reabre — vuelve al estado que indica la bitácora y se limpia la fecha de
+// cierre. Se llama después de desmarcar o borrar un "Cierre de Caso".
+export async function reabrirSiCierreNoCompletado(casoId: string) {
+  const supabase = createClient();
+  const [{ data: caso }, { data: eventos }] = await Promise.all([
+    supabase.from("casos").select("estado").eq("id", casoId).maybeSingle(),
+    supabase.from("bitacora").select("tipo_evento, completado").eq("caso_id", casoId)
+  ]);
+  if (!caso || caso.estado !== "cerrado") return null;
+  if ((eventos ?? []).some((e) => e.tipo_evento === "Cierre de Caso" && e.completado)) return null;
+
+  const sugerido = estadoSugeridoPorBitacora(eventos ?? []);
+  const { data: actualizado } = await supabase
+    .from("casos")
+    .update({ estado: sugerido, fecha_cierre: null })
+    .eq("id", casoId)
+    .select("estado")
+    .maybeSingle();
+  return actualizado;
+}
+
 // Empuja el estado del caso hasta `estadoMinimo` si eso representa un
 // avance real (nunca lo retrocede). A diferencia de recalcularEstado, esta
 // no mira la bitácora: se usa para acciones puntuales del caso que por sí

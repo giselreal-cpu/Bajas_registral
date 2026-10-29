@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
-import { recalcularEstado } from "@/lib/estadoAutomatico";
+import { recalcularEstado, reabrirSiCierreNoCompletado } from "@/lib/estadoAutomatico";
 import { errorDeFechas } from "@/lib/validarFechas";
 import { registrarCambio } from "@/lib/historial";
 import { motivoBloqueo } from "@/lib/eventosBitacora";
@@ -225,6 +225,11 @@ export async function PUT(
 
   const estadoDebug = await recalcularEstado(data.caso_id);
 
+  // Si se desmarcó "Cierre de Caso", el caso deja de estar cerrado.
+  if (data.tipo_evento === "Cierre de Caso" && !data.completado) {
+    await reabrirSiCierreNoCompletado(data.caso_id);
+  }
+
   // La fecha de cierre del caso es la del evento "Cierre de Caso": si se
   // corrige la fecha de ese evento ya completado, el caso la sigue (antes
   // quedaba con la fecha vieja y los tiempos de trámite no se corregían).
@@ -261,6 +266,10 @@ export async function DELETE(
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (existente?.tipo_evento === "Cierre de Caso") {
+    await reabrirSiCierreNoCompletado(existente.caso_id);
   }
 
   if (existente) {
