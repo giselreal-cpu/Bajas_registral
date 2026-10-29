@@ -863,6 +863,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Tipo de unidad "Moto" (migración `0075`).** El tipo de unidad del caso (Auto/Sedán, Pickup, SUV/Furgón, Camión, **Moto**) se elige al cargar el caso y aparece en el Excel de Casos (columna "Tipo de unidad", después de Año). Es el mismo dato que usa el Anexo 04 (Piezas RUDAC), donde también se puede cambiar en casos ya cargados; para Moto las reglas de piezas se configuran en la matriz de reglas.
 
+**Ranking de unidades ingresadas (`/analisis`).** Tres tablas (marca+modelo+año, marca+modelo y marca) con los casos ingresados en el mes elegido en el filtro "Mes de ingreso" (o todos los meses si está vacío) que ya tienen el evento Traslado completado, ordenados por cantidad de casos (los empates comparten posición). También aplican compañía, tipo de baja y trámitador. El modelo se agrupa por su nombre base (primera palabra de la descripción de InfoAuto, o dos si empieza con GRAND, NEW, etc.): `src/lib/rankingUnidades.ts`.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

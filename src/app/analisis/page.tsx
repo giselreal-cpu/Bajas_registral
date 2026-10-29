@@ -7,6 +7,8 @@ import { calcularCierre, combinarRentabilidad, ultimosMeses } from "@/lib/cierre
 import { obtenerDatosCierre } from "@/lib/cierreMensualDatos";
 import ComparativoGraficos from "@/components/administracion/cierre/ComparativoGraficos";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { traerTodo } from "@/lib/xlsxTabla";
+import { rankingUnidades, type FilaRanking, type UnidadCaso } from "@/lib/rankingUnidades";
 
 export const dynamic = "force-dynamic";
 
@@ -157,6 +159,52 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Sea
     cantidad: (duracionesPorTipo.get(t.label) ?? []).length
   })).filter((e) => e.cantidad > 0);
   const maxDias = Math.max(1, ...diasPorEtapa.map((e) => e.promedio ?? 0));
+
+  // ---- Ranking de unidades: casos ingresados en el mes (filtro "Mes de
+  // ingreso") que ya tienen el evento Traslado completado. ----
+  let unidadesRanking: UnidadCaso[] = [];
+  let errorRanking: string | null = null;
+  let casosIngresadosMes = 0;
+  try {
+    const rangoMes = (() => {
+      if (!/^\d{4}-\d{2}$/.test(searchParams.mes ?? "")) return null;
+      const [a, m] = searchParams.mes!.split("-").map(Number);
+      return { desde: `${searchParams.mes}-01`, hasta: new Date(Date.UTC(a, m, 1)).toISOString().slice(0, 10) };
+    })();
+    // Los filtros se aplican sobre un builder sin tipar: el encadenado de
+    // supabase-js con embebidos supera el límite de profundidad de TypeScript.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filtrar = (q: any): any => {
+      let r = q;
+      if (searchParams.aseguradora_id) r = r.eq("aseguradora_id", searchParams.aseguradora_id);
+      if (searchParams.tipo_baja_id) r = r.eq("tipo_baja_id", searchParams.tipo_baja_id);
+      if (searchParams.tramitador_id) r = r.eq("tramitador_id", searchParams.tramitador_id);
+      if (rangoMes) r = r.gte("fecha_ingreso", rangoMes.desde).lt("fecha_ingreso", rangoMes.hasta);
+      return r;
+    };
+    const filas = await traerTodo<{ vehiculo: UnidadCaso | null }>(
+      (d, h) =>
+        filtrar(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase.from("casos") as any)
+            .select("id, vehiculo:vehiculos(marca, modelo, anio), bitacora!inner(tipo_evento, completado)")
+            .eq("bitacora.tipo_evento", "Traslado")
+            .eq("bitacora.completado", true)
+        )
+          .order("id")
+          .range(d, h) as PromiseLike<{ data: { vehiculo: UnidadCaso | null }[] | null }>
+    );
+    unidadesRanking = filas.map((f) => f.vehiculo ?? { marca: null, modelo: null, anio: null });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { count } = await filtrar((supabase.from("casos") as any).select("id", { count: "exact", head: true }));
+    casosIngresadosMes = count ?? 0;
+  } catch (e) {
+    errorRanking = e instanceof Error ? e.message : "No se pudo armar el ranking de unidades.";
+  }
+  const rankingMarcaModeloAnio = rankingUnidades(unidadesRanking, "marca_modelo_anio").slice(0, 20);
+  const rankingMarcaModelo = rankingUnidades(unidadesRanking, "marca_modelo").slice(0, 20);
+  const rankingMarca = rankingUnidades(unidadesRanking, "marca").slice(0, 20);
+  const tituloMesRanking = /^\d{4}-\d{2}$/.test(searchParams.mes ?? "") ? nombreMes(searchParams.mes!) : "Todos los meses";
 
   return (
     <div className="space-y-6">
@@ -369,6 +417,25 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Sea
       </section>
 
       <section className="card p-4">
+        <h2 className="font-heading font-semibold text-slate-800 mb-1">Ranking de unidades ingresadas</h2>
+        <p className="text-xs text-slate-400 mb-3">
+          {tituloMesRanking}: casos ingresados con el traslado ya completado ({unidadesRanking.length} de{" "}
+          {casosIngresadosMes} ingresados). Cambiá el mes con el filtro &quot;Mes de ingreso&quot; de arriba; también
+          aplican compañía, tipo de baja y trámitador. El modelo se agrupa por su nombre base (primera palabra de la
+          descripción, por ejemplo &quot;ECOSPORT 1.6 L 4X2 XLS&quot; cuenta como ECOSPORT).
+        </p>
+        {errorRanking ? (
+          <p className="text-sm text-red-600">{errorRanking}</p>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TablaRanking titulo="Marca, modelo y año" filas={rankingMarcaModeloAnio} conModelo conAnio />
+            <TablaRanking titulo="Marca y modelo" filas={rankingMarcaModelo} conModelo conAnio={false} />
+            <TablaRanking titulo="Marca" filas={rankingMarca} conModelo={false} conAnio={false} />
+          </div>
+        )}
+      </section>
+
+      <section className="card p-4">
         <h2 className="font-heading font-semibold text-slate-800 mb-3">Tiempos de trámite</h2>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs font-semibold uppercase text-slate-500">Casos cerrados</h3>
@@ -449,6 +516,52 @@ function StatCard({
         {sufijo && <span className="text-base font-normal text-slate-500">{sufijo}</span>}
       </p>
       {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
+    </div>
+  );
+}
+
+function TablaRanking({
+  titulo,
+  filas,
+  conModelo,
+  conAnio
+}: {
+  titulo: string;
+  filas: FilaRanking[];
+  conModelo: boolean;
+  conAnio: boolean;
+}) {
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase text-slate-500 mb-2">{titulo}</h3>
+      {filas.length === 0 ? (
+        <p className="text-sm text-slate-500">Sin casos.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-left text-slate-500">
+              <tr>
+                <th className="py-1 pr-3 font-medium w-10">#</th>
+                <th className="py-1 pr-3 font-medium">Marca</th>
+                {conModelo && <th className="py-1 pr-3 font-medium">Modelo</th>}
+                {conAnio && <th className="py-1 pr-3 font-medium">Año</th>}
+                <th className="py-1 font-medium text-right">Casos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filas.map((f) => (
+                <tr key={`${f.marca}|${f.modelo}|${f.anio}`} className="border-t border-slate-100">
+                  <td className="py-1.5 pr-3 text-slate-400 tabular-nums">{f.posicion}</td>
+                  <td className="py-1.5 pr-3">{f.marca}</td>
+                  {conModelo && <td className="py-1.5 pr-3">{f.modelo}</td>}
+                  {conAnio && <td className="py-1.5 pr-3 tabular-nums">{f.anio ?? "—"}</td>}
+                  <td className="py-1.5 text-right font-medium tabular-nums">{f.casos}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
