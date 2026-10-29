@@ -83,9 +83,9 @@ export interface Asegurado {
   partido: string | null;
 }
 
-export type TipoVehiculo = "Auto/Sedán" | "Pickup" | "SUV/Furgón" | "Camión";
+export type TipoVehiculo = "Auto/Sedán" | "Pickup" | "SUV/Furgón" | "Camión" | "Moto";
 
-export const TIPOS_VEHICULO: TipoVehiculo[] = ["Auto/Sedán", "Pickup", "SUV/Furgón", "Camión"];
+export const TIPOS_VEHICULO: TipoVehiculo[] = ["Auto/Sedán", "Pickup", "SUV/Furgón", "Camión", "Moto"];
 
 export interface Vehiculo {
   id: string;

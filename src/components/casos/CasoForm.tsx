@@ -447,7 +447,7 @@ export default function CasoForm() {
             />
           </div>
           <div>
-            <label className="label">Tipo de vehículo</label>
+            <label className="label">Tipo de unidad</label>
             <select
               className="input"
               value={form.vehiculo_tipo}
@@ -460,7 +460,7 @@ export default function CasoForm() {
                 </option>
               ))}
             </select>
-            <p className="text-xs text-slate-400 mt-1">Se usa para el Anexo 04 (Piezas RUDAC).</p>
+            <p className="text-xs text-slate-400 mt-1">Auto, pickup, camión, moto… También se usa para el Anexo 04 (Piezas RUDAC).</p>
           </div>
         </div>
       </section>

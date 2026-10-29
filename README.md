@@ -861,6 +861,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Excel de Casos con cobros y pagos.** Al final del Excel de `/exportar` hay 8 columnas: Cobro desarmadero, Pago a compañía, Cobro a compañía y Pago a gestoría, cada una con su Monto (suma de los movimientos vigentes de ese concepto, en pesos) y la Fecha de cobro/pago (la del último pago efectuado, o del último cobro registrado contra las facturas del receptor; vacía si todavía no se efectuó). El Excel ahora incluye información financiera interna, así que `/api/export/casos` responde 403 a usuarios de compañía.
 
+**Tipo de unidad "Moto" (migración `0075`).** El tipo de unidad del caso (Auto/Sedán, Pickup, SUV/Furgón, Camión, **Moto**) se elige al cargar el caso y aparece en el Excel de Casos (columna "Tipo de unidad", después de Año). Es el mismo dato que usa el Anexo 04 (Piezas RUDAC), donde también se puede cambiar en casos ya cargados; para Moto las reglas de piezas se configuran en la matriz de reglas.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase
