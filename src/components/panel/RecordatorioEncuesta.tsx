@@ -61,7 +61,7 @@ export default function RecordatorioEncuesta({
   }
 
   const enlace = `${origin}/encuesta/${token}`;
-  const mensaje = mensajeEncuesta({ asegurado, dominio, numeroSiniestro }, enlace);
+  const mensaje = mensajeEncuesta({ asegurado, dominio, numeroSiniestro }, enlace, true);
   const link = linkWhatsapp(telefono, mensaje);
 
   async function copiar() {

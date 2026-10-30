@@ -20,14 +20,21 @@ export interface DatosEncuesta {
   numeroSiniestro: string;
 }
 
-// Mensaje de la encuesta de satisfacción: las 3 preguntas puntuales
-// (contacto inicial, traslado, gestoría) se responden dentro del link
-// de la encuesta, no van listadas en el propio mensaje de WhatsApp —
-// acá va solo la invitación, corta.
-export function mensajeEncuesta(datos: DatosEncuesta, enlace: string): string {
-  return `Hola ${datos.asegurado}, en Oltra Gestión Integral buscamos mejorar cada día. Nos encantaría conocer tu opinión sobre el proceso de baja de tu vehículo dominio ${datos.dominio} (Siniestro N° ${datos.numeroSiniestro}).
+// Mensaje al titular cuando termina la baja: le avisa que ya se notificó a
+// la compañía (desde ahí corre el tiempo de gestión de la aseguradora para el
+// pago del siniestro, sin prometer plazos) y lo invita a la encuesta de
+// satisfacción. Las 3 preguntas puntuales (contacto inicial, traslado,
+// gestoría) se responden dentro del link, no van en el mensaje. Con
+// `recordatorio` se usa una versión corta para quien no respondió todavía.
+export function mensajeEncuesta(datos: DatosEncuesta, enlace: string, recordatorio = false): string {
+  if (recordatorio) {
+    return `Hola ${datos.asegurado}, te escribimos nuevamente por la baja de tu vehículo dominio ${datos.dominio} (Siniestro N° ${datos.numeroSiniestro}). Tu opinión nos ayuda a mejorar: completá esta breve encuesta (1 minuto) y contanos cómo fue tu experiencia: ${enlace}
 
-Completá esta breve encuesta (1 minuto) y contanos tu experiencia: ${enlace}
+¡Muchas gracias!`;
+  }
+  return `Hola ${datos.asegurado}, te informamos que la baja de tu vehículo dominio ${datos.dominio} (Siniestro N° ${datos.numeroSiniestro}) ya está finalizada y la compañía de seguros fue notificada: a partir de ahora comienza su tiempo de gestión para el pago del siniestro.
 
-¡Gracias por tu tiempo!`;
+En Oltra Gestión Integral buscamos mejorar cada día y tu opinión es muy valiosa. ¿Nos contás cómo fue tu experiencia? Completá esta breve encuesta (1 minuto): ${enlace}
+
+¡Gracias por confiar en nosotros!`;
 }
