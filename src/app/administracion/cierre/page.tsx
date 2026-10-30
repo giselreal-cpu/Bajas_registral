@@ -379,13 +379,7 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
         <Kpi
           titulo="Retiros de socios"
           valor={pesos(r.retiros_socios ?? 0)}
-          detalle="Fuera del resultado: salen de la ganancia"
-        />
-        <Kpi
-          titulo="Ganancia después de retiros"
-          valor={pesos(r.ganancia - (r.retiros_socios ?? 0))}
-          detalle="Ganancia real − retiros de socios"
-          tono={r.ganancia - (r.retiros_socios ?? 0) >= 0 ? undefined : "malo"}
+          detalle="Distribución de utilidades · no es gasto, no baja la ganancia"
         />
         <Kpi titulo="ROI operativo" valor={porcentaje(r.roi)} detalle="Ganancia / egresos" tono={r.roi !== null && r.roi < 0 ? "malo" : undefined} />
         <Kpi titulo="Margen" valor={porcentaje(r.margen)} detalle="Ganancia / ingresos" />
@@ -411,40 +405,74 @@ export default async function CierreMensualPage({ searchParams }: { searchParams
       </div>
 
       <div className="card p-4 mb-6 text-sm">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-1 text-slate-700">
-          <div>
-            <b>A – Ingresos:</b> cobrado en el mes {pesos(r.A1_cobrado_mes)} + pendiente al cierre {pesos(r.A2_pendiente_cierre)}
-            {r.A3_cobrado_antes !== 0 && <> + cobrado antes {pesos(r.A3_cobrado_antes)}</>}
-            {r.A4_notas_credito_anteriores !== 0 && <> + notas de crédito de períodos anteriores {pesos(r.A4_notas_credito_anteriores)}</>}
-          </div>
-          <div>
-            <b>B – Egresos:</b> pagado en el mes {pesos(r.B1_pagado_mes)} + pendiente al cierre {pesos(r.B2_pendiente_cierre)}
-            {r.B3_pagado_antes !== 0 && <> + pagado antes {pesos(r.B3_pagado_antes)}</>}
-          </div>
-          <div>
-            <b>C – Caja de otros períodos (solo liquidez):</b> cobranzas anteriores {pesos(r.C1_cobranzas_anteriores)} · pagos anteriores{" "}
-            {pesos(r.C2_pagos_anteriores)}
-            {(r.C3_cobranzas_anticipadas !== 0 || r.C4_pagos_anticipados !== 0) && (
-              <> · anticipados {pesos(r.C3_cobranzas_anticipadas)} / {pesos(r.C4_pagos_anticipados)}</>
-            )}
-            {r.anticipos_recibidos !== 0 && <> · anticipos recibidos {pesos(r.anticipos_recibidos)}</>}
-          </div>
-        </div>
+        <h2 className="font-medium text-slate-800 mb-2">Detalle de {nombreMes(mes)}</h2>
+        <table className="w-full">
+          <tbody className="divide-y divide-slate-100">
+            <tr>
+              <td className="py-1.5 pr-4 font-medium text-slate-800 whitespace-nowrap">Ingresos (A)</td>
+              <td className="py-1.5 pr-4 text-slate-500">
+                cobrado en el mes {pesos(r.A1_cobrado_mes)} + pendiente al cierre {pesos(r.A2_pendiente_cierre)}
+                {r.A3_cobrado_antes !== 0 && <> + cobrado antes {pesos(r.A3_cobrado_antes)}</>}
+                {r.A4_notas_credito_anteriores !== 0 && <> + notas de crédito {pesos(r.A4_notas_credito_anteriores)}</>}
+              </td>
+              <td className="py-1.5 text-right tabular-nums font-medium">{pesos(r.ingresos)}</td>
+            </tr>
+            <tr>
+              <td className="py-1.5 pr-4 font-medium text-slate-800 whitespace-nowrap">Egresos (B)</td>
+              <td className="py-1.5 pr-4 text-slate-500">
+                pagado en el mes {pesos(r.B1_pagado_mes)} + pendiente al cierre {pesos(r.B2_pendiente_cierre)}
+                {r.B3_pagado_antes !== 0 && <> + pagado antes {pesos(r.B3_pagado_antes)}</>}
+              </td>
+              <td className="py-1.5 text-right tabular-nums font-medium">{pesos(r.egresos)}</td>
+            </tr>
+            <tr>
+              <td className="py-1.5 pr-4 font-semibold text-slate-900 whitespace-nowrap">Ganancia real</td>
+              <td className="py-1.5 pr-4 text-slate-500">A − B</td>
+              <td className={`py-1.5 text-right tabular-nums font-semibold ${r.ganancia >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                {pesos(r.ganancia)}
+              </td>
+            </tr>
+            <tr>
+              <td className="py-1.5 pr-4 font-medium text-slate-800 whitespace-nowrap">Retiros de socios</td>
+              <td className="py-1.5 pr-4 text-slate-500">
+                Distribución de utilidades (cuenta de Activo, Cuentas Particulares): sale de la caja, no integra el resultado
+              </td>
+              <td className="py-1.5 text-right tabular-nums">{pesos(r.retiros_socios ?? 0)}</td>
+            </tr>
+            <tr>
+              <td className="py-1.5 pr-4 font-medium text-slate-800 whitespace-nowrap">Caja de otros períodos (C)</td>
+              <td className="py-1.5 pr-4 text-slate-500">
+                cobranzas anteriores {pesos(r.C1_cobranzas_anteriores)} · pagos anteriores {pesos(r.C2_pagos_anteriores)}
+                {(r.C3_cobranzas_anticipadas !== 0 || r.C4_pagos_anticipados !== 0) && (
+                  <> · anticipados {pesos(r.C3_cobranzas_anticipadas)} / {pesos(r.C4_pagos_anticipados)}</>
+                )}
+                {r.anticipos_recibidos !== 0 && <> · anticipos recibidos {pesos(r.anticipos_recibidos)}</>}
+              </td>
+              <td className="py-1.5 text-right text-xs text-slate-400">solo liquidez</td>
+            </tr>
+          </tbody>
+        </table>
         <p className={`mt-3 ${r.control_diferencia === 0 ? "text-emerald-700" : "text-red-600 font-medium"}`}>
-          Control de caja: saldo inicial {pesos(r.saldo_inicial_total)} + entradas − salidas (sin transferencias internas)
-          {r.control_diferencia === 0 ? " = saldo final calculado ✓" : ` — diferencia de ${pesos(r.control_diferencia)} con el saldo final calculado`}
+          Control de caja: saldo inicial {pesos(r.saldo_inicial_total)} + entradas − salidas ={" "}
+          {r.control_diferencia === 0 ? "saldo final calculado ✓" : `diferencia de ${pesos(r.control_diferencia)} con el saldo final calculado`}
         </p>
-        {(r.caja_casos_abiertos ?? 0) !== 0 && (
-          <p className="mt-1 text-slate-600">
-            Los casos abiertos no se contabilizan (entran cuando cierran), pero su plata sí se movió de las cajas: neto del mes{" "}
-            {pesos(r.caja_casos_abiertos)} dentro del saldo de cajas.
-          </p>
-        )}
-        <p className="mt-1 text-slate-600">
-          Pendiente de los comprobantes de {nombreMes(mes)} (con IVA): <b>al cierre</b> por cobrar{" "}
-          {pesos(r.pendiente_cierre_cobrar_bruto)} y por pagar {pesos(r.pendiente_cierre_pagar_bruto)} · <b>hoy</b> por cobrar{" "}
-          {pesos(hoy.porCobrar)} y por pagar {pesos(hoy.porPagar)}.
-        </p>
+        <details className="mt-2 text-xs text-slate-500">
+          <summary className="cursor-pointer">Criterios del cierre</summary>
+          <ul className="list-disc pl-5 mt-1 space-y-0.5">
+            {(r.caja_casos_abiertos ?? 0) !== 0 && (
+              <li>
+                Los casos abiertos no se contabilizan (entran cuando cierran), pero su plata sí se movió de las cajas: neto del
+                mes {pesos(r.caja_casos_abiertos)} dentro del saldo de cajas.
+              </li>
+            )}
+            <li>
+              Pendiente de los comprobantes de {nombreMes(mes)} (con IVA): al cierre por cobrar{" "}
+              {pesos(r.pendiente_cierre_cobrar_bruto)} y por pagar {pesos(r.pendiente_cierre_pagar_bruto)}; hoy por cobrar{" "}
+              {pesos(hoy.porCobrar)} y por pagar {pesos(hoy.porPagar)}.
+            </li>
+            <li>Un cobro o pago de un mes anterior mueve la caja de este mes pero nunca su resultado.</li>
+          </ul>
+        </details>
       </div>
 
       <section className="card p-4 mb-6">
