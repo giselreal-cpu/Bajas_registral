@@ -121,10 +121,14 @@ export async function confirmarSubidaDesarmadero(
   const desarmaderoNombre =
     (caso.desarmadero as unknown as { nombre: string } | null)?.nombre ?? "el desarmadero";
 
+  // Las fotos siguen en "Imagen del dominio"; multas, patentes y otros que sube
+  // el desarmadero van dentro de "Documentación para la compañía" (el tipo que
+  // eligió queda en el nombre).
+  const tipoElegido = CATEGORIAS_DESARMADERO.find((c) => c.value === categoria)?.label;
   const { error } = await supabase.from("documentos").insert({
     caso_id: caso.id,
-    categoria,
-    nombre: nombreArchivo,
+    categoria: categoria === "imagen_dominio" ? "imagen_dominio" : "documento_compania",
+    nombre: categoria === "imagen_dominio" || !tipoElegido ? nombreArchivo : `${tipoElegido} - ${nombreArchivo}`,
     url: path
   });
 
@@ -273,7 +277,7 @@ export async function generarAnexo04Desarmadero(
 
   const { error: errDocumento } = await supabase
     .from("documentos")
-    .insert({ caso_id: caso.id, categoria: "anexo04_rudac", nombre, url: storagePath });
+    .insert({ caso_id: caso.id, categoria: "documento_compania", nombre, url: storagePath });
 
   if (errDocumento) {
     return { error: errDocumento.message };

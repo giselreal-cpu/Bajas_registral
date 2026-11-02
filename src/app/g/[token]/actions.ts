@@ -62,10 +62,13 @@ export async function confirmarSubidaGestor(
     return { error: "Este enlace ya no es válido." };
   }
 
+  // Lo que carga el gestor (turno, observaciones, recibos, otros) va dentro de
+  // "Documentación para la compañía"; el tipo que eligió queda en el nombre.
+  const tipoElegido = CATEGORIAS_GESTOR.find((c) => c.value === categoria)?.label;
   const { error } = await supabase.from("documentos").insert({
     caso_id: caso.id,
-    categoria,
-    nombre: nombreArchivo,
+    categoria: "documento_compania",
+    nombre: tipoElegido ? `${tipoElegido} - ${nombreArchivo}` : nombreArchivo,
     url: path
   });
 

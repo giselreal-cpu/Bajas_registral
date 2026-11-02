@@ -29,7 +29,7 @@ export async function GET(_request: NextRequest, { params }: { params: { id: str
       .from("documentos")
       .select("id, nombre, url, created_at")
       .eq("caso_id", params.id)
-      .eq("categoria", "anexo04_rudac")
+      .ilike("nombre", "Anexo 04 - %")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle()

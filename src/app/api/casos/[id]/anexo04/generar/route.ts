@@ -74,7 +74,7 @@ export async function POST(_request: NextRequest, { params }: { params: { id: st
 
   const { data: documento, error: errDocumento } = await supabase
     .from("documentos")
-    .insert({ caso_id: params.id, categoria: "anexo04_rudac", nombre, url: storagePath })
+    .insert({ caso_id: params.id, categoria: "documento_compania", nombre, url: storagePath })
     .select()
     .single();
 

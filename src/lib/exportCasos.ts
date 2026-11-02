@@ -20,6 +20,8 @@ const CONCEPTO_COBRO_DESARMADERO = "Cobro al desarmadero";
 const CONCEPTO_PAGO_COMPANIA = "Pago a la compañía";
 const CONCEPTO_COBRO_COMPANIA = "Cobro a la aseguradora";
 const CONCEPTO_PAGO_GESTORIA = "Honorarios por Gestoría";
+const CONCEPTO_INFORME_DOMINIO = "Informe de dominio";
+const CONCEPTO_INFORME_MULTAS = "Informe de multas";
 
 interface MovimientoExport {
   monto: number;
@@ -52,6 +54,21 @@ function resumenEgreso(movs: MovimientoExport[], concepto: string) {
   return {
     monto: propios.reduce((a, m) => a + Number(m.monto), 0),
     fecha: masReciente(propios.filter((m) => m.pagado).map((m) => m.fecha_pago ?? m.fecha))
+  };
+}
+
+// Informes pagados: suma de los pagos efectivamente realizados del concepto
+// (si el caso tiene más de un informe se suman) y la fecha del último pago.
+// Los informes cargados pero todavía no pagados no cuentan.
+function resumenPagado(movs: MovimientoExport[], concepto: string) {
+  const pagados = movs.filter(
+    (m) =>
+      m.concepto?.nombre === concepto && m.concepto.tipo === "egreso" && !m.anulado && m.aprobado && m.pagado && esPesos(m.moneda)
+  );
+  if (pagados.length === 0) return { monto: "" as number | "", fecha: "" };
+  return {
+    monto: pagados.reduce((a, m) => a + Number(m.monto), 0),
+    fecha: masReciente(pagados.map((m) => m.fecha_pago ?? m.fecha))
   };
 }
 
@@ -107,7 +124,11 @@ export const COLUMNAS: { key: string; label: string; ancho: number; tipo?: "text
   { key: "cobro_compania_monto", label: "Cobro a compañía - Monto", ancho: 18, tipo: "moneda" },
   { key: "cobro_compania_fecha", label: "Cobro a compañía - Fecha de cobro", ancho: 18, tipo: "fecha" },
   { key: "pago_gestoria_monto", label: "Pago a gestoría - Monto", ancho: 18, tipo: "moneda" },
-  { key: "pago_gestoria_fecha", label: "Pago a gestoría - Fecha de pago", ancho: 18, tipo: "fecha" }
+  { key: "pago_gestoria_fecha", label: "Pago a gestoría - Fecha de pago", ancho: 18, tipo: "fecha" },
+  { key: "informe_dominio_monto", label: "Informe de dominio - Monto pagado", ancho: 18, tipo: "moneda" },
+  { key: "informe_dominio_fecha", label: "Informe de dominio - Fecha de pago", ancho: 18, tipo: "fecha" },
+  { key: "informe_multas_monto", label: "Informe de multas - Monto pagado", ancho: 18, tipo: "moneda" },
+  { key: "informe_multas_fecha", label: "Informe de multas - Fecha de pago", ancho: 18, tipo: "fecha" }
 ];
 
 export function aFila(c: any): Record<string, any> {
@@ -117,7 +138,13 @@ export function aFila(c: any): Record<string, any> {
   const pagoCompania = resumenEgreso(movs, CONCEPTO_PAGO_COMPANIA);
   const cobroCompania = resumenIngreso(movs, facturas, CONCEPTO_COBRO_COMPANIA, "compania");
   const pagoGestoria = resumenEgreso(movs, CONCEPTO_PAGO_GESTORIA);
+  const informeDominio = resumenPagado(movs, CONCEPTO_INFORME_DOMINIO);
+  const informeMultas = resumenPagado(movs, CONCEPTO_INFORME_MULTAS);
   return {
+    informe_dominio_monto: informeDominio.monto,
+    informe_dominio_fecha: informeDominio.fecha,
+    informe_multas_monto: informeMultas.monto,
+    informe_multas_fecha: informeMultas.fecha,
     cobro_desarmadero_monto: cobroDesarmadero.monto,
     cobro_desarmadero_fecha: cobroDesarmadero.fecha,
     pago_compania_monto: pagoCompania.monto,

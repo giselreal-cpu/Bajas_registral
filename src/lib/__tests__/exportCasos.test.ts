@@ -41,3 +41,27 @@ describe("aFila: columnas de cobros y pagos", () => {
     expect(fila.cobro_compania_fecha).toBe("");
   });
 });
+
+describe("aFila: informes pagados", () => {
+  it("suma los informes pagados del concepto y deja la última fecha de pago", () => {
+    const fila = aFila({
+      numero_siniestro: "2",
+      estado: "cerrado",
+      movimientos_caso: [
+        mov("Informe de dominio", "egreso", { monto: 3800, pagado: true, fecha_pago: "2026-10-10" }),
+        mov("Informe de dominio", "egreso", { monto: 4110, pagado: true, fecha_pago: "2026-10-13" }),
+        mov("Informe de dominio", "egreso", { monto: 999, pagado: false }), // cargado, sin pagar: no cuenta
+        mov("Informe de multas", "egreso", { monto: 7600, pagado: true, fecha_pago: "2026-10-14" }),
+        mov("Informe de patentes", "egreso", { monto: 5000, pagado: true, fecha_pago: "2026-10-14" })
+      ],
+      facturas: []
+    });
+    expect(fila.informe_dominio_monto).toBe(7910);
+    expect(fila.informe_dominio_fecha).toBe("2026-10-13");
+    expect(fila.informe_multas_monto).toBe(7600);
+    expect(fila.informe_multas_fecha).toBe("2026-10-14");
+    const sin = aFila({ numero_siniestro: "3", estado: "cerrado", movimientos_caso: [], facturas: [] });
+    expect(sin.informe_dominio_monto).toBe("");
+    expect(sin.informe_multas_fecha).toBe("");
+  });
+});

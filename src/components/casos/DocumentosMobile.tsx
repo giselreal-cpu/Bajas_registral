@@ -1,24 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CATEGORIAS_GESTOR, CATEGORIAS_DESARMADERO, Documento } from "@/types/database";
+import { Documento } from "@/types/database";
+import { CATEGORIAS_VISIBLES, categoriaEfectiva } from "@/lib/documentosCategorias";
 
-const CATEGORIAS_STAFF: {
-  value: "imagen_dominio" | "documento_compania" | "anexo04_rudac" | "formulario_baja";
-  label: string;
-}[] = [
-  { value: "imagen_dominio", label: "Imágenes del dominio" },
-  { value: "documento_compania", label: "Documentos para la Cía" },
-  { value: "anexo04_rudac", label: "Anexo 04 (Piezas RUDAC)" },
-  { value: "formulario_baja", label: "Formulario de baja (04D)" }
-];
-
-// Fotos subidas por el desarmadero quedan en 'imagen_dominio' (mismo
-// tile que "Imágenes del dominio" de arriba), así que acá solo se
-// suman las categorías que son exclusivas de su carga.
-const CATEGORIAS_DESARMADERO_PROPIAS = CATEGORIAS_DESARMADERO.filter((c) => c.value !== "imagen_dominio");
-
-const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR, ...CATEGORIAS_DESARMADERO_PROPIAS];
+// Solo tres categorías (ver documentosCategorias.ts): lo que cargan los
+// gestores externos y el desarmadero va dentro de "Documentación para la Cía".
+const TODAS_LAS_CATEGORIAS = CATEGORIAS_VISIBLES.map((c) => ({ value: c.value, label: c.labelCorto }));
 
 interface Props {
   casoId: string;
@@ -90,7 +78,7 @@ export default function DocumentosMobile({ casoId, soloLectura }: Props) {
   }
 
   const categoriaActual = TODAS_LAS_CATEGORIAS.find((c) => c.value === categoriaAbierta);
-  const documentosCategoria = documentos.filter((d) => d.categoria === categoriaAbierta);
+  const documentosCategoria = documentos.filter((d) => categoriaEfectiva(d.categoria) === categoriaAbierta);
 
   return (
     <div>
@@ -101,7 +89,7 @@ export default function DocumentosMobile({ casoId, soloLectura }: Props) {
       )}
       <div className="grid grid-cols-2 gap-3">
         {TODAS_LAS_CATEGORIAS.map((c) => {
-          const n = documentos.filter((d) => d.categoria === c.value).length;
+          const n = documentos.filter((d) => categoriaEfectiva(d.categoria) === c.value).length;
           return (
             <button
               key={c.value}

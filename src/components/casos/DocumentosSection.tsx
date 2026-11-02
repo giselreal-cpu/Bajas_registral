@@ -1,27 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CATEGORIAS_GESTOR, CATEGORIAS_DESARMADERO, Documento } from "@/types/database";
+import { Documento } from "@/types/database";
+import { CATEGORIAS_VISIBLES, categoriaEfectiva } from "@/lib/documentosCategorias";
 import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
-// "Formulario de baja" recibe lo que se carga desde el enlace público del
-// Formulario/04D (y también se puede subir desde acá).
-const CATEGORIAS_STAFF: {
-  value: "imagen_dominio" | "documento_compania" | "anexo04_rudac" | "formulario_baja";
-  label: string;
-}[] = [
-  { value: "imagen_dominio", label: "Imagen del dominio" },
-  { value: "documento_compania", label: "Documento para la compañía" },
-  { value: "anexo04_rudac", label: "Anexo 04 (Piezas RUDAC)" },
-  { value: "formulario_baja", label: "Formulario de baja (04D)" }
-];
-
-// Fotos subidas por el desarmadero quedan en 'imagen_dominio', así que
-// ya aparecen en el grupo de arriba junto a las del equipo — acá solo
-// se listan las categorías que son exclusivas de su carga.
-const CATEGORIAS_DESARMADERO_PROPIAS = CATEGORIAS_DESARMADERO.filter((c) => c.value !== "imagen_dominio");
-
-const TODAS_LAS_CATEGORIAS = [...CATEGORIAS_STAFF, ...CATEGORIAS_GESTOR, ...CATEGORIAS_DESARMADERO_PROPIAS];
+// Solo tres categorías (ver documentosCategorias.ts): lo que cargan los
+// gestores externos y el desarmadero va dentro de "Documentación para la
+// compañía".
+const CATEGORIAS_STAFF = CATEGORIAS_VISIBLES;
+const TODAS_LAS_CATEGORIAS = CATEGORIAS_VISIBLES;
 
 export default function DocumentosSection({
   casoId,
@@ -171,20 +159,10 @@ export default function DocumentosSection({
   }
 
   const grupos = {
-    imagen_dominio: documentos?.filter((d) => d.categoria === "imagen_dominio") ?? [],
-    documento_compania:
-      documentos?.filter((d) => d.categoria === "documento_compania") ?? [],
-    anexo04_rudac: documentos?.filter((d) => d.categoria === "anexo04_rudac") ?? [],
+    imagen_dominio: documentos?.filter((d) => categoriaEfectiva(d.categoria) === "imagen_dominio") ?? [],
+    documento_compania: documentos?.filter((d) => categoriaEfectiva(d.categoria) === "documento_compania") ?? [],
     formulario_baja: documentos?.filter((d) => d.categoria === "formulario_baja") ?? []
   };
-
-  const documentosGestor = documentos?.filter((d) =>
-    CATEGORIAS_GESTOR.some((c) => c.value === d.categoria)
-  ) ?? [];
-
-  const documentosDesarmadero = documentos?.filter((d) =>
-    CATEGORIAS_DESARMADERO_PROPIAS.some((c) => c.value === d.categoria)
-  ) ?? [];
 
   return (
     <section className="card p-4">
@@ -201,7 +179,7 @@ export default function DocumentosSection({
 
       {!soloLectura && documentos && documentos.length > 0 && (
         <p className="text-xs text-slate-400 mb-3">
-          Arrastrá un documento entre las dos primeras listas para corregir su categoría.
+          Arrastrá un documento entre las listas para corregir su categoría.
         </p>
       )}
 
@@ -337,89 +315,6 @@ export default function DocumentosSection({
         </div>
       ))}
 
-      {documentosGestor.length > 0 && (
-        <div className="mt-2 pt-4 border-t border-slate-100">
-          <h3 className="text-xs font-semibold uppercase text-slate-500 mb-2">
-            Cargado por el gestor
-          </h3>
-          {CATEGORIAS_GESTOR.map((c) => {
-            const items = documentosGestor.filter((d) => d.categoria === c.value);
-            if (items.length === 0) return null;
-            return (
-              <div key={c.value} className="mb-3">
-                <p className="text-xs text-slate-400 mb-1">{c.label}</p>
-                <ul className="space-y-1">
-                  {items.map((d) => (
-                    <li
-                      key={d.id}
-                      className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-slate-50"
-                    >
-                      <a
-                        href={d.url_firmada ?? "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-brand-600 hover:underline truncate"
-                      >
-                        {d.nombre}
-                      </a>
-                      {!soloLectura && (
-                        <button
-                          onClick={() => handleDelete(d.id)}
-                          className="text-xs text-slate-400 hover:text-red-600 shrink-0"
-                        >
-                          Eliminar
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {documentosDesarmadero.length > 0 && (
-        <div className="mt-2 pt-4 border-t border-slate-100">
-          <h3 className="text-xs font-semibold uppercase text-slate-500 mb-2">
-            Cargado por el desarmadero
-          </h3>
-          {CATEGORIAS_DESARMADERO_PROPIAS.map((c) => {
-            const items = documentosDesarmadero.filter((d) => d.categoria === c.value);
-            if (items.length === 0) return null;
-            return (
-              <div key={c.value} className="mb-3">
-                <p className="text-xs text-slate-400 mb-1">{c.label}</p>
-                <ul className="space-y-1">
-                  {items.map((d) => (
-                    <li
-                      key={d.id}
-                      className="flex items-center justify-between gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-slate-50"
-                    >
-                      <a
-                        href={d.url_firmada ?? "#"}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-brand-600 hover:underline truncate"
-                      >
-                        {d.nombre}
-                      </a>
-                      {!soloLectura && (
-                        <button
-                          onClick={() => handleDelete(d.id)}
-                          className="text-xs text-slate-400 hover:text-red-600 shrink-0"
-                        >
-                          Eliminar
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </section>
   );
 }

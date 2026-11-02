@@ -867,6 +867,10 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Retiros de socios en el Cierre mensual.** Los movimientos generales imputados a una cuenta "Retiros Socio …" (Cuentas Particulares, cuenta de Activo) son una distribución de utilidades, no un gasto: no suman a los egresos, a la ganancia ni al ROI del mes, no se restan de la ganancia en ningún indicador, pero sí salen de la caja (el saldo de cajas y la conciliación los incluyen). Se informan aparte como **Retiros de socios** (KPI, línea del detalle y del Resumen del Excel). Se reconocen por el nombre de la cuenta contable (`esRetiroDeSocio` en `src/lib/cierreMensual.ts`): una cuenta nueva de retiros tiene que llamarse "Retiros Socio …". El detalle del mes se muestra como una tabla de fórmulas (Ingresos A, Egresos B, Ganancia = A − B, Retiros, Caja de otros períodos) y los criterios largos quedan en un desplegable.
 
+**Documentos del caso: tres categorías (migración `0076`).** El módulo de Documentos tiene solo *Imagen del dominio*, *Documentación para la compañía* y *Formulario de baja* (`src/lib/documentosCategorias.ts`). Lo que suben los gestores externos (turno, observaciones, recibos, otros) y el desarmadero (multas, patentes, otros), y el Anexo 04 generado, se guardan en *Documentación para la compañía*, con el tipo elegido como prefijo del nombre (ej. "Recibos - foto.jpg"); las fotos del desarmadero siguen en *Imagen del dominio*. Los documentos viejos con categorías anteriores se ven en *Documentación para la compañía* aun sin correr la migración, que solo deja los datos iguales.
+
+**Excel de Casos: informes pagados.** 4 columnas más al final: Informe de dominio y Informe de multas, cada uno con *Monto pagado* (suma de los informes pagados del concepto si hay más de uno) y *Fecha de pago* (la del último pago).
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase
