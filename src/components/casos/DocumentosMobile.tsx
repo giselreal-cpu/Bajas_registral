@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Documento } from "@/types/database";
 import { CATEGORIAS_VISIBLES, categoriaEfectiva } from "@/lib/documentosCategorias";
+import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
 // Solo tres categorías (ver documentosCategorias.ts): lo que cargan los
 // gestores externos y el desarmadero va dentro de "Documentación para la Cía".
@@ -18,6 +19,7 @@ export default function DocumentosMobile({ casoId, soloLectura }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [categoriaAbierta, setCategoriaAbierta] = useState<Documento["categoria"] | null>(null);
   const [modo, setModo] = useState<"link" | "archivo">("archivo");
+  const [nombre, setNombre] = useState("");
   const [url, setUrl] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
@@ -52,22 +54,55 @@ export default function DocumentosMobile({ casoId, soloLectura }: Props) {
     setSaving(true);
     setError(null);
     try {
-      const body = new FormData();
-      body.append("categoria", categoriaAbierta);
-      if (modo === "archivo" && file) body.append("file", file);
-      else body.append("url", url.trim());
+      let body: Record<string, string>;
 
-      const res = await fetch(`/api/casos/${casoId}/documentos`, { method: "POST", body });
+      if (modo === "archivo" && file) {
+        // Igual que en escritorio (DocumentosSection): el archivo nunca
+        // viaja por esta función serverless (Vercel limita el body a
+        // 4.5MB) — primero se pide una URL de subida firmada y se sube
+        // directo a Storage desde el navegador, recién después se
+        // registra el documento acá con el `path` ya subido.
+        const resSubida = await fetch(`/api/casos/${casoId}/documentos/subida-firmada`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            categoria: categoriaAbierta,
+            nombre: nombre.trim() || file.name,
+            size: file.size,
+            type: file.type
+          })
+        });
+        const jsonSubida = await resSubida.json();
+        if (!resSubida.ok) {
+          setError(jsonSubida.error);
+          return;
+        }
+        await subirArchivoDirecto(jsonSubida.data.path, jsonSubida.data.token, file);
+        body = {
+          categoria: categoriaAbierta,
+          nombre: nombre.trim() || file.name,
+          path: jsonSubida.data.path
+        };
+      } else {
+        body = { categoria: categoriaAbierta, nombre: nombre.trim(), url: url.trim() };
+      }
+
+      const res = await fetch(`/api/casos/${casoId}/documentos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
       const json = await res.json();
       if (!res.ok) {
         setError(json.error);
         return;
       }
+      setNombre("");
       setUrl("");
       setFile(null);
       load();
-    } catch {
-      setError("No se pudo conectar con el servidor.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo conectar con el servidor.");
     } finally {
       setSaving(false);
     }
@@ -97,6 +132,9 @@ export default function DocumentosMobile({ casoId, soloLectura }: Props) {
               onClick={() => {
                 setCategoriaAbierta(c.value);
                 setError(null);
+                setNombre("");
+                setUrl("");
+                setFile(null);
               }}
               className="mv-card text-left flex flex-col justify-between min-h-[96px] p-3.5"
             >
@@ -204,6 +242,14 @@ export default function DocumentosMobile({ casoId, soloLectura }: Props) {
                     onChange={(e) => setUrl(e.target.value)}
                   />
                 )}
+                <input
+                  className="mv-input"
+                  placeholder={
+                    modo === "archivo" ? "Nombre (si lo dejás vacío, se usa el del archivo)" : "Nombre"
+                  }
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                />
                 <button
                   className="mv-btn mv-btn-primary w-full py-2.5"
                   disabled={saving}

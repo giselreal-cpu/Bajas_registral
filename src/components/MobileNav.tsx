@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
 function casoIdFromPathname(pathname: string): string | null {
   const m = pathname.match(/^\/casos\/([^/]+)$/);
@@ -37,10 +38,32 @@ export default function MobileNav({ soloLectura }: { soloLectura?: boolean }) {
     setSaving(true);
     setMensaje(null);
     try {
-      const body = new FormData();
-      body.append("categoria", "imagen_dominio");
-      body.append("file", file);
-      const res = await fetch(`/api/casos/${casoId}/documentos`, { method: "POST", body });
+      // Dos pasos, igual que en el resto de la app (DocumentosSection,
+      // DocumentosMobile): el archivo nunca viaja por esta función
+      // serverless (Vercel limita el body a 4.5MB), se sube directo a
+      // Storage con una URL firmada y recién después se registra acá.
+      const resSubida = await fetch(`/api/casos/${casoId}/documentos/subida-firmada`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          categoria: "imagen_dominio",
+          nombre: file.name,
+          size: file.size,
+          type: file.type
+        })
+      });
+      const jsonSubida = await resSubida.json().catch(() => null);
+      if (!resSubida.ok) {
+        setMensaje(jsonSubida?.error ?? "No se pudo subir la foto.");
+        return;
+      }
+      await subirArchivoDirecto(jsonSubida.data.path, jsonSubida.data.token, file);
+
+      const res = await fetch(`/api/casos/${casoId}/documentos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ categoria: "imagen_dominio", nombre: file.name, path: jsonSubida.data.path })
+      });
       const json = await res.json().catch(() => null);
       if (res.ok) {
         setMensaje("Foto cargada.");
@@ -49,8 +72,8 @@ export default function MobileNav({ soloLectura }: { soloLectura?: boolean }) {
       } else {
         setMensaje(json?.error ?? "No se pudo subir la foto.");
       }
-    } catch {
-      setMensaje("No se pudo conectar con el servidor.");
+    } catch (e) {
+      setMensaje(e instanceof Error ? e.message : "No se pudo conectar con el servidor.");
     } finally {
       setSaving(false);
     }
