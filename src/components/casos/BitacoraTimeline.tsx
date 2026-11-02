@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BitacoraEvento } from "@/types/database";
+import { BitacoraEvento, CasoConRelaciones } from "@/types/database";
 import { EVENTOS_SOLO_INFORMES, TIPOS_EVENTO, esSoloInformes, motivoBloqueo } from "@/lib/eventosBitacora";
+import { GrueroBox, FormularioBajaBox } from "./BitacoraSection";
 
 // Los pasos fijos del timeline móvil son el catálogo real menos
 // "Observaciones" (no es un hito de avance sino un registro libre y
@@ -31,10 +32,22 @@ const PASOS = ORDEN_TIMELINE.map((v) => TIPOS_EVENTO.find((t) => t.value === v))
 
 interface Props {
   casoId: string;
+  caso: CasoConRelaciones;
   soloLectura?: boolean;
   // Nombre del tipo de baja del caso: "Solo Informes" tiene una secuencia
   // corta propia (sin gestor, traslado, formularios ni presentación).
   tipoBaja?: string | null;
+}
+
+interface DatosGruero {
+  nombre: string;
+  contacto: string;
+  localidad: string;
+}
+
+interface DatosFormularioBaja {
+  nombre: string;
+  contacto: string;
 }
 
 interface EditFormState {
@@ -149,7 +162,7 @@ function EditForm({
   );
 }
 
-export default function BitacoraTimeline({ casoId, soloLectura, tipoBaja }: Props) {
+export default function BitacoraTimeline({ casoId, caso, soloLectura, tipoBaja }: Props) {
   const PASOS_CASO = esSoloInformes(tipoBaja)
     ? PASOS.filter((p) => EVENTOS_SOLO_INFORMES.includes(p.label))
     : PASOS.filter((p) => p.value !== "revision_documentacion");
@@ -159,6 +172,19 @@ export default function BitacoraTimeline({ casoId, soloLectura, tipoBaja }: Prop
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
   const [savingEdicion, setSavingEdicion] = useState(false);
+  const [origin, setOrigin] = useState("");
+
+  // Datos de gruero/formulario de baja mientras todavía no se guardaron:
+  // una vez que el evento existe (se insertó, completado o no), se
+  // muestran los valores guardados y el enlace público real en vez de
+  // este borrador local.
+  const [datosGruero, setDatosGruero] = useState<DatosGruero>({ nombre: "", contacto: "", localidad: "" });
+  const [datosFormularioBaja, setDatosFormularioBaja] = useState<DatosFormularioBaja>({ nombre: "", contacto: "" });
+  const [guardandoContacto, setGuardandoContacto] = useState<string | null>(null);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   async function load() {
     try {
@@ -208,6 +234,99 @@ export default function BitacoraTimeline({ casoId, soloLectura, tipoBaja }: Prop
       setError("No se pudo conectar con el servidor.");
     } finally {
       setSavingLabel(null);
+    }
+  }
+
+  // Guarda (o actualiza) los datos del gruero sin marcar el evento como
+  // completado — así el enlace público (/gr/<token>) queda disponible
+  // para copiar y mandar apenas se inicia el traslado, no solo al
+  // completarlo.
+  async function guardarGruero(eventoExistente: BitacoraEvento | undefined, datos: DatosGruero) {
+    setError(null);
+    setGuardandoContacto("Traslado");
+    try {
+      const res = eventoExistente
+        ? await fetch(`/api/bitacora/${eventoExistente.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              gruero_nombre: datos.nombre,
+              gruero_contacto: datos.contacto,
+              traslado_localidad: datos.localidad
+            })
+          })
+        : await fetch(`/api/casos/${casoId}/bitacora`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tipo_evento: "Traslado",
+              observacion: "",
+              es_interna: false,
+              completado: false,
+              fecha_inicio: new Date().toISOString().slice(0, 10),
+              fecha_fin: null,
+              gruero_nombre: datos.nombre,
+              gruero_contacto: datos.contacto,
+              traslado_localidad: datos.localidad
+            })
+          });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error);
+        return;
+      }
+      setDatosGruero({ nombre: "", contacto: "", localidad: "" });
+      load();
+    } catch {
+      setError("No se pudo conectar con el servidor.");
+    } finally {
+      setGuardandoContacto(null);
+    }
+  }
+
+  // Mismo criterio que guardarGruero, para el Formulario de Baja
+  // (/fb/<token>).
+  async function guardarFormularioBaja(
+    eventoExistente: BitacoraEvento | undefined,
+    datos: DatosFormularioBaja
+  ) {
+    setError(null);
+    setGuardandoContacto("Formulario de Baja");
+    try {
+      const res = eventoExistente
+        ? await fetch(`/api/bitacora/${eventoExistente.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              formulario_baja_nombre: datos.nombre,
+              formulario_baja_contacto: datos.contacto
+            })
+          })
+        : await fetch(`/api/casos/${casoId}/bitacora`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tipo_evento: "Formulario de Baja",
+              observacion: "",
+              es_interna: false,
+              completado: false,
+              fecha_inicio: new Date().toISOString().slice(0, 10),
+              fecha_fin: null,
+              formulario_baja_nombre: datos.nombre,
+              formulario_baja_contacto: datos.contacto
+            })
+          });
+      const json = await res.json();
+      if (!res.ok) {
+        setError(json.error);
+        return;
+      }
+      setDatosFormularioBaja({ nombre: "", contacto: "" });
+      load();
+    } catch {
+      setError("No se pudo conectar con el servidor.");
+    } finally {
+      setGuardandoContacto(null);
     }
   }
 
@@ -317,6 +436,69 @@ export default function BitacoraTimeline({ casoId, soloLectura, tipoBaja }: Prop
                   <p className="text-xs mt-0.5" style={{ color: "var(--mv-neutral-700)" }}>
                     {ev.observacion}
                   </p>
+                )}
+                {!soloLectura && !enEdicion && !completado && paso.label === "Traslado" && (
+                  <div className="mt-1.5">
+                    <GrueroBox
+                      caso={caso}
+                      nombre={ev?.gruero_nombre ?? datosGruero.nombre}
+                      contacto={ev?.gruero_contacto ?? datosGruero.contacto}
+                      localidad={ev?.traslado_localidad ?? datosGruero.localidad}
+                      onNombreChange={(v) => setDatosGruero((d) => ({ ...d, nombre: v }))}
+                      onContactoChange={(v) => setDatosGruero((d) => ({ ...d, contacto: v }))}
+                      onLocalidadChange={(v) => setDatosGruero((d) => ({ ...d, localidad: v }))}
+                      enlace={ev && origin ? `${origin}/gr/${ev.token_gruero}` : null}
+                    />
+                    <button
+                      type="button"
+                      disabled={guardandoContacto === "Traslado"}
+                      onClick={() =>
+                        guardarGruero(ev, {
+                          nombre: ev?.gruero_nombre ?? datosGruero.nombre,
+                          contacto: ev?.gruero_contacto ?? datosGruero.contacto,
+                          localidad: ev?.traslado_localidad ?? datosGruero.localidad
+                        })
+                      }
+                      className="mv-heading text-xs px-2.5 py-1 rounded-md disabled:opacity-50 mt-2"
+                      style={{ border: "1px solid var(--mv-accent)", color: "var(--mv-accent-700)" }}
+                    >
+                      {guardandoContacto === "Traslado"
+                        ? "Guardando..."
+                        : ev
+                        ? "Guardar datos del gruero"
+                        : "Iniciar traslado y generar enlace"}
+                    </button>
+                  </div>
+                )}
+                {!soloLectura && !enEdicion && !completado && paso.label === "Formulario de Baja" && (
+                  <div className="mt-1.5">
+                    <FormularioBajaBox
+                      caso={caso}
+                      nombre={ev?.formulario_baja_nombre ?? datosFormularioBaja.nombre}
+                      contacto={ev?.formulario_baja_contacto ?? datosFormularioBaja.contacto}
+                      onNombreChange={(v) => setDatosFormularioBaja((d) => ({ ...d, nombre: v }))}
+                      onContactoChange={(v) => setDatosFormularioBaja((d) => ({ ...d, contacto: v }))}
+                      enlace={ev && origin ? `${origin}/fb/${ev.token_formulario_baja}` : null}
+                    />
+                    <button
+                      type="button"
+                      disabled={guardandoContacto === "Formulario de Baja"}
+                      onClick={() =>
+                        guardarFormularioBaja(ev, {
+                          nombre: ev?.formulario_baja_nombre ?? datosFormularioBaja.nombre,
+                          contacto: ev?.formulario_baja_contacto ?? datosFormularioBaja.contacto
+                        })
+                      }
+                      className="mv-heading text-xs px-2.5 py-1 rounded-md disabled:opacity-50 mt-2"
+                      style={{ border: "1px solid var(--mv-accent)", color: "var(--mv-accent-700)" }}
+                    >
+                      {guardandoContacto === "Formulario de Baja"
+                        ? "Guardando..."
+                        : ev
+                        ? "Guardar datos"
+                        : "Iniciar formulario y generar enlace"}
+                    </button>
+                  </div>
                 )}
                 {enEdicion && ev && editForm ? (
                   <EditForm

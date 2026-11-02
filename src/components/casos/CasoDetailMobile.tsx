@@ -141,7 +141,12 @@ export default function CasoDetailMobile(props: Props) {
         {tab === "resumen" && <CasoCabeceraMobile {...props} />}
         {tab === "bitacora" && (
           <div className="mv-card p-4">
-            <BitacoraTimeline casoId={caso.id} soloLectura={soloLectura} tipoBaja={caso.tipo_baja?.nombre ?? null} />
+            <BitacoraTimeline
+              casoId={caso.id}
+              caso={caso}
+              soloLectura={soloLectura}
+              tipoBaja={caso.tipo_baja?.nombre ?? null}
+            />
           </div>
         )}
         {tab === "documentos" && (

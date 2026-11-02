@@ -83,7 +83,7 @@ function mensajeTraslado(
     : base;
 }
 
-function GrueroBox({
+export function GrueroBox({
   caso,
   nombre,
   contacto,
@@ -190,7 +190,7 @@ function mensajeFormularioBaja(
   return enlace ? `${base}\nLo podés cargar acá: ${enlace}` : base;
 }
 
-function FormularioBajaBox({
+export function FormularioBajaBox({
   caso,
   nombre,
   contacto,
