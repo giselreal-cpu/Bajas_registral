@@ -69,12 +69,13 @@ export default async function EnlaceGrueroPage({
     .eq("caso_id", evento.caso_id)
     .order("created_at", { ascending: false });
 
-  // El gruero solo necesita ver la autorización y el informe de dominio ya
-  // cargados en el caso (no todos los documentos) — se buscan por nombre,
-  // sin importar en qué categoría estén archivados.
+  // El gruero solo necesita ver la autorización, el informe de dominio y, si
+  // existe, la tenencia definitiva ya cargados en el caso (no todos los
+  // documentos) — se buscan por nombre, sin importar en qué categoría estén
+  // archivados.
   const relevantes = (todosLosDocumentos ?? []).filter((d) => {
     const n = normalizar(d.nombre);
-    return n.includes("autorizacion") || n.includes("informe de dominio");
+    return n.includes("autorizacion") || n.includes("informe de dominio") || n.includes("tenencia definitiva");
   });
 
   const documentos = await Promise.all(

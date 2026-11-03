@@ -79,7 +79,7 @@ function mensajeTraslado(
     vehiculo || "s/d"
   }, dominio ${dominio}, que se encuentra en ${localidad.trim() || "[localidad]"}. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
   return enlace
-    ? `${base}\nAcá tenés la autorización y el informe de dominio: ${enlace}`
+    ? `${base}\nAcá tenés la autorización, el informe de dominio y, si corresponde, la tenencia definitiva: ${enlace}`
     : base;
 }
 
