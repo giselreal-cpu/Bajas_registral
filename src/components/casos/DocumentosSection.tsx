@@ -2,22 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { Documento } from "@/types/database";
-import { CATEGORIAS_VISIBLES, categoriaEfectiva } from "@/lib/documentosCategorias";
+import { categoriasPara, categoriaEfectiva } from "@/lib/documentosCategorias";
 import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
 // Solo tres categorías (ver documentosCategorias.ts): lo que cargan los
 // gestores externos y el desarmadero va dentro de "Documentación para la
 // compañía".
-const CATEGORIAS_STAFF = CATEGORIAS_VISIBLES;
-const TODAS_LAS_CATEGORIAS = CATEGORIAS_VISIBLES;
-
 export default function DocumentosSection({
   casoId,
-  soloLectura
+  soloLectura,
+  tipoBaja
 }: {
   casoId: string;
   soloLectura?: boolean;
+  tipoBaja?: string | null;
 }) {
+  const CATEGORIAS_STAFF = categoriasPara(tipoBaja);
+  const TODAS_LAS_CATEGORIAS = CATEGORIAS_STAFF;
   const [documentos, setDocumentos] = useState<Documento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);

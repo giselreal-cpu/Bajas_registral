@@ -2,19 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { Documento } from "@/types/database";
-import { CATEGORIAS_VISIBLES, categoriaEfectiva } from "@/lib/documentosCategorias";
+import { categoriasPara, categoriaEfectiva } from "@/lib/documentosCategorias";
 import { subirArchivoDirecto } from "@/lib/uploadArchivoDirecto";
 
 // Solo tres categorías (ver documentosCategorias.ts): lo que cargan los
 // gestores externos y el desarmadero va dentro de "Documentación para la Cía".
-const TODAS_LAS_CATEGORIAS = CATEGORIAS_VISIBLES.map((c) => ({ value: c.value, label: c.labelCorto }));
-
 interface Props {
   casoId: string;
   soloLectura?: boolean;
+  tipoBaja?: string | null;
 }
 
-export default function DocumentosMobile({ casoId, soloLectura }: Props) {
+export default function DocumentosMobile({ casoId, soloLectura, tipoBaja }: Props) {
+  const TODAS_LAS_CATEGORIAS = categoriasPara(tipoBaja).map((c) => ({ value: c.value, label: c.labelCorto }));
   const [documentos, setDocumentos] = useState<Documento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [categoriaAbierta, setCategoriaAbierta] = useState<Documento["categoria"] | null>(null);

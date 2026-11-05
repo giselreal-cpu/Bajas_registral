@@ -7,6 +7,7 @@ import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import { GRUPOS_VISIBLES_EXTERNOS, clasificarDocumentosVisibles } from "@/lib/documentosVisiblesExternos";
 import { PIEZAS_RUDAC } from "@/lib/anexo04";
 import Anexo04Form from "./Anexo04Form";
+import { NOMBRE_IPV, usaAnexo04 } from "@/lib/tipoBaja";
 import ObservacionesDesarmadero, { ObservacionRow } from "./ObservacionesDesarmadero";
 import UploadFormDesarmadero from "./UploadFormDesarmadero";
 
@@ -242,11 +243,18 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
 
       <ObservacionesDesarmadero token={params.token} observaciones={observaciones} />
 
-      <Anexo04Form
-        token={params.token}
-        tipoVehiculo={caso.vehiculo?.tipo_vehiculo ?? null}
-        piezas={piezasConDecision}
-      />
+      {usaAnexo04(caso.tipo_baja?.nombre) ? (
+        <Anexo04Form
+          token={params.token}
+          tipoVehiculo={caso.vehiculo?.tipo_vehiculo ?? null}
+          piezas={piezasConDecision}
+        />
+      ) : (
+        <section className="card p-4 text-sm text-slate-600">
+          En esta baja (04 Digital) el formulario que se adjunta es el <b>{NOMBRE_IPV}</b>, que ya trae integrada la
+          generación de piezas: no hace falta completar el Anexo 04.
+        </section>
+      )}
 
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Documentación</h2>

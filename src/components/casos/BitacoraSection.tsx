@@ -7,6 +7,8 @@ import { TipoNotificacion } from "@/lib/email/notificacionesCaso";
 import { linkWhatsapp, mensajeEncuesta } from "@/lib/whatsapp";
 import SelectorNotificacion from "./SelectorNotificacion";
 
+import { nombreFormularioBaja, esBajaDigital } from "@/lib/tipoBaja";
+
 const GESTORIA_NOMBRE = "Oltra Gestión Integral";
 const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
 
@@ -184,9 +186,12 @@ function mensajeFormularioBaja(
 ): string {
   const dominio = caso.vehiculo?.dominio ?? "";
   const responsable = caso.responsable?.nombre ?? "";
+  const formulario = esBajaDigital(caso.tipo_baja?.nombre)
+    ? "el Instrumento de Petición Virtual (IPV)"
+    : "el formulario/carga 04D";
   const base = `Hola ${
     nombre || ""
-  }, ya se encuentra disponible en la carpeta del dominio toda la documentación necesaria para completar el formulario/carga 04D del dominio ${dominio}. Por favor completalo y cargalo en el sistema. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
+  }, ya se encuentra disponible en la carpeta del dominio toda la documentación necesaria para completar ${formulario} del dominio ${dominio}. Por favor completalo y cargalo en el sistema. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
   return enlace ? `${base}\nLo podés cargar acá: ${enlace}` : base;
 }
 
@@ -219,7 +224,7 @@ export function FormularioBajaBox({
     <div className="bg-slate-50 border border-slate-200 rounded-md p-3 text-sm space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
-          <label className="label">Nombre de quien completa el 04D</label>
+          <label className="label">Nombre de quien completa {esBajaDigital(caso.tipo_baja?.nombre) ? "el IPV" : "el 04D"}</label>
           <input
             className="input"
             value={nombre}
@@ -238,7 +243,7 @@ export function FormularioBajaBox({
       </div>
       <div className="space-y-2">
         <p className="text-slate-500">
-          Mensaje sugerido para avisarle que ya puede completar y cargar el formulario/04D
+          Mensaje sugerido para avisarle que ya puede completar y cargar {nombreFormularioBaja(caso.tipo_baja?.nombre)}
           {!enlace && " (el enlace de carga se agrega automáticamente después de guardar)"}:
         </p>
         <p className="text-slate-700 whitespace-pre-wrap">{mensaje}</p>

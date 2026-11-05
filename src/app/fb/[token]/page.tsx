@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/serviceClient";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import { GRUPOS_VISIBLES_EXTERNOS, clasificarDocumentosVisibles } from "@/lib/documentosVisiblesExternos";
 import InstallBanner from "@/components/InstallBanner";
+import { esBajaDigital, nombreFormularioBaja } from "@/lib/tipoBaja";
 import UploadForm from "./UploadForm";
 
 export const dynamic = "force-dynamic";
@@ -20,6 +21,7 @@ interface EventoFormularioBaja {
   formulario_baja_nombre: string | null;
   caso: {
     numero_siniestro: string;
+    tipo_baja: { nombre: string } | null;
     vehiculo: { dominio: string; marca: string | null; modelo: string | null } | null;
   } | null;
 }
@@ -40,6 +42,7 @@ export default async function EnlaceFormularioBajaPage({
       formulario_baja_nombre,
       caso:casos(
         numero_siniestro,
+        tipo_baja:tipos_baja(nombre),
         vehiculo:vehiculos(dominio, marca, modelo)
       )
     `
@@ -97,6 +100,8 @@ export default async function EnlaceFormularioBajaPage({
   })).filter((g) => g.documentos.length > 0);
 
   const caso = evento.caso;
+  const formulario = nombreFormularioBaja(caso?.tipo_baja?.nombre);
+  const esIpv = esBajaDigital(caso?.tipo_baja?.nombre);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -105,7 +110,7 @@ export default async function EnlaceFormularioBajaPage({
           Caso {caso?.numero_siniestro ?? "—"}
         </h1>
         <p className="text-sm text-slate-500">
-          Hola {evento.formulario_baja_nombre}, acá podés cargar el formulario/04D completado
+          Hola {evento.formulario_baja_nombre}, acá podés cargar el {formulario} completado
           para este caso.
         </p>
       </div>
@@ -157,7 +162,7 @@ export default async function EnlaceFormularioBajaPage({
 
       {documentos.length > 0 && (
         <section className="card p-4">
-          <h2 className="font-medium text-slate-800 mb-3">Formulario/04D ya cargado</h2>
+          <h2 className="font-medium text-slate-800 mb-3">{esIpv ? "IPV ya cargado" : "Formulario/04D ya cargado"}</h2>
           <ul className="space-y-1 text-sm">
             {documentos.map((d) => (
               <li key={d.id}>
@@ -176,7 +181,7 @@ export default async function EnlaceFormularioBajaPage({
       )}
 
       <section className="card p-4">
-        <h2 className="font-medium text-slate-800 mb-3">Cargar el formulario/04D completado</h2>
+        <h2 className="font-medium text-slate-800 mb-3">Cargar el {formulario} completado</h2>
         <UploadForm token={params.token} />
       </section>
     </div>

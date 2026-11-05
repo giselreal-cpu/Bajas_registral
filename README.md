@@ -871,6 +871,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Excel de Casos: informes pagados.** 4 columnas más al final: Informe de dominio y Informe de multas, cada uno con *Monto pagado* (suma de los informes pagados del concepto si hay más de uno) y *Fecha de pago* (la del último pago).
 
+**Tipo de baja "04 Digital": IPV y sin Anexo 04.** En las bajas 04 Digital el formulario que adjuntan los desarmaderos es el *Instrumento de Petición Virtual (IPV)*, que ya trae integrada la generación de piezas: el enlace del Formulario de Baja, el mensaje de aviso, el rotulo de la categoría de documentos y la bitácora hablan de IPV (no de formulario/04D), y el **Anexo 04 desaparece** (sección y pantalla del caso, formulario del portal del desarmadero y checklist automático al crear el caso). Reglas en `src/lib/tipoBaja.ts`.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

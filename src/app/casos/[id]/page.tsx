@@ -7,6 +7,7 @@ import CasoCabecera from "@/components/casos/CasoCabecera";
 import CasoDetailMobile from "@/components/casos/CasoDetailMobile";
 import BitacoraSection from "@/components/casos/BitacoraSection";
 import DocumentosSection from "@/components/casos/DocumentosSection";
+import { usaAnexo04 } from "@/lib/tipoBaja";
 import HistorialSection from "@/components/casos/HistorialSection";
 import { casoEstaSaldado } from "@/lib/estadoFinanciero";
 import { ingresosCobradosPorCasos } from "@/lib/rentabilidad";
@@ -136,7 +137,7 @@ export default async function CasoDetallePage({
         </section>
       )}
 
-      {!soloLectura && (
+      {!soloLectura && usaAnexo04((caso as unknown as { tipo_baja?: { nombre: string } | null }).tipo_baja?.nombre) && (
         <section className="card p-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-medium text-slate-800">Anexo 04 (Piezas RUDAC)</h2>
@@ -159,7 +160,11 @@ export default async function CasoDetallePage({
           casoSaldado={casoSaldado}
           esAdministrador={esAdministrador}
         />
-        <DocumentosSection casoId={caso.id} soloLectura={soloLectura} />
+        <DocumentosSection
+          casoId={caso.id}
+          soloLectura={soloLectura}
+          tipoBaja={(caso as unknown as { tipo_baja?: { nombre: string } | null }).tipo_baja?.nombre ?? null}
+        />
       </div>
 
       {!soloLectura && (

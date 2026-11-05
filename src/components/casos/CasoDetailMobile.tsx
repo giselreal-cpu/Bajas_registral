@@ -151,7 +151,7 @@ export default function CasoDetailMobile(props: Props) {
         )}
         {tab === "documentos" && (
           <div className="mv-card p-4">
-            <DocumentosMobile casoId={caso.id} soloLectura={soloLectura} />
+            <DocumentosMobile casoId={caso.id} soloLectura={soloLectura} tipoBaja={caso.tipo_baja?.nombre ?? null} />
           </div>
         )}
       </div>

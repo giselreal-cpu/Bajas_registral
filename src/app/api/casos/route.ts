@@ -7,6 +7,7 @@ import { resolverTramitador } from "@/lib/tramitadores";
 import { CasoConRelaciones } from "@/types/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { esSoloInformes } from "@/lib/eventosBitacora";
+import { usaAnexo04 } from "@/lib/tipoBaja";
 import { asegurarEventosSoloInformes } from "@/lib/eventosSoloInformes";
 
 const CASO_SELECT = `
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
   // 3b. Si el vehículo ya tiene tipo de vehículo (nuevo o reutilizado),
   // auto-completa el checklist del Anexo 04 desde las reglas generales
   // (mismo criterio que PUT /api/casos/[id]/anexo04/tipo-vehiculo).
-  if (vehiculo.tipo_vehiculo) {
+  if (vehiculo.tipo_vehiculo && usaAnexo04((caso as unknown as CasoConRelaciones).tipo_baja?.nombre)) {
     const { data: reglas } = await supabase
       .from("reglas_piezas_rudac")
       .select("codigo, decision")

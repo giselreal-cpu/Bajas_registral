@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import Anexo04Checklist from "@/components/casos/Anexo04Checklist";
+import { NOMBRE_IPV, usaAnexo04 } from "@/lib/tipoBaja";
 
 export const dynamic = "force-dynamic";
 
@@ -21,12 +22,26 @@ export default async function CasoAnexo04Page({ params }: { params: { id: string
   const supabase = createClient();
   const { data: caso, error } = await supabase
     .from("casos")
-    .select("id, numero_siniestro")
+    .select("id, numero_siniestro, tipo_baja:tipos_baja(nombre)")
     .eq("id", params.id)
     .single();
 
   if (error || !caso) {
     notFound();
+  }
+
+  if (!usaAnexo04((caso.tipo_baja as unknown as { nombre: string } | null)?.nombre)) {
+    return (
+      <div className="max-w-md mx-auto text-center py-16">
+        <h1 className="text-lg font-semibold text-slate-900 mb-2">El Anexo 04 no aplica a este caso</h1>
+        <p className="text-sm text-slate-500 mb-4">
+          En las bajas 04 Digital el {NOMBRE_IPV} ya trae integrada la generación de piezas.
+        </p>
+        <Link href={`/casos/${caso.id}`} className="btn-secondary">
+          ← Volver al caso
+        </Link>
+      </div>
+    );
   }
 
   return (
