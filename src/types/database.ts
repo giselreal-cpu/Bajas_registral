@@ -185,6 +185,8 @@ export interface Caso {
   tramitador_nombre: string | null;
   tramitador_email: string | null;
   tramitador_id: string | null;
+  // Proveedor que gestiona la reposición de la unidad (opcional).
+  proveedor_reposicion_id?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -196,8 +198,17 @@ export interface Tramitador {
   aseguradora_id: string | null;
 }
 
+export interface ProveedorReposicion {
+  id: string;
+  nombre: string;
+  // Mails de contacto separados por coma (puede tener más de uno).
+  emails: string | null;
+  telefono: string | null;
+}
+
 // Caso con los catálogos relacionados ya resueltos (para la vista de detalle/listado)
 export interface CasoConRelaciones extends Caso {
+  proveedor_reposicion?: ProveedorReposicion | null;
   aseguradora: Aseguradora | null;
   asegurado: Asegurado | null;
   vehiculo: Vehiculo | null;

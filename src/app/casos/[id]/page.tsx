@@ -8,6 +8,7 @@ import CasoDetailMobile from "@/components/casos/CasoDetailMobile";
 import BitacoraSection from "@/components/casos/BitacoraSection";
 import DocumentosSection from "@/components/casos/DocumentosSection";
 import { usaAnexo04 } from "@/lib/tipoBaja";
+import type { ProveedorReposicion } from "@/types/database";
 import HistorialSection from "@/components/casos/HistorialSection";
 import { casoEstaSaldado } from "@/lib/estadoFinanciero";
 import { ingresosCobradosPorCasos } from "@/lib/rentabilidad";
@@ -61,6 +62,17 @@ export default async function CasoDetallePage({
     notFound();
   }
 
+  // Proveedores de reposición: consulta aparte y tolerante (si la tabla aún no
+  // existe, la ficha sigue andando sin ellos).
+  const { data: proveedoresRaw } = await supabase.from("proveedores_reposicion").select("*").order("nombre");
+  const proveedoresReposicion = (proveedoresRaw ?? []) as ProveedorReposicion[];
+  // El caso con su proveedor resuelto (lo usa el aviso por mail a destinatarios).
+  const casoConProveedor = {
+    ...caso,
+    proveedor_reposicion:
+      proveedoresReposicion.find((p) => p.id === (caso as { proveedor_reposicion_id?: string | null }).proveedor_reposicion_id) ?? null
+  } as unknown as CasoConRelaciones;
+
   const usuarioActual = await getUsuarioActual();
   const soloLectura = usuarioActual?.rol === "compania";
   const esAdministrador = usuarioActual?.rol === "administrador";
@@ -90,13 +102,14 @@ export default async function CasoDetallePage({
     <div>
       <div className="md:hidden">
         <CasoDetailMobile
-          caso={caso as CasoConRelaciones}
+          caso={casoConProveedor}
           aseguradoras={aseguradoras ?? []}
           registros={registros ?? []}
           tiposBaja={tiposBaja ?? []}
           usuarios={usuarios ?? []}
           gestores={gestores ?? []}
           tramitadores={tramitadores ?? []}
+          proveedoresReposicion={proveedoresReposicion}
           soloLectura={soloLectura}
           esAdministrador={esAdministrador}
         />
@@ -104,13 +117,14 @@ export default async function CasoDetallePage({
 
       <div className="hidden md:block space-y-6">
       <CasoCabecera
-        caso={caso as CasoConRelaciones}
+        caso={casoConProveedor}
         aseguradoras={aseguradoras ?? []}
         registros={registros ?? []}
         tiposBaja={tiposBaja ?? []}
         usuarios={usuarios ?? []}
         gestores={gestores ?? []}
         tramitadores={tramitadores ?? []}
+        proveedoresReposicion={proveedoresReposicion}
         soloLectura={soloLectura}
         esAdministrador={esAdministrador}
       />
@@ -154,7 +168,7 @@ export default async function CasoDetallePage({
       <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
         <BitacoraSection
           casoId={caso.id}
-          caso={caso as CasoConRelaciones}
+          caso={casoConProveedor}
           desarmaderos={desarmaderos ?? []}
           soloLectura={soloLectura}
           casoSaldado={casoSaldado}

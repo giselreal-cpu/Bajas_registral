@@ -19,7 +19,8 @@ const EVENTO_A_NOTIFICACION: Record<string, TipoNotificacion> = {
   "Ingreso de caso": "ingreso_caso",
   "Contacto con el asegurado": "contacto_asegurado",
   Traslado: "traslado",
-  "Presentación de Baja": "presentacion_baja"
+  "Presentación de Baja": "presentacion_baja",
+  "Cierre de Caso": "cierre_caso"
 };
 
 function mensajeContacto(caso: CasoConRelaciones): string {

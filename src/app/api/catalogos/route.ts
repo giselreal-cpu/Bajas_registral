@@ -11,11 +11,13 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET() {
   const supabase = createClient();
 
-  const [aseguradoras, tiposBaja, usuarios, tramitadores] = await Promise.all([
+  const [aseguradoras, tiposBaja, usuarios, tramitadores, proveedores] = await Promise.all([
     supabase.from("aseguradoras").select("*").order("nombre"),
     supabase.from("tipos_baja").select("*").order("nombre"),
     supabase.from("usuarios").select("*").order("nombre"),
-    supabase.from("tramitadores").select("id, nombre, email, aseguradora_id").order("nombre")
+    supabase.from("tramitadores").select("id, nombre, email, aseguradora_id").order("nombre"),
+    // Si la tabla todavía no existe, el formulario sigue andando sin proveedores.
+    supabase.from("proveedores_reposicion").select("id, nombre, emails, telefono").order("nombre")
   ]);
 
   const firstError = aseguradoras.error || tiposBaja.error || usuarios.error || tramitadores.error;
@@ -28,6 +30,7 @@ export async function GET() {
     aseguradoras: aseguradoras.data,
     tipos_baja: tiposBaja.data,
     tramitadores: tramitadores.data ?? [],
+    proveedores_reposicion: proveedores.error ? [] : proveedores.data ?? [],
     // Los usuarios con rol "compania" no son elegibles como responsables
     // de un caso; se filtran acá para no ensuciar los combos de la app.
     usuarios: (usuarios.data ?? []).filter((u: any) => u.rol !== "compania")

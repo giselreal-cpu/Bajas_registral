@@ -4,6 +4,7 @@ import {
   Aseguradora,
   CasoConRelaciones,
   Gestor,
+  ProveedorReposicion,
   RegistroAutomotor,
   TipoBaja,
   Tramitador,
@@ -18,6 +19,7 @@ export interface CasoCabeceraProps {
   usuarios: Usuario[];
   gestores: Gestor[];
   tramitadores?: Tramitador[];
+  proveedoresReposicion?: ProveedorReposicion[];
   soloLectura?: boolean;
   esAdministrador?: boolean;
 }
@@ -55,6 +57,7 @@ function formDesdeCaso(caso: CasoConRelaciones) {
     productor_nombre: caso.productor_nombre ?? "",
     productor_contacto: caso.productor_contacto ?? "",
     tramitador_id: caso.tramitador_id ?? "",
+    proveedor_reposicion_id: caso.proveedor_reposicion_id ?? "",
     tramitador_nombre: caso.tramitador_nombre ?? "",
     tramitador_email: caso.tramitador_email ?? "",
     asegurado_nombre: caso.asegurado?.nombre ?? "",
@@ -101,9 +104,11 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
   // Fecha de cierre con la que se abrió la edición: si el usuario no la
   // tocó, no se manda al guardar (ver handleSave).
   const fechaCierreAlEditar = useRef(caso.fecha_cierre ?? "");
+  const proveedorAlEditar = useRef(caso.proveedor_reposicion_id ?? "");
   function iniciarEdicion() {
     setForm(formDesdeCaso(caso));
     fechaCierreAlEditar.current = caso.fecha_cierre ?? "";
+    proveedorAlEditar.current = caso.proveedor_reposicion_id ?? "";
     setEditing(true);
   }
 
@@ -115,7 +120,9 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
     // bitácora. Si el usuario no la editó a mano, no se manda: así un
     // formulario abierto antes del cierre no la pisa con el valor viejo
     // (el caso quedaba "Cerrado" sin fecha y desaparecía de los reportes).
-    const { fecha_cierre: _fechaCierreForm, ...formSinFechaCierre } = form;
+    const { fecha_cierre: _fechaCierreForm, proveedor_reposicion_id: proveedorForm, ...formSinFechaCierre } = form;
+    // El proveedor de reposición solo se manda si cambió.
+    const proveedorEditado = proveedorForm !== proveedorAlEditar.current;
     const fechaCierreEditada = form.fecha_cierre !== fechaCierreAlEditar.current;
 
     const [resCaso, resVehiculo, resAsegurado] = await Promise.all([
@@ -125,6 +132,7 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
         body: JSON.stringify({
           ...formSinFechaCierre,
           ...(fechaCierreEditada ? { fecha_cierre: form.fecha_cierre || null } : {}),
+          ...(proveedorEditado ? { proveedor_reposicion_id: proveedorForm || null } : {}),
           rama: form.rama || null,
           tipo_tramite: form.tipo_tramite || null,
           registro_id: form.registro_id || null,

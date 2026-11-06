@@ -9,7 +9,7 @@ import { avanceCaso } from "@/lib/avanceCaso";
 import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabecera(props: CasoCabeceraProps) {
-  const { caso, aseguradoras, registros, tiposBaja, usuarios, gestores, tramitadores = [], soloLectura, esAdministrador } =
+  const { caso, aseguradoras, registros, tiposBaja, usuarios, gestores, tramitadores = [], proveedoresReposicion = [], soloLectura, esAdministrador } =
     props;
   const {
     editing,
@@ -226,6 +226,25 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
           </Field>
 
           <Field label="Email del trámitador">{caso.tramitador_email || "—"}</Field>
+
+          <Field label="Proveedor de reposición">
+            {editing ? (
+              <select
+                className="input"
+                value={form.proveedor_reposicion_id}
+                onChange={(e) => update("proveedor_reposicion_id", e.target.value)}
+              >
+                <option value="">Sin proveedor de reposición</option>
+                {proveedoresReposicion.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              proveedoresReposicion.find((p) => p.id === caso.proveedor_reposicion_id)?.nombre || "—"
+            )}
+          </Field>
         </div>
       </Section>
       </div>

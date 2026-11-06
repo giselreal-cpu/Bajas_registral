@@ -7,6 +7,7 @@ import {
   CasoConRelaciones,
   ESTADOS,
   Gestor,
+  ProveedorReposicion,
   RegistroAutomotor,
   TipoBaja,
   Tramitador,
@@ -28,6 +29,7 @@ interface Props {
   usuarios: Usuario[];
   gestores: Gestor[];
   tramitadores?: Tramitador[];
+  proveedoresReposicion?: ProveedorReposicion[];
   soloLectura?: boolean;
   esAdministrador?: boolean;
 }

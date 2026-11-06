@@ -6,15 +6,26 @@ export type TipoNotificacion =
   | "contacto_asegurado"
   | "gestor_asignado"
   | "traslado"
-  | "presentacion_baja";
+  | "presentacion_baja"
+  | "cierre_caso";
 
-export type Destinatario = "tramitador" | "productor" | "asegurado";
+export type Destinatario = "tramitador" | "productor" | "asegurado" | "reposicion";
 
 export const DESTINATARIOS: { value: Destinatario; label: string }[] = [
   { value: "tramitador", label: "Tramitador" },
   { value: "productor", label: "Productor" },
-  { value: "asegurado", label: "Asegurado" }
+  { value: "asegurado", label: "Asegurado" },
+  { value: "reposicion", label: "Proveedor de reposición" }
 ];
+
+// Los mails de un proveedor se cargan separados por coma: se normalizan y se
+// descartan los que no parecen una dirección.
+export function normalizarEmails(texto: string | null | undefined): string[] {
+  return (texto ?? "")
+    .split(/[,;\s]+/)
+    .map((e) => e.trim())
+    .filter((e) => e.includes("@"));
+}
 
 // El mail del productor usa el campo "Contacto de productor" tal cual (es
 // texto libre, no siempre va a ser un mail válido) — decisión explícita
@@ -25,7 +36,8 @@ export function destinatariosDisponibles(
   return {
     tramitador: caso.tramitador_email || null,
     productor: caso.productor_contacto || null,
-    asegurado: caso.asegurado?.email || null
+    asegurado: caso.asegurado?.email || null,
+    reposicion: normalizarEmails(caso.proveedor_reposicion?.emails).join(", ") || null
   };
 }
 
@@ -34,12 +46,14 @@ const TITULOS: Record<TipoNotificacion, string> = {
   contacto_asegurado: "Contacto con el asegurado",
   gestor_asignado: "Gestor de campo asignado",
   traslado: "Traslado de la unidad",
-  presentacion_baja: "Presentación de la baja finalizada"
+  presentacion_baja: "Presentación de la baja finalizada",
+  cierre_caso: "Caso cerrado"
 };
 
 export function asuntoYCuerpo(
   tipo: TipoNotificacion,
-  caso: CasoConRelaciones
+  caso: CasoConRelaciones,
+  destinatario?: Destinatario
 ): { subject: string; text: string } {
   const dominio = caso.vehiculo?.dominio ?? "s/d";
   const numero = caso.numero_siniestro;
@@ -60,10 +74,18 @@ export function asuntoYCuerpo(
     )} y patentes por ${formatMoneda(caso.deuda_patentes)}.`,
     gestor_asignado: `Le informamos que se asignó un gestor de campo (${gestor}) para continuar los trámites de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}). Este tomará contacto con el asegurado o asegurada a la brevedad, y continuará con el proceso de presentación de la baja ante el registro automotor de radicación.`,
     traslado: `Le informamos que se trasladó la unidad dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) hacia el desarmadero asignado.`,
-    presentacion_baja: `Le informamos que ha finalizado la presentación de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) en el registro automotor. Con este paso se completa la gestión de la baja ante el registro. Cualquier trámite posterior, como la baja de patentes, se informará por separado. Quedamos a disposición ante cualquier consulta.`
+    presentacion_baja: `Le informamos que ha finalizado la presentación de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}) en el registro automotor. Con este paso se completa la gestión de la baja ante el registro. Cualquier trámite posterior, como la baja de patentes, se informará por separado. Quedamos a disposición ante cualquier consulta.`,
+    cierre_caso: `Le informamos que se cerró el caso de baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}). La documentación de la baja ya fue enviada a la compañía.`
   };
 
-  const text = `Hola,\n\n${cuerpos[tipo]}\n\nSaludos,\nOltra Gestión Integral`;
+  // El proveedor de reposición negocia la unidad con el asegurado: recibe
+  // sus datos de contacto.
+  const contacto =
+    destinatario === "reposicion"
+      ? `\n\nDatos del asegurado:\nNombre: ${nombreAsegurado}\nTeléfono: ${caso.asegurado?.telefono || "s/d"}\nEmail: ${caso.asegurado?.email || "s/d"}`
+      : "";
+
+  const text = `Hola,\n\n${cuerpos[tipo]}${contacto}\n\nSaludos,\nOltra Gestión Integral`;
 
   return { subject, text };
 }

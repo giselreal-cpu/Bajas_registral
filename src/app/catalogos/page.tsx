@@ -34,6 +34,12 @@ const CATALOGOS = [
     ocultarParaCompania: true
   },
   {
+    href: "/catalogos/proveedores-reposicion",
+    title: "Proveedores de reposición",
+    description: "Proveedores de la compañía que gestionan la reposición de la unidad y siguen la baja.",
+    ocultarParaCompania: true
+  },
+  {
     href: "/catalogos/conceptos-movimiento",
     title: "Conceptos de movimiento",
     description: "Rubros de ingreso/egreso para la rentabilidad de los casos.",

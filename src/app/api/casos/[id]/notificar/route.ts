@@ -9,6 +9,8 @@ import {
   TipoNotificacion
 } from "@/lib/email/notificacionesCaso";
 import { CasoConRelaciones } from "@/types/database";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { obtenerProveedorReposicion } from "@/lib/proveedoresReposicion";
 
 const CASO_SELECT = `
   *,
@@ -39,7 +41,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     "contacto_asegurado",
     "gestor_asignado",
     "traslado",
-    "presentacion_baja"
+    "presentacion_baja",
+    "cierre_caso"
   ];
   if (!tiposValidos.includes(tipo)) {
     return NextResponse.json({ error: "Tipo de notificación inválido." }, { status: 400 });
@@ -63,8 +66,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const caso = data as unknown as CasoConRelaciones;
+  caso.proveedor_reposicion = await obtenerProveedorReposicion(
+    supabase as unknown as SupabaseClient,
+    caso.proveedor_reposicion_id
+  );
   const disponibles = destinatariosDisponibles(caso);
-  const { subject, text } = asuntoYCuerpo(tipo, caso);
 
   const enviados: string[] = [];
   const fallidos: { destinatario: string; error: string }[] = [];
@@ -75,6 +81,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       fallidos.push({ destinatario, error: "No tiene mail cargado." });
       continue;
     }
+    const { subject, text } = asuntoYCuerpo(tipo, caso, destinatario);
     const resultado = await enviarEmail({ to: email, subject, text });
     if (resultado.ok) {
       enviados.push(destinatario);

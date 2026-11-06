@@ -7,6 +7,7 @@ import { resolverTramitador } from "@/lib/tramitadores";
 import { CasoConRelaciones } from "@/types/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { esSoloInformes } from "@/lib/eventosBitacora";
+import { obtenerProveedorReposicion } from "@/lib/proveedoresReposicion";
 import { usaAnexo04 } from "@/lib/tipoBaja";
 import { asegurarEventosSoloInformes } from "@/lib/eventosSoloInformes";
 
@@ -65,6 +66,7 @@ export async function POST(request: NextRequest) {
     tipo_baja_id,
     responsable_id,
     tramitador_id,
+    proveedor_reposicion_id,
     tramitador_nombre,
     tramitador_email,
     productor_nombre,
@@ -187,6 +189,7 @@ export async function POST(request: NextRequest) {
       tramitador_nombre: tramitador?.nombre ?? null,
       tramitador_email: tramitador?.email ?? null,
       tramitador_id: tramitador?.id ?? null,
+      ...(proveedor_reposicion_id ? { proveedor_reposicion_id } : {}),
       productor_nombre: productor_nombre ?? null,
       productor_contacto: productor_contacto ?? null
     })
@@ -244,11 +247,15 @@ export async function POST(request: NextRequest) {
   // y/o asegurado, si se cargaron en el formulario de alta.
   if (seNotifico) {
     const casoConRelaciones = caso as unknown as CasoConRelaciones;
+    casoConRelaciones.proveedor_reposicion = await obtenerProveedorReposicion(
+      supabase as unknown as SupabaseClient,
+      proveedor_reposicion_id
+    );
     const disponibles = destinatariosDisponibles(casoConRelaciones);
-    const { subject, text } = asuntoYCuerpo("ingreso_caso", casoConRelaciones);
     for (const destinatario of notificar as Destinatario[]) {
       const email = disponibles[destinatario];
       if (email) {
+        const { subject, text } = asuntoYCuerpo("ingreso_caso", casoConRelaciones, destinatario);
         await enviarEmail({ to: email, subject, text });
       }
     }

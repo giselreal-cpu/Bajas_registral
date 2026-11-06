@@ -72,7 +72,8 @@ export async function PUT(
     "productor_contacto",
     "tramitador_nombre",
     "tramitador_email",
-    "tramitador_id"
+    "tramitador_id",
+    "proveedor_reposicion_id"
   ];
 
   const update: Record<string, unknown> = {};

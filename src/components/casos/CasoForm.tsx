@@ -3,15 +3,16 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Aseguradora, ESTADOS, TipoBaja, Tramitador, TIPOS_VEHICULO, Usuario } from "@/types/database";
+import { Aseguradora, ESTADOS, ProveedorReposicion, TipoBaja, Tramitador, TIPOS_VEHICULO, Usuario } from "@/types/database";
 import TramitadorSelect from "./TramitadorSelect";
-import { DESTINATARIOS, Destinatario } from "@/lib/email/notificacionesCaso";
+import { DESTINATARIOS, Destinatario, normalizarEmails } from "@/lib/email/notificacionesCaso";
 
 interface Catalogos {
   aseguradoras: Aseguradora[];
   tipos_baja: TipoBaja[];
   usuarios: Usuario[];
   tramitadores: Tramitador[];
+  proveedores_reposicion?: ProveedorReposicion[];
 }
 
 export default function CasoForm() {
@@ -33,6 +34,7 @@ export default function CasoForm() {
     tipo_baja_id: "",
     responsable_id: "",
     observaciones: "",
+    proveedor_reposicion_id: "",
     tramitador_id: "",
     tramitador_nombre: "",
     tramitador_email: "",
@@ -77,6 +79,10 @@ export default function CasoForm() {
   function emailDe(d: Destinatario): string {
     if (d === "tramitador") return form.tramitador_email;
     if (d === "productor") return form.productor_contacto;
+    if (d === "reposicion") {
+      const p = (catalogos?.proveedores_reposicion ?? []).find((x) => x.id === form.proveedor_reposicion_id);
+      return normalizarEmails(p?.emails).join(", ");
+    }
     return form.asegurado_email;
   }
 
@@ -108,6 +114,7 @@ export default function CasoForm() {
       responsable_id: form.responsable_id || null,
       observaciones: form.observaciones || null,
       tramitador_id: form.tramitador_id || null,
+      ...(form.proveedor_reposicion_id ? { proveedor_reposicion_id: form.proveedor_reposicion_id } : {}),
       productor_nombre: form.productor_nombre || null,
       productor_contacto: form.productor_contacto || null,
       notificar: Array.from(notificar).filter((d) => !!emailDe(d)),
@@ -310,6 +317,23 @@ export default function CasoForm() {
               }
             />
           </div>
+          {(catalogos?.proveedores_reposicion ?? []).length > 0 && (
+            <div className="sm:col-span-2">
+              <label className="label">Proveedor de reposición (si corresponde)</label>
+              <select
+                className="input"
+                value={form.proveedor_reposicion_id}
+                onChange={(e) => update("proveedor_reposicion_id", e.target.value)}
+              >
+                <option value="">Sin proveedor de reposición</option>
+                {(catalogos?.proveedores_reposicion ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className="label">Nombre de productor</label>
             <input
