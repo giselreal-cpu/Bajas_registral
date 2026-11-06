@@ -15,7 +15,7 @@ const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
 // Eventos cuya finalización dispara la opción de notificar por mail a
 // Tramitador/Productor/Asegurado (elegible cada vez, no es una
 // configuración fija — ver SelectorNotificacion).
-const EVENTO_A_NOTIFICACION: Record<string, TipoNotificacion> = {
+export const EVENTO_A_NOTIFICACION: Record<string, TipoNotificacion> = {
   "Ingreso de caso": "ingreso_caso",
   "Contacto con el asegurado": "contacto_asegurado",
   Traslado: "traslado",

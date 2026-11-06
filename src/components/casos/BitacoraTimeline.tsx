@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { BitacoraEvento, CasoConRelaciones } from "@/types/database";
 import { EVENTOS_SOLO_INFORMES, TIPOS_EVENTO, esSoloInformes, motivoBloqueo } from "@/lib/eventosBitacora";
-import { GrueroBox, FormularioBajaBox } from "./BitacoraSection";
+import { GrueroBox, FormularioBajaBox, EVENTO_A_NOTIFICACION } from "./BitacoraSection";
+import SelectorNotificacion from "./SelectorNotificacion";
 
 // Los pasos fijos del timeline móvil son el catálogo real menos
 // "Observaciones" (no es un hito de avance sino un registro libre y
@@ -173,6 +174,9 @@ export default function BitacoraTimeline({ casoId, caso, soloLectura, tipoBaja }
   const [editForm, setEditForm] = useState<EditFormState | null>(null);
   const [savingEdicion, setSavingEdicion] = useState(false);
   const [origin, setOrigin] = useState("");
+  // Evento para el que se está mostrando el recuadro "Notificar por mail a:"
+  // (se abre solo al completar un evento con aviso, o con "Avisar por mail").
+  const [avisarEventoId, setAvisarEventoId] = useState<string | null>(null);
 
   // Datos de gruero/formulario de baja mientras todavía no se guardaron:
   // una vez que el evento existe (se insertó, completado o no), se
@@ -229,6 +233,9 @@ export default function BitacoraTimeline({ casoId, caso, soloLectura, tipoBaja }
         setError(json.error);
         return;
       }
+      // Los eventos con aviso por mail abren el recuadro de destinatarios.
+      const idEvento = eventoExistente?.id ?? json.data?.id;
+      if (idEvento && EVENTO_A_NOTIFICACION[label]) setAvisarEventoId(idEvento);
       load();
     } catch {
       setError("No se pudo conectar con el servidor.");
@@ -361,6 +368,10 @@ export default function BitacoraTimeline({ casoId, caso, soloLectura, tipoBaja }
       if (!res.ok) {
         setError(json.error);
         return;
+      }
+      const evEditado = (eventos ?? []).find((e) => e.id === id);
+      if (evEditado && !evEditado.completado && editForm.completado && EVENTO_A_NOTIFICACION[evEditado.tipo_evento]) {
+        setAvisarEventoId(id);
       }
       cancelarEdicion();
       load();
@@ -527,6 +538,16 @@ export default function BitacoraTimeline({ casoId, caso, soloLectura, tipoBaja }
                           {savingLabel === paso.label ? "Guardando..." : "Marcar completado"}
                         </button>
                       ))}
+                    {!soloLectura && ev && completado && EVENTO_A_NOTIFICACION[paso.label] && (
+                      <button
+                        type="button"
+                        className="text-xs"
+                        style={{ color: "var(--mv-accent-700)" }}
+                        onClick={() => setAvisarEventoId((id) => (id === ev.id ? null : ev.id))}
+                      >
+                        Avisar por mail
+                      </button>
+                    )}
                     {!soloLectura && ev && (
                       <button
                         type="button"
@@ -538,6 +559,14 @@ export default function BitacoraTimeline({ casoId, caso, soloLectura, tipoBaja }
                       </button>
                     )}
                   </div>
+                )}
+                {!soloLectura && ev && avisarEventoId === ev.id && EVENTO_A_NOTIFICACION[paso.label] && (
+                  <SelectorNotificacion
+                    casoId={casoId}
+                    caso={caso}
+                    tipo={EVENTO_A_NOTIFICACION[paso.label]}
+                    onClose={() => setAvisarEventoId(null)}
+                  />
                 )}
               </div>
             </div>
