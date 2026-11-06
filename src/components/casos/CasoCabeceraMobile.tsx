@@ -6,6 +6,7 @@ import { CasoCabeceraProps, formatCurrency, useCasoCabecera } from "./useCasoCab
 import TramitadorSelect from "./TramitadorSelect";
 import SelectorNotificacion from "./SelectorNotificacion";
 import { avanceCaso } from "@/lib/avanceCaso";
+import AnulacionCaso from "./AnulacionCaso";
 import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
@@ -47,6 +48,11 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
           <span className={`mv-badge ${estadoAbierto ? "" : "mv-badge-closed"}`}>
             {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
           </span>
+          {caso.anulado && (
+            <span className="mv-badge" style={{ background: "#fdecea", color: "#c0392b" }}>
+              Anulado
+            </span>
+          )}
           <AvanceBar {...avanceCaso(caso.estado)} size="sm" />
         </div>
         {!editing ? (
@@ -84,6 +90,17 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
           </div>
         )}
       </div>
+
+      <AnulacionCaso
+        casoId={caso.id}
+        estado={caso.estado}
+        anulado={caso.anulado}
+        motivo={caso.anulado_motivo}
+        anuladoAt={caso.anulado_at}
+        soloLectura={soloLectura}
+        esAdministrador={esAdministrador}
+        mobile
+      />
 
       {error && (
         <div

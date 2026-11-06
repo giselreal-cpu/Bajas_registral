@@ -187,6 +187,10 @@ export interface Caso {
   tramitador_id: string | null;
   // Proveedor que gestiona la reposición de la unidad (opcional).
   proveedor_reposicion_id?: string | null;
+  // Caso anulado (no avanzó): conserva todo, queda el motivo.
+  anulado?: boolean;
+  anulado_motivo?: string | null;
+  anulado_at?: string | null;
   created_at: string;
   updated_at: string;
 }

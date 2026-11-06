@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { obtenerIdsAnulados } from "@/lib/anulacion";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // GET /api/agenda?responsable_id=xxx&incluir_completados=true
 // Devuelve los eventos de bitácora de todos los casos (no cerrados),
@@ -44,7 +46,9 @@ export async function GET(request: NextRequest) {
     : data;
 
   // Dejamos afuera los eventos de casos ya cerrados: no aportan a la agenda.
-  const activos = filtered?.filter((ev: any) => ev.caso?.estado !== "cerrado");
+  // y los de casos anulados.
+  const idsAnulados = await obtenerIdsAnulados(supabase as unknown as SupabaseClient);
+  const activos = filtered?.filter((ev: any) => ev.caso?.estado !== "cerrado" && !idsAnulados.has(ev.caso?.id));
 
   const usuarioActual = await getUsuarioActual();
   const enmascarados = activos?.map((ev: any) => {

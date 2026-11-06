@@ -8,6 +8,7 @@ import { obtenerDatosCierre } from "@/lib/cierreMensualDatos";
 import ComparativoGraficos from "@/components/administracion/cierre/ComparativoGraficos";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { traerTodo } from "@/lib/xlsxTabla";
+import { obtenerIdsAnulados } from "@/lib/anulacion";
 import { rankingUnidades, type FilaRanking, type UnidadCaso } from "@/lib/rankingUnidades";
 
 export const dynamic = "force-dynamic";
@@ -182,7 +183,7 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Sea
       if (rangoMes) r = r.gte("fecha_ingreso", rangoMes.desde).lt("fecha_ingreso", rangoMes.hasta);
       return r;
     };
-    const filas = await traerTodo<{ vehiculo: UnidadCaso | null }>(
+    const filas = await traerTodo<{ id: string; vehiculo: UnidadCaso | null }>(
       (d, h) =>
         filtrar(
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -192,9 +193,12 @@ export default async function AnalisisPage({ searchParams }: { searchParams: Sea
             .eq("bitacora.completado", true)
         )
           .order("id")
-          .range(d, h) as PromiseLike<{ data: { vehiculo: UnidadCaso | null }[] | null }>
+          .range(d, h) as PromiseLike<{ data: { id: string; vehiculo: UnidadCaso | null }[] | null }>
     );
-    unidadesRanking = filas.map((f) => f.vehiculo ?? { marca: null, modelo: null, anio: null });
+    const idsAnulados = await obtenerIdsAnulados(supabase as unknown as SupabaseClient);
+    unidadesRanking = filas
+      .filter((f) => !idsAnulados.has(f.id))
+      .map((f) => f.vehiculo ?? { marca: null, modelo: null, anio: null });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { count } = await filtrar((supabase.from("casos") as any).select("id", { count: "exact", head: true }));
     casosIngresadosMes = count ?? 0;

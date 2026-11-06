@@ -2,7 +2,7 @@ import ExcelJS from "exceljs";
 import { ESTADOS, RAMAS } from "@/types/database";
 
 export const SELECT_CASOS = `
-  numero_siniestro, estado, rama, tipo_tramite, tramitador_nombre,
+  id, numero_siniestro, estado, rama, tipo_tramite, tramitador_nombre,
   fecha_ingreso, fecha_cierre, deuda_patentes, deuda_multas, observaciones,
   aseguradora:aseguradoras(nombre),
   asegurado:asegurados(nombre, dni, telefono, email),
@@ -128,7 +128,9 @@ export const COLUMNAS: { key: string; label: string; ancho: number; tipo?: "text
   { key: "informe_dominio_monto", label: "Informe de dominio - Monto pagado", ancho: 18, tipo: "moneda" },
   { key: "informe_dominio_fecha", label: "Informe de dominio - Fecha de pago", ancho: 18, tipo: "fecha" },
   { key: "informe_multas_monto", label: "Informe de multas - Monto pagado", ancho: 18, tipo: "moneda" },
-  { key: "informe_multas_fecha", label: "Informe de multas - Fecha de pago", ancho: 18, tipo: "fecha" }
+  { key: "informe_multas_fecha", label: "Informe de multas - Fecha de pago", ancho: 18, tipo: "fecha" },
+  { key: "anulado", label: "Anulado", ancho: 10 },
+  { key: "anulado_motivo", label: "Motivo de anulación", ancho: 40 }
 ];
 
 export function aFila(c: any): Record<string, any> {
@@ -141,6 +143,8 @@ export function aFila(c: any): Record<string, any> {
   const informeDominio = resumenPagado(movs, CONCEPTO_INFORME_DOMINIO);
   const informeMultas = resumenPagado(movs, CONCEPTO_INFORME_MULTAS);
   return {
+    anulado: c.anulado ? "Sí" : "",
+    anulado_motivo: c.anulado_motivo ?? "",
     informe_dominio_monto: informeDominio.monto,
     informe_dominio_fecha: informeDominio.fecha,
     informe_multas_monto: informeMultas.monto,

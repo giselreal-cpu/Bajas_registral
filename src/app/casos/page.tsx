@@ -44,7 +44,9 @@ export default async function CasosPage({
     .select(CASO_SELECT)
     .order("created_at", { ascending: false });
 
-  if (searchParams.estado) {
+  if (searchParams.estado === "anulado") {
+    query = query.eq("anulado", true);
+  } else if (searchParams.estado) {
     query = query.eq("estado", searchParams.estado);
   }
   if (searchParams.q) {
@@ -225,6 +227,7 @@ export default async function CasosPage({
                 {e.label}
               </option>
             ))}
+            <option value="anulado">Anulado</option>
           </select>
         </div>
         <button className="btn-secondary col-span-2 sm:col-span-1" type="submit">
@@ -310,6 +313,7 @@ export default async function CasosPage({
                 <div className="mt-2.5 flex items-center justify-between gap-2">
                   <span className={`mv-badge ${abierto ? "" : "mv-badge-closed"}`}>
                     {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
+                    {caso.anulado ? " · Anulado" : ""}
                   </span>
                   <AvanceBar {...avanceCaso(caso.estado)} size="sm" />
                 </div>
@@ -386,6 +390,11 @@ export default async function CasosPage({
                     {ESTADOS.find((e) => e.value === caso.estado)?.label ??
                       caso.estado}
                   </span>
+                  {caso.anulado && (
+                    <span className="badge ml-1 bg-red-100 text-red-700" title={caso.anulado_motivo ?? undefined}>
+                      Anulado
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2">
                   {new Date(caso.fecha_ingreso + "T00:00:00").toLocaleDateString("es-AR")}

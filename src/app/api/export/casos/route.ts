@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { SELECT_CASOS, aFila, generarXlsxCasos } from "@/lib/exportCasos";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
+import { obtenerCasosAnulados } from "@/lib/anulacion";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 // PostgREST corta cada respuesta en 1000 filas: se pide por páginas hasta
 // traer todos los casos.
@@ -38,7 +40,11 @@ export async function GET() {
     return new Response(e instanceof Error ? e.message : "No se pudieron leer los casos.", { status: 500 });
   }
 
-  const buffer = await generarXlsxCasos(data.map(aFila));
+  // Casos anulados (consulta aparte: tolera que la migración no esté aplicada).
+  const anulados = new Map((await obtenerCasosAnulados(supabase as unknown as SupabaseClient)).map((a) => [a.id, a.anulado_motivo]));
+  const buffer = await generarXlsxCasos(
+    data.map((c) => aFila({ ...c, anulado: anulados.has(c.id), anulado_motivo: anulados.get(c.id) ?? "" }))
+  );
   const fecha = new Date().toISOString().slice(0, 10);
   return new Response(new Uint8Array(buffer), {
     headers: {

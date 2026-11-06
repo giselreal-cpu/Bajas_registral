@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { traerTodo } from "@/lib/xlsxTabla";
+import { obtenerIdsAnulados } from "@/lib/anulacion";
 
 // Casos 04C cuyo "Envío de documentación Cía" ya se completó pero todavía no
 // se le cobró a la compañía aseguradora. En 04C el cobro a la compañía es el
@@ -77,8 +78,10 @@ export async function obtenerCasos04cSinCobro(
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
   const resultado: Caso04cSinCobro[] = [];
+  const idsAnulados = await obtenerIdsAnulados(supabase);
 
   for (const c of filas) {
+    if (idsAnulados.has(c.id)) continue; // los casos anulados no se reclaman
     const envio = c.bitacora
       .filter((b) => b.tipo_evento === EVENTO_ENVIO_DOCUMENTACION && b.completado)
       .sort((a, b) => (b.fecha_fin ?? b.fecha_inicio ?? "").localeCompare(a.fecha_fin ?? a.fecha_inicio ?? ""))[0];

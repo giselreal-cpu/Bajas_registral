@@ -6,6 +6,7 @@ import { estadoBadgeClass } from "@/lib/estadoBadge";
 import { CasoCabeceraProps, formatCurrency, useCasoCabecera } from "./useCasoCabecera";
 import SelectorNotificacion from "./SelectorNotificacion";
 import { avanceCaso } from "@/lib/avanceCaso";
+import AnulacionCaso from "./AnulacionCaso";
 import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabecera(props: CasoCabeceraProps) {
@@ -50,6 +51,7 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
             <span className={`badge ml-2 align-middle ${estadoBadgeClass(caso.estado)}`}>
               {ESTADOS.find((e) => e.value === caso.estado)?.label ?? caso.estado}
             </span>
+            {caso.anulado && <span className="badge ml-2 align-middle bg-red-100 text-red-700">Anulado</span>}
           </h1>
           <p className="text-sm text-slate-500">
             {caso.asegurado?.nombre} · Dominio {caso.vehiculo?.dominio} ·{" "}
@@ -93,6 +95,16 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
           </div>
         )}
       </div>
+
+      <AnulacionCaso
+        casoId={caso.id}
+        estado={caso.estado}
+        anulado={caso.anulado}
+        motivo={caso.anulado_motivo}
+        anuladoAt={caso.anulado_at}
+        soloLectura={soloLectura}
+        esAdministrador={esAdministrador}
+      />
 
       {error && (
         <div className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md p-3">

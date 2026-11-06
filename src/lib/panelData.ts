@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS } from "@/types/database";
 import { TIPOS_EVENTO, TIPO_BAJA_SOLO_INFORMES } from "@/lib/eventosBitacora";
 import { SIN_DESARMADERO } from "@/lib/desarmaderoFiltro";
+import { obtenerIdsAnulados } from "@/lib/anulacion";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { horasHabilesTranscurridas } from "@/lib/fechas";
 
 // Toda la data del Panel de control (`/panel`) y de su página de
@@ -223,8 +225,8 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   vencimientosQuery = vencimientosQuery.order("fecha_fin", { ascending: true }).limit(8);
 
   const [
-    { data: casos, error: errorCasos },
-    { data: vencimientos, error: errorVenc },
+    { data: casosTodos, error: errorCasos },
+    { data: vencimientosTodos, error: errorVenc },
     movimientos,
     cambiosHistorial,
     { data: casosCerradosConFechas, error: errorCerrados },
@@ -257,6 +259,12 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     supabase.from("usuarios").select("id, nombre").in("rol", ["administrador", "operador"]).order("nombre"),
     supabase.from("desarmaderos").select("id, nombre").order("nombre")
   ]);
+
+  // Los casos anulados no cuentan como casos en curso (ni sus vencimientos).
+  const idsAnulados = await obtenerIdsAnulados(supabase as unknown as SupabaseClient);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const casos: any[] = (casosTodos ?? []).filter((c) => !idsAnulados.has(c.id));
+  const vencimientos = ((vencimientosTodos ?? []) as { caso_id: string }[]).filter((v) => !idsAnulados.has(v.caso_id));
 
   const hayFiltrosPanel = !!(
     filtros.aseguradora_id ||
