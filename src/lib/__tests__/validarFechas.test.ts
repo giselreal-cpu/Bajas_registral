@@ -15,3 +15,10 @@ describe("validarFechas", () => {
     expect(errorDeFechas({ fecha_fin: "0006-10-23" })).toContain("fecha_fin");
   });
 });
+
+describe("años con un dígito de más", () => {
+  it("rechaza fechas como 20266-11-30 (año de 5 dígitos)", () => {
+    expect(fechaRazonable("20266-11-30")).toBe(false);
+    expect(errorDeFechas({ fecha_vencimiento: "20266-11-30" })).toContain("fecha_vencimiento");
+  });
+});

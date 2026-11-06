@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { obtenerCajaPesosId, obtenerMonedaCaja } from "@/lib/cajaPesos";
@@ -37,6 +38,10 @@ export async function PUT(
 ) {
   const supabase = createClient();
   const body = await request.json();
+  const errorFecha = errorDeFechas({ fecha: body.fecha, factura_compania_fecha: body.factura_compania_fecha });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
+  }
 
   const { data: existente } = await supabase
     .from("movimientos_caso")

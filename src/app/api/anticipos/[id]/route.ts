@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { createClient } from "@/lib/supabase/server";
 import { obtenerCajaPesosId, obtenerMonedaCaja } from "@/lib/cajaPesos";
 import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
@@ -13,6 +14,10 @@ export async function PUT(
 ) {
   const supabase = createClient();
   const body = await request.json();
+  const errorFecha = errorDeFechas({ fecha: body.fecha });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
+  }
 
   const { data: existente, error: errorExistente } = await supabase
     .from("anticipos")

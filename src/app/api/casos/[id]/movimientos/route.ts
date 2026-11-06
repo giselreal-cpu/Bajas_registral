@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { registrarCambio } from "@/lib/historial";
@@ -32,6 +33,10 @@ export async function POST(
 ) {
   const supabase = createClient();
   const body = await request.json();
+  const errorFecha = errorDeFechas({ fecha: body.fecha });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
+  }
   const usuarioActualId = await getUsuarioActualId();
 
   const {

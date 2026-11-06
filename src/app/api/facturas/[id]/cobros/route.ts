@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { recalcularEstadoFactura, obtenerCuentaContableDeFactura } from "@/lib/facturas";
@@ -13,6 +14,10 @@ export async function POST(
 ) {
   const supabase = createClient();
   const body = await request.json();
+  const errorFecha = errorDeFechas({ fecha: body.fecha });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
+  }
   const { monto, fecha, medio_pago, observacion, caja_id, cuenta_contable_id } = body;
 
   if (!monto || Number(monto) <= 0) {

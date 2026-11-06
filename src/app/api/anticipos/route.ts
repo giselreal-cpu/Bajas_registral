@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActualId } from "@/lib/auth/usuarioActual";
 import { obtenerCajaPesosId, obtenerMonedaCaja } from "@/lib/cajaPesos";
@@ -35,6 +36,10 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const supabase = createClient();
   const body = await request.json();
+  const errorFecha = errorDeFechas({ fecha: body.fecha });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
+  }
   const { tipo_receptor, receptor_id, monto, observacion, fecha, caja_id, cuenta_contable_id } = body;
 
   if (!tipo_receptor || !receptor_id || !monto || Number(monto) <= 0) {

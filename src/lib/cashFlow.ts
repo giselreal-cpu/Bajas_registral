@@ -112,6 +112,7 @@ export async function obtenerCashFlow(): Promise<DatosCashFlow> {
   // anterior a la semana actual (vencido) cae en el índice 0.
   function indiceSemana(fechaStr: string): number {
     const fecha = new Date(fechaStr + "T00:00:00");
+    if (isNaN(fecha.getTime())) return 0;
     const dias = Math.floor((fecha.getTime() - inicioSemanaActual.getTime()) / (1000 * 60 * 60 * 24));
     const idx = Math.floor(dias / 7);
     return Math.min(Math.max(idx, 0), SEMANAS_ADELANTE - 1);

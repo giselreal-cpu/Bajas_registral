@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambioGeneral } from "@/lib/historial";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
@@ -10,6 +11,10 @@ const ALLOWED_FIELDS = ["fecha", "descripcion", "tipo", "monto", "caja_id", "cue
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();
   const body = await request.json();
+  const errorFecha = errorDeFechas({ fecha: body.fecha });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
+  }
 
   const { data: existente } = await supabase
     .from("movimientos_generales")

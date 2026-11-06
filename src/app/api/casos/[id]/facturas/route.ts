@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { errorDeFechas } from "@/lib/validarFechas";
 import { createClient } from "@/lib/supabase/server";
 import { registrarCambio } from "@/lib/historial";
 import { periodoCerrado, ERROR_PERIODO_CERRADO } from "@/lib/cierrePeriodo";
@@ -30,6 +31,10 @@ export async function POST(
 ) {
   const supabase = createClient();
   const body = await request.json();
+  const errorFecha = errorDeFechas({ fecha_vencimiento: body.fecha_vencimiento });
+  if (errorFecha) {
+    return NextResponse.json({ error: errorFecha }, { status: 400 });
+  }
   const { tipo_receptor, receptor_id, movimiento_ids, fecha_vencimiento, forma_pago, cuentas_pago } = body;
   // cuentas_pago: [{ cuenta_bancaria, monto }] — solo tiene sentido cuando
   // forma_pago es "Transferencia"; una fila = monto completo a una cuenta,
