@@ -877,6 +877,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Anulación de casos (migración `0078`).** Un caso que no avanza (el asegurado arregló por su cuenta, otras causas) se **anula** en vez de borrarlo: queda con su número correlativo, su bitácora y sus movimientos, marcado como anulado con el motivo (obligatorio), la fecha y quién lo anuló (también en el historial). Desde la ficha, "Anular caso" (operador y administrador; un caso cerrado no se anula); "Reactivar caso" solo el administrador. Los anulados se ven con una etiqueta "Anulado" y un filtro "Anulado" en Casos, y no cuentan como casos en curso en el Panel, la Agenda, el ranking de unidades de Análisis ni el listado de 04C sin cobro; el Excel de Casos trae las columnas Anulado y Motivo de anulación. El estado del caso no se toca (se conserva por si se reactiva). Los movimientos financieros de un caso anulado siguen en Cuenta corriente y Seguimiento: hay que revisarlos a mano. Ver `src/lib/anulacion.ts`.
 
+**Listados por gestor (Panel y detalle).** "Pendientes" y "Para pagar" de cada gestor se muestran por **dominio** (no por siniestro). "Para pagar" incluye los casos cerrados y también los **04C con el evento "Envío de documentación Cía" completado** que todavía no cerraron (el trabajo del gestor ya terminó), siempre que no tengan los honorarios de gestoría pagados; esos 04C dejan de contarse como pendientes.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

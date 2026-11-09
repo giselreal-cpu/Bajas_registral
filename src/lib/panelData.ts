@@ -345,6 +345,24 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
       !(idSoloInformes && c.tipo_baja_id === idSoloInformes)
   );
 
+  // Casos 04C del gestor que todavía no cerraron pero ya tienen completado el
+  // "Envío de documentación Cía": para el gestor su trabajo terminó, así que
+  // dejan de ser pendientes y pasan a la lista de los listos para pagarle.
+  const id04C = (tiposBaja ?? []).find((t) => t.nombre === "04C")?.id;
+  const candidatos04c = ((casos as (CasoResumen & { tipo_baja_id?: string | null })[] | null) ?? [])
+    .filter((c) => c.gestor_id && id04C && c.tipo_baja_id === id04C && c.estado !== "cerrado")
+    .map((c) => c.id);
+  const envio04c = new Set<string>();
+  if (candidatos04c.length > 0) {
+    const { data: envios } = await supabase
+      .from("bitacora")
+      .select("caso_id")
+      .eq("tipo_evento", "Envío de documentación Cía")
+      .eq("completado", true)
+      .in("caso_id", candidatos04c);
+    for (const e of envios ?? []) envio04c.add(e.caso_id);
+  }
+
   const casosPorGestorMap = new Map<
     string,
     { nombre: string; total: number; pendientes: CasoResumen[]; cerrados: CasoResumen[] }
@@ -361,10 +379,12 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     }
     const entrada = casosPorGestorMap.get(c.gestor_id)!;
     entrada.total++;
-    if (c.estado !== "documentacion_enviada" && c.estado !== "cerrado") {
+    const terminado04c = envio04c.has(c.id);
+    if (c.estado !== "documentacion_enviada" && c.estado !== "cerrado" && !terminado04c) {
       entrada.pendientes.push(c);
     }
-    if (c.estado === "cerrado") {
+    // "cerrados" = casos cerrados + 04C con la documentación ya enviada.
+    if (c.estado === "cerrado" || terminado04c) {
       entrada.cerrados.push(c);
     }
   }

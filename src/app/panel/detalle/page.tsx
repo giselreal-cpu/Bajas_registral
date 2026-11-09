@@ -124,9 +124,9 @@ export default async function PanelDetallePage({
                         <div className="min-w-0">
                           <Link
                             href={`/casos/${c.id}`}
-                            className="text-brand-700 font-medium hover:underline text-sm"
+                            className="text-brand-700 font-medium hover:underline text-sm uppercase"
                           >
-                            {c.numero_siniestro}
+                            {c.vehiculo?.dominio ?? c.numero_siniestro}
                           </Link>
                           <p className="text-xs text-slate-500">{c.asegurado?.nombre}</p>
                         </div>
@@ -141,12 +141,16 @@ export default async function PanelDetallePage({
 
               <div>
                 <h3 className="text-sm font-medium text-slate-700 mb-2">
-                  Cerrados sin pagar a {gestorSeleccionado.nombre} (
+                  Para pagar a {gestorSeleccionado.nombre} (
                   {gestorSeleccionado.cerradosSinPagar.length})
                 </h3>
+                <p className="text-xs text-slate-400 mb-2">
+                  Casos cerrados y casos 04C con el envío de documentación completado, sin los honorarios de gestoría
+                  pagados.
+                </p>
                 {gestorSeleccionado.cerradosSinPagar.length === 0 ? (
                   <p className="text-sm text-slate-500">
-                    No tiene casos cerrados pendientes de pago de honorarios.
+                    No tiene casos cerrados (ni 04C con la documentación enviada) pendientes de pago de honorarios.
                   </p>
                 ) : (
                   <div className="divide-y divide-slate-100">
@@ -155,9 +159,9 @@ export default async function PanelDetallePage({
                         <div className="min-w-0">
                           <Link
                             href={`/casos/${c.id}`}
-                            className="text-brand-700 font-medium hover:underline text-sm"
+                            className="text-brand-700 font-medium hover:underline text-sm uppercase"
                           >
-                            {c.numero_siniestro}
+                            {c.vehiculo?.dominio ?? c.numero_siniestro}
                           </Link>
                           <p className="text-xs text-slate-500">{c.asegurado?.nombre}</p>
                         </div>

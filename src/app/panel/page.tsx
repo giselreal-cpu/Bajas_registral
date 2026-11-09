@@ -411,7 +411,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
                   <th className="py-1 pr-4 font-medium">Gestor</th>
                   <th className="py-1 pr-4 font-medium">Casos asignados</th>
                   <th className="py-1 pr-4 font-medium">Pendientes*</th>
-                  <th className="py-1 pr-4 font-medium">Cerrados sin pagar**</th>
+                  <th className="py-1 pr-4 font-medium">Para pagar**</th>
                 </tr>
               </thead>
               <tbody>
@@ -435,8 +435,9 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
             </table>
           </div>
           <p className="text-xs text-slate-400 mt-3">
-            *No están en &quot;Documentación enviada a la Cía&quot; ni cerrados. **Casos cerrados
-            sin un movimiento de &quot;Honorarios por Gestoría&quot; marcado como pagado.
+            *No están en &quot;Documentación enviada a la Cía&quot; ni cerrados (ni son 04C con la
+            documentación ya enviada). **Casos cerrados, y 04C con el envío de documentación
+            completado, sin un movimiento de &quot;Honorarios por Gestoría&quot; marcado como pagado.
           </p>
         </section>
       )}
