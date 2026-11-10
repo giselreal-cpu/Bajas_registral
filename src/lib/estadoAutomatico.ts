@@ -204,6 +204,34 @@ export async function revertirEstadoGestorAsignado(casoId: string) {
   return actualizado;
 }
 
+// Si un evento que había hecho avanzar el estado se desmarca o se elimina
+// (por ejemplo se completó la Presentación de Baja por error), el estado
+// vuelve al que indica la bitácora — con piso en "Gestor Asignado" si el caso
+// tiene gestor, porque ese estado lo da la asignación y no un evento. No toca
+// los casos cerrados (de eso se ocupa reabrirSiCierreNoCompletado).
+export async function bajarEstadoSiCorresponde(casoId: string) {
+  const supabase = createClient();
+  const [{ data: caso }, { data: eventos }] = await Promise.all([
+    supabase.from("casos").select("estado, gestor_id").eq("id", casoId).maybeSingle(),
+    supabase.from("bitacora").select("tipo_evento, completado").eq("caso_id", casoId)
+  ]);
+  if (!caso || caso.estado === "cerrado") return null;
+
+  let sugerido = estadoSugeridoPorBitacora(eventos ?? []);
+  if (caso.gestor_id && ORDEN_ESTADOS.indexOf(sugerido) < ORDEN_ESTADOS.indexOf("gestor_asignado")) {
+    sugerido = "gestor_asignado";
+  }
+  if (ORDEN_ESTADOS.indexOf(sugerido) >= ORDEN_ESTADOS.indexOf(caso.estado as Estado)) return null;
+
+  const { data: actualizado } = await supabase
+    .from("casos")
+    .update({ estado: sugerido })
+    .eq("id", casoId)
+    .select("estado")
+    .maybeSingle();
+  return actualizado;
+}
+
 // Un caso solo puede estar "cerrado" si su evento "Cierre de Caso" está
 // completado. Si ese evento vuelve a quedar pendiente (o se elimina), el
 // estado nunca retrocedía solo y el caso seguía figurando cerrado: acá se

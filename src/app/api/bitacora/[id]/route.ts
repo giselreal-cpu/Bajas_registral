@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
-import { recalcularEstado, reabrirSiCierreNoCompletado } from "@/lib/estadoAutomatico";
+import { recalcularEstado, reabrirSiCierreNoCompletado, bajarEstadoSiCorresponde } from "@/lib/estadoAutomatico";
 import { errorDeFechas } from "@/lib/validarFechas";
 import { registrarCambio } from "@/lib/historial";
 import { motivoBloqueo } from "@/lib/eventosBitacora";
@@ -225,6 +225,12 @@ export async function PUT(
 
   const estadoDebug = await recalcularEstado(data.caso_id);
 
+  // Si se desmarcó un evento que había hecho avanzar el estado, el estado baja
+  // al que indica la bitácora.
+  if (existente?.completado && !data.completado) {
+    await bajarEstadoSiCorresponde(data.caso_id);
+  }
+
   // Si se desmarcó "Cierre de Caso", el caso deja de estar cerrado.
   if (data.tipo_evento === "Cierre de Caso" && !data.completado) {
     await reabrirSiCierreNoCompletado(data.caso_id);
@@ -270,6 +276,9 @@ export async function DELETE(
 
   if (existente?.tipo_evento === "Cierre de Caso") {
     await reabrirSiCierreNoCompletado(existente.caso_id);
+  }
+  if (existente) {
+    await bajarEstadoSiCorresponde(existente.caso_id);
   }
 
   if (existente) {
