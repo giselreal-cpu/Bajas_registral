@@ -140,7 +140,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
   let casosQuery = supabase
     .from("casos")
     .select(
-      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, gestor_id, desarmadero_id, gestor:gestores(nombre), asegurado:asegurados(nombre), responsable:usuarios(nombre), vehiculo:vehiculos(dominio, marca, modelo)"
+      "id, estado, numero_siniestro, created_at, fecha_ingreso, aseguradora_id, tipo_baja_id, gestor_id, desarmadero_id, gestor:gestores(nombre), asegurado:asegurados(nombre), responsable:usuarios!responsable_id(nombre), vehiculo:vehiculos(dominio, marca, modelo)"
     );
 
   if (filtros.aseguradora_id) {
@@ -208,7 +208,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     .select(
       `
         id, caso_id, tipo_evento, fecha_fin, completado,
-        caso:casos${filtros.responsable_id || filtros.desarmadero_id ? "!inner" : ""}(numero_siniestro, estado, responsable_id, asegurado:asegurados(nombre), responsable:usuarios(nombre))
+        caso:casos${filtros.responsable_id || filtros.desarmadero_id ? "!inner" : ""}(numero_siniestro, estado, responsable_id, asegurado:asegurados(nombre), responsable:usuarios!responsable_id(nombre))
       `
     )
     .eq("completado", false)

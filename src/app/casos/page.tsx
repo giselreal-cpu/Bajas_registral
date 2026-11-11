@@ -14,7 +14,7 @@ const CASO_SELECT = `
   aseguradora:aseguradoras(*),
   asegurado:asegurados(*),
   vehiculo:vehiculos!inner(*),
-  responsable:usuarios(*),
+  responsable:usuarios!responsable_id(*),
   tipo_baja:tipos_baja(*),
   desarmadero:desarmaderos(nombre)
 `;

@@ -10,7 +10,7 @@ export const SELECT_CASOS = `
   desarmadero:desarmaderos(nombre),
   registro:registros_automotores(numero),
   tipo_baja:tipos_baja(nombre),
-  responsable:usuarios(nombre),
+  responsable:usuarios!responsable_id(nombre),
   movimientos_caso(monto, moneda, pagado, fecha, fecha_pago, anulado, aprobado, concepto:conceptos_movimiento(nombre, tipo)),
   facturas(tipo_receptor, cobros(monto, moneda, fecha, anulado))
 `;

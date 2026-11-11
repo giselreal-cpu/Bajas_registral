@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
         numero_siniestro,
         estado,
         asegurado:asegurados(nombre),
-        responsable:usuarios(id, nombre)
+        responsable:usuarios!responsable_id(id, nombre)
       )
     `
     )

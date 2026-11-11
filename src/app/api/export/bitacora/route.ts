@@ -14,7 +14,7 @@ export async function GET() {
         .select(
           `
       tipo_evento, observacion, es_interna, completado, fecha_inicio, fecha_fin, created_at,
-      caso:casos(numero_siniestro, responsable:usuarios(id)),
+      caso:casos(numero_siniestro, responsable:usuarios!responsable_id(id)),
       usuario:usuarios(nombre)
     `
         )
