@@ -3,6 +3,16 @@ import { createClient } from "@/lib/supabase/server";
 import { getUsuarioActual } from "@/lib/auth/usuarioActual";
 import { registrarCambio } from "@/lib/historial";
 
+// Si la consulta falla porque todavía no existen las columnas de anulación
+// (migración 0078 sin aplicar), se avisa eso en vez de un engañoso "no encontrado".
+function errorDeMigracion(error: { message: string } | null | undefined) {
+  if (!error || !/anulado|does not exist/i.test(error.message)) return null;
+  return NextResponse.json(
+    { error: "Falta aplicar la migración 0078 (anulación de casos) en Supabase. Corrés el SQL y vuelve a andar." },
+    { status: 503 }
+  );
+}
+
 // POST /api/casos/[id]/anular { motivo } -> anula el caso (queda registrado
 // quién, cuándo y por qué). No borra nada: conserva el número correlativo,
 // la bitácora y los movimientos. Equipo interno; un caso cerrado no se anula.
@@ -19,11 +29,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   }
 
   const supabase = createClient();
-  const { data: caso } = await supabase
+  const { data: caso, error: errorCaso } = await supabase
     .from("casos")
     .select("id, estado, anulado")
     .eq("id", params.id)
     .maybeSingle();
+  const sinMigracion = errorDeMigracion(errorCaso);
+  if (sinMigracion) return sinMigracion;
   if (!caso) return NextResponse.json({ error: "Caso no encontrado." }, { status: 404 });
   if (caso.anulado) return NextResponse.json({ error: "El caso ya está anulado." }, { status: 409 });
   if (caso.estado === "cerrado") {
@@ -53,11 +65,13 @@ export async function DELETE(_request: NextRequest, { params }: { params: { id: 
   }
 
   const supabase = createClient();
-  const { data: caso } = await supabase
+  const { data: caso, error: errorCaso } = await supabase
     .from("casos")
     .select("id, anulado, anulado_motivo")
     .eq("id", params.id)
     .maybeSingle();
+  const sinMigracion = errorDeMigracion(errorCaso);
+  if (sinMigracion) return sinMigracion;
   if (!caso) return NextResponse.json({ error: "Caso no encontrado." }, { status: 404 });
   if (!caso.anulado) return NextResponse.json({ error: "El caso no está anulado." }, { status: 409 });
 
