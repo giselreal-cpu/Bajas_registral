@@ -73,14 +73,20 @@ function mensajeTraslado(
   caso: CasoConRelaciones,
   grueroNombre: string,
   localidad: string,
-  enlace?: string | null
+  enlace?: string | null,
+  desarmaderoDestino?: { nombre: string; direccion: string | null } | null
 ): string {
   const dominio = caso.vehiculo?.dominio ?? "";
   const vehiculo = [caso.vehiculo?.marca, caso.vehiculo?.modelo].filter(Boolean).join(" ");
   const responsable = caso.responsable?.nombre ?? "";
+  // Destino: el mismo desarmadero asignado al caso (con su dirección si la tiene).
+  const desarmadero = desarmaderoDestino ?? caso.desarmadero;
+  const destino = desarmadero
+    ? `${desarmadero.nombre}${desarmadero.direccion ? ` (${desarmadero.direccion})` : ""}`
+    : "[desarmadero sin asignar]";
   const base = `Hola ${grueroNombre || ""}, te asignamos el traslado de la unidad ${
     vehiculo || "s/d"
-  }, dominio ${dominio}, que se encuentra en ${localidad.trim() || "[localidad]"}. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
+  }, dominio ${dominio}, que se encuentra en ${localidad.trim() || "[localidad]"}. Debe ser llevada a ${destino}. Cualquier consulta, contactate con ${responsable} de ${GESTORIA_NOMBRE}.`;
   return enlace
     ? `${base}\nAcá tenés la autorización, el informe de dominio y, si corresponde, la tenencia definitiva: ${enlace}`
     : base;
@@ -94,7 +100,8 @@ export function GrueroBox({
   onNombreChange,
   onContactoChange,
   onLocalidadChange,
-  enlace
+  enlace,
+  desarmaderoDestino
 }: {
   caso: CasoConRelaciones;
   nombre: string;
@@ -104,9 +111,11 @@ export function GrueroBox({
   onContactoChange: (v: string) => void;
   onLocalidadChange: (v: string) => void;
   enlace?: string | null;
+  // Desarmadero al que va la unidad (el de la Asignación de desarmadero).
+  desarmaderoDestino?: { nombre: string; direccion: string | null } | null;
 }) {
   const [copiado, setCopiado] = useState(false);
-  const mensaje = mensajeTraslado(caso, nombre, localidad, enlace);
+  const mensaje = mensajeTraslado(caso, nombre, localidad, enlace, desarmaderoDestino);
   const localidadAsegurado = caso.asegurado?.localidad?.trim() ?? "";
   const link = linkWhatsapp(contacto, mensaje);
 
@@ -698,6 +707,12 @@ export default function BitacoraSection({
     }
   }
 
+  // Desarmadero asignado: el del evento "Asignación de desarmadero" (si ya se
+  // cargó en esta sesión) o, si no, el que trae el caso.
+  const idDesarmaderoAsignado =
+    (eventos ?? []).find((ev) => ev.tipo_evento === EVENTO_ASIGNACION_DESARMADERO)?.desarmadero_id ?? caso.desarmadero_id;
+  const desarmaderoDestino = desarmaderos.find((d) => d.id === idDesarmaderoAsignado) ?? caso.desarmadero ?? null;
+
   const tiposYaCargados = new Set((eventos ?? []).map((ev) => ev.tipo_evento));
   // "Solo Informes" no pasa por gestor, traslado, formularios ni
   // presentación: solo se ofrecen los eventos de su secuencia corta.
@@ -750,6 +765,7 @@ export default function BitacoraSection({
           {form.tipo_evento === "Traslado" && (
             <GrueroBox
               caso={caso}
+              desarmaderoDestino={desarmaderoDestino}
               nombre={form.gruero_nombre}
               contacto={form.gruero_contacto}
               localidad={form.traslado_localidad}
@@ -902,6 +918,7 @@ export default function BitacoraSection({
                 {editForm.tipo_evento === "Traslado" && (
                   <GrueroBox
                     caso={caso}
+                    desarmaderoDestino={desarmaderoDestino}
                     nombre={editForm.gruero_nombre}
                     contacto={editForm.gruero_contacto}
                     localidad={editForm.traslado_localidad}

@@ -17,6 +17,7 @@ interface EventoTraslado {
   caso: {
     numero_siniestro: string;
     vehiculo: { dominio: string; marca: string | null; modelo: string | null } | null;
+    desarmadero: { nombre: string; direccion: string | null; provincia: string | null } | null;
   } | null;
 }
 
@@ -34,7 +35,7 @@ export default async function EnlaceGrueroPage({
       id,
       caso_id,
       gruero_nombre,
-      caso:casos(numero_siniestro, vehiculo:vehiculos(dominio, marca, modelo))
+      caso:casos(numero_siniestro, vehiculo:vehiculos(dominio, marca, modelo), desarmadero:desarmaderos(nombre, direccion, provincia))
     `
     )
     .eq("token_gruero", params.token)
@@ -114,6 +115,14 @@ export default async function EnlaceGrueroPage({
           <div>
             <div className="label">Localidad donde está la unidad</div>
             <div className="text-slate-800">{localidad ?? "—"}</div>
+          </div>
+          <div className="sm:col-span-2">
+            <div className="label">Llevar al desarmadero</div>
+            <div className="text-slate-800">
+              {caso?.desarmadero
+                ? [caso.desarmadero.nombre, caso.desarmadero.direccion, caso.desarmadero.provincia].filter(Boolean).join(" · ")
+                : "Todavía sin asignar"}
+            </div>
           </div>
         </div>
       </section>
