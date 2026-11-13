@@ -27,3 +27,31 @@ describe("clasificarDocumentosVisibles", () => {
     expect(v.fotos.map((d) => d.nombre)).toEqual(["Fotos"]);
   });
 });
+
+describe("clasificarDocumentosVisibles: DNI, estatuto, poder y extravío", () => {
+  it("reconoce los documentos extra que también puede ver el desarmadero", () => {
+    const docs = [
+      doc("DNI frente"),
+      doc("Cédula - DNI"),
+      doc("Estatuto"),
+      doc("Poder"),
+      doc("Denuncia por extravío"),
+      doc("Foto titulat", "imagen_dominio"),
+      doc("Autorización"),
+      doc("Denuncia siniestro"),
+      doc("Multas")
+    ];
+    const v = clasificarDocumentosVisibles(docs);
+    expect(v.dni.map((d) => d.nombre)).toEqual(["DNI frente", "Cédula - DNI"]);
+    expect(v.cedulas.map((d) => d.nombre)).toEqual(["Cédula - DNI"]);
+    expect(v.estatuto).toHaveLength(1);
+    expect(v.poder).toHaveLength(1);
+    expect(v.extravio.map((d) => d.nombre)).toEqual(["Denuncia por extravío"]);
+    expect(v.fotoTitular.map((d) => d.nombre)).toEqual(["Foto titulat"]);
+    // lo que no está en la lista no se comparte
+    const compartidos = new Set(Object.values(v).flat().map((d) => d.nombre));
+    expect(compartidos.has("Autorización")).toBe(false);
+    expect(compartidos.has("Denuncia siniestro")).toBe(false);
+    expect(compartidos.has("Multas")).toBe(false);
+  });
+});

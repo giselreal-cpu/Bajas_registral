@@ -4,7 +4,11 @@ import { createServiceClient } from "@/lib/supabase/serviceClient";
 import InstallBanner from "@/components/InstallBanner";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
-import { GRUPOS_VISIBLES_EXTERNOS, clasificarDocumentosVisibles } from "@/lib/documentosVisiblesExternos";
+import {
+  GRUPOS_VISIBLES_EXTERNOS,
+  clasificarDocumentosVisibles,
+  type ClaveGrupoVisible
+} from "@/lib/documentosVisiblesExternos";
 import { PIEZAS_RUDAC } from "@/lib/anexo04";
 import Anexo04Form from "./Anexo04Form";
 import { NOMBRE_IPV, usaAnexo04 } from "@/lib/tipoBaja";
@@ -131,13 +135,9 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     Promise.all(
       docs.map(async (d) => ({ id: d.id, nombre: d.nombre, url_firmada: await obtenerUrlFirmada(d.url) }))
     );
-  const documentacion = {
-    titulo: await firmar(visibles.titulo),
-    cedulas: await firmar(visibles.cedulas),
-    informeDominio: await firmar(visibles.informeDominio),
-    fotoTitular: await firmar(visibles.fotoTitular),
-    fotos: await firmar(visibles.fotos)
-  };
+  const documentacion = Object.fromEntries(
+    await Promise.all(GRUPOS_VISIBLES_EXTERNOS.map(async (g) => [g.clave, await firmar(visibles[g.clave])]))
+  ) as Record<ClaveGrupoVisible, DocumentoConUrl[]>;
 
   const { data: observacionesRaw } = await supabase
     .from("bitacora")

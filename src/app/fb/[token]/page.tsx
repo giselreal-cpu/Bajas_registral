@@ -76,7 +76,10 @@ export default async function EnlaceFormularioBajaPage({
   // documentosVisiblesExternos.ts) — no multas, patentes ni documentación de
   // la compañía. Se muestra aparte de lo que ya subió por este enlace.
   const visibles = clasificarDocumentosVisibles(todosLosDocumentos ?? []);
-  const documentosDelCaso = GRUPOS_VISIBLES_EXTERNOS.flatMap((g) => visibles[g.clave]);
+  // Un documento puede caer en más de un grupo (ej. "Cédula - DNI"): se firma una sola vez.
+  const documentosDelCaso = Array.from(
+    new Map(GRUPOS_VISIBLES_EXTERNOS.flatMap((g) => visibles[g.clave]).map((d) => [d.id, d])).values()
+  );
   const formulariosCargados = (todosLosDocumentos ?? []).filter(
     (d) => d.categoria === "formulario_baja"
   );
