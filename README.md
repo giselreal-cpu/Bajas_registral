@@ -881,6 +881,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Días sin movimiento = días hábiles.** En el Panel, "Sin movimiento 3+ días hábiles" y "N días hábiles sin movimiento" no cuentan sábados, domingos ni feriados del calendario laboral argentino (`src/lib/feriados.ts`). Los feriados se calculan por regla: los fijos, los trasladables (ley 27.399: martes/miércoles pasan al lunes anterior, jueves/viernes al lunes siguiente) y los que dependen de la Pascua (Carnaval y Viernes Santo). No incluye los días no laborables con fines turísticos (puentes) ni feriados puntuales por decreto: se agregan a mano en `FERIADOS_EXTRA`. Las fechas se toman en horario de Argentina.
 
+**04C que solo esperan el cierre no piden atención.** Un caso 04C abierto con el "Envío de documentación Cía" completado (le falta solo cerrar, por ejemplo esperando el certificado de compactación) queda afuera de "Sin movimiento", "Sin contactar" y del vencimiento de su "Cierre de Caso" en el Panel (`src/lib/panelData.ts`).
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

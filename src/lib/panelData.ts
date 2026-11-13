@@ -312,8 +312,27 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     registrarMovimiento(h.caso_id, h.created_at);
   }
 
+  // Casos 04C abiertos que ya tienen completado el "Envío de documentación
+  // Cía": solo les falta cerrar (por ejemplo, esperando el certificado de
+  // compactación). No piden atención y, para el gestor, su trabajo terminó
+  // (pasan a la lista de los listos para pagarle).
+  const id04C = (tiposBaja ?? []).find((t) => t.nombre === "04C")?.id;
+  const abiertos04c = ((casos as (CasoResumen & { tipo_baja_id?: string | null })[] | null) ?? [])
+    .filter((c) => id04C && c.tipo_baja_id === id04C && c.estado !== "cerrado")
+    .map((c) => c.id);
+  const envio04c = new Set<string>();
+  if (abiertos04c.length > 0) {
+    const { data: envios } = await supabase
+      .from("bitacora")
+      .select("caso_id")
+      .eq("tipo_evento", "Envío de documentación Cía")
+      .eq("completado", true)
+      .in("caso_id", abiertos04c);
+    for (const e of envios ?? []) envio04c.add(e.caso_id);
+  }
+
   const casosSinMovimiento = ((casos as CasoResumen[] | null) ?? [])
-    .filter((c) => c.estado !== "cerrado")
+    .filter((c) => c.estado !== "cerrado" && !envio04c.has(c.id))
     .map((c) => {
       const ultimoMovimiento = ultimoMovimientoPorCaso.get(c.id) ?? c.created_at;
       // Días hábiles transcurridos desde el último movimiento (sin sábados,
@@ -333,6 +352,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     : ((casos as (CasoResumen & { tipo_baja_id?: string | null })[] | null) ?? []).filter(
         (c) =>
           c.estado !== "cerrado" &&
+          !envio04c.has(c.id) &&
           !casosConContactoIniciado.has(c.id) &&
           !(idSoloInformes && c.tipo_baja_id === idSoloInformes)
       );
@@ -347,24 +367,6 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
       ESTADOS.findIndex((e) => e.value === c.estado) >= rankAutorizacion &&
       !(idSoloInformes && c.tipo_baja_id === idSoloInformes)
   );
-
-  // Casos 04C del gestor que todavía no cerraron pero ya tienen completado el
-  // "Envío de documentación Cía": para el gestor su trabajo terminó, así que
-  // dejan de ser pendientes y pasan a la lista de los listos para pagarle.
-  const id04C = (tiposBaja ?? []).find((t) => t.nombre === "04C")?.id;
-  const candidatos04c = ((casos as (CasoResumen & { tipo_baja_id?: string | null })[] | null) ?? [])
-    .filter((c) => c.gestor_id && id04C && c.tipo_baja_id === id04C && c.estado !== "cerrado")
-    .map((c) => c.id);
-  const envio04c = new Set<string>();
-  if (candidatos04c.length > 0) {
-    const { data: envios } = await supabase
-      .from("bitacora")
-      .select("caso_id")
-      .eq("tipo_evento", "Envío de documentación Cía")
-      .eq("completado", true)
-      .in("caso_id", candidatos04c);
-    for (const e of envios ?? []) envio04c.add(e.caso_id);
-  }
 
   const casosPorGestorMap = new Map<
     string,
@@ -686,6 +688,8 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
 
   const itemsAtencion: ItemAtencion[] = [];
   for (const v of (vencimientos as unknown as VencimientoRow[] | null) ?? []) {
+    // El cierre de un 04C que solo espera el certificado de compactación no es un vencimiento a atender.
+    if (v.tipo_evento === "Cierre de Caso" && envio04c.has(v.caso_id)) continue;
     const vencida = !!v.fecha_fin && new Date(v.fecha_fin + "T00:00:00") < hoy;
     itemsAtencion.push({
       key: `venc-${v.id}`,
