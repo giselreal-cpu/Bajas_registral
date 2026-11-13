@@ -66,7 +66,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
       vehiculo: c.vehiculo,
       asegurado: c.asegurado,
       responsable: c.responsable,
-      motivo: `${c.dias} días sin movimiento`,
+      motivo: `${c.dias} días hábiles sin movimiento`,
       clase: "bg-amber-100 text-amber-800"
     })),
     ...casosSinDesarmadero.map((c) => ({
@@ -261,7 +261,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard label="Casos abiertos" value={casosAbiertos} sub={`${totalCasos} históricos`} />
-        <StatCard label="Sin movimiento 3+ días" value={casosSinMovimiento.length} />
+        <StatCard label="Sin movimiento 3+ días hábiles" value={casosSinMovimiento.length} />
         {puedeVerFinanzas && (
           <StatCard label="A cobrar" value={formatCurrency(totalACobrarCartera)} sub={`${casosACobrarCartera} ${casosACobrarCartera === 1 ? "caso" : "casos"}`} />
         )}

@@ -879,6 +879,8 @@ No se da acceso a `anon`: el sistema no lee datos con ese rol (las paginas publi
 
 **Listados por gestor (Panel y detalle).** "Pendientes" y "Para pagar" de cada gestor se muestran por **dominio** (no por siniestro). "Para pagar" incluye los casos cerrados y también los **04C con el evento "Envío de documentación Cía" completado** que todavía no cerraron (el trabajo del gestor ya terminó), siempre que no tengan los honorarios de gestoría pagados; esos 04C dejan de contarse como pendientes.
 
+**Días sin movimiento = días hábiles.** En el Panel, "Sin movimiento 3+ días hábiles" y "N días hábiles sin movimiento" no cuentan sábados, domingos ni feriados del calendario laboral argentino (`src/lib/feriados.ts`). Los feriados se calculan por regla: los fijos, los trasladables (ley 27.399: martes/miércoles pasan al lunes anterior, jueves/viernes al lunes siguiente) y los que dependen de la Pascua (Carnaval y Viernes Santo). No incluye los días no laborables con fines turísticos (puentes) ni feriados puntuales por decreto: se agregan a mano en `FERIADOS_EXTRA`. Las fechas se toman en horario de Argentina.
+
 ## Puesta en marcha
 
 ### 1. Crear el proyecto en Supabase

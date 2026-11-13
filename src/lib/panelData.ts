@@ -3,6 +3,7 @@ import { Caso, ESTADOS } from "@/types/database";
 import { TIPOS_EVENTO, TIPO_BAJA_SOLO_INFORMES } from "@/lib/eventosBitacora";
 import { SIN_DESARMADERO } from "@/lib/desarmaderoFiltro";
 import { obtenerIdsAnulados } from "@/lib/anulacion";
+import { diasHabilesTranscurridos } from "@/lib/feriados";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { horasHabilesTranscurridas } from "@/lib/fechas";
 
@@ -98,6 +99,8 @@ export interface ItemAtencion {
   prioridad: number;
 }
 
+// Días HÁBILES (sin sábados, domingos ni feriados argentinos) sin movimiento
+// a partir de los cuales un caso aparece como "sin movimiento".
 const DIAS_SIN_MOVIMIENTO = 3;
 
 export const promedio = (valores: number[]) =>
@@ -313,9 +316,9 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     .filter((c) => c.estado !== "cerrado")
     .map((c) => {
       const ultimoMovimiento = ultimoMovimientoPorCaso.get(c.id) ?? c.created_at;
-      const dias = Math.floor(
-        (hoy.getTime() - new Date(ultimoMovimiento).getTime()) / (1000 * 60 * 60 * 24)
-      );
+      // Días hábiles transcurridos desde el último movimiento (sin sábados,
+      // domingos ni feriados del calendario laboral argentino).
+      const dias = diasHabilesTranscurridos(ultimoMovimiento, hoy);
       return { ...c, dias };
     })
     .filter((c) => c.dias >= DIAS_SIN_MOVIMIENTO)
@@ -702,7 +705,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
       numero: c.numero_siniestro,
       detalle: "Sin movimiento en la bitácora",
       meta: `${c.asegurado?.nombre ?? ""} · ${c.responsable?.nombre ?? "Sin responsable"}`,
-      badgeTexto: `${c.dias} días sin movimiento`,
+      badgeTexto: `${c.dias} días hábiles sin movimiento`,
       badgeClase: "bg-amber-100 text-amber-800",
       prioridad: 1
     });
