@@ -124,7 +124,10 @@ export default function CasoDetailMobile(props: Props) {
               type="button"
               onClick={() => {
                 setTab(t.key);
-                window.location.hash = t.key;
+                // replaceState (no location.hash): cambiar de pestaña no debe
+                // sumar entradas al historial, o "Volver" retrocede por las
+                // pestañas del mismo caso en vez de ir a la pantalla anterior.
+                window.history.replaceState(window.history.state, "", `#${t.key}`);
               }}
               className="mv-heading flex-1 py-2.5 text-sm"
               style={{

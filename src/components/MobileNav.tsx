@@ -114,7 +114,10 @@ export default function MobileNav({ soloLectura }: { soloLectura?: boolean }) {
 
   function irABitacora() {
     setSheetOpen(false);
-    window.location.hash = "bitacora";
+    // Sin sumar una entrada al historial (ver CasoDetailMobile); replaceState
+    // no dispara "hashchange", así que se avisa a mano para cambiar de pestaña.
+    window.history.replaceState(window.history.state, "", "#bitacora");
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
   }
 
   return (
