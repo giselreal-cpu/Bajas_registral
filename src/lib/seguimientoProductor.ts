@@ -37,6 +37,7 @@ export interface DatosSeguimiento {
 export interface Hito {
   titulo: string;
   completado: boolean;
+  enEspera?: boolean; // ya realizado, a la espera de un tercero
   fecha: string | null; // AAAA-MM-DD
 }
 
@@ -57,7 +58,7 @@ const FRASE_POR_ESTADO: Record<string, string> = {
   traslado_realizado: "La unidad ya fue retirada y estamos preparando la presentación de la baja.",
   baja_en_tramite: "El formulario de baja está completo y se está gestionando su presentación en el registro.",
   gestor_asignado: "Hay un gestor asignado para presentar la baja en el registro automotor.",
-  presentado_en_registro: "La baja ya fue presentada en el registro automotor.",
+  presentado_en_registro: "La presentación de la baja en el registro automotor está finalizada.",
   documentacion_enviada: "Enviamos la documentación de la baja a la compañía.",
   baja_patentes_pendiente: "La baja ya fue presentada; resta la baja de patentes.",
   cierre_pendiente: "Están completos todos los trámites; resta cerrar el caso.",
@@ -70,6 +71,9 @@ interface PasoDef {
   esperando?: string; // cómo se nombra mientras se espera
   soloSiExiste?: boolean; // solo aparece si el evento está cargado
   derivado?: "gestor";
+  // Cuando el evento está cargado pero sin completar, el paso ya se hizo y se
+  // espera a un tercero (ej.: la baja ya se presentó y el registro la procesa).
+  enEspera?: { titulo: string; esperando: string };
 }
 
 function pasosSegunTipo(tipoBaja: string | null): PasoDef[] {
@@ -90,7 +94,15 @@ function pasosSegunTipo(tipoBaja: string | null): PasoDef[] {
     { titulo: "Retiro de la unidad", evento: "Traslado", esperando: "El retiro de la unidad" },
     { titulo: "Gestor asignado", derivado: "gestor" },
     { titulo: `Completado el ${formulario}`, evento: "Formulario de Baja", esperando: `Que se complete el ${formulario}` },
-    { titulo: "Baja presentada en el registro", evento: "Presentación de Baja", esperando: "La presentación de la baja en el registro" },
+    {
+      titulo: "Presentación de la baja en el registro",
+      evento: "Presentación de Baja",
+      esperando: "La presentación de la baja en el registro",
+      enEspera: {
+        titulo: "Baja presentada en el registro, a la espera de que la procese",
+        esperando: "Que el registro procese la baja presentada"
+      }
+    },
     { titulo: "Documentación enviada a la compañía", evento: "Envío de documentación Cía", esperando: "El envío de la documentación a la compañía" },
     { titulo: "Baja de patentes", evento: "Baja de Patentes", esperando: "La baja de patentes", soloSiExiste: true },
     { titulo: "Cierre del caso", evento: "Cierre de Caso", esperando: "El cierre del caso" }
@@ -110,20 +122,42 @@ export function construirSeguimiento(d: DatosSeguimiento): Seguimiento {
     const ev = d.eventos.find((e) => e.tipo_evento === paso.evento);
     if (!ev && paso.soloSiExiste) continue;
     const completado = !!ev?.completado;
+    if (ev && !completado && paso.enEspera) {
+      // Ya hecho, a la espera de un tercero: no es "pendiente" para el productor.
+      hitos.push({ titulo: paso.enEspera.titulo, completado: false, enEspera: true, fecha: ev.fecha_inicio ?? null });
+      pendientes.push({ titulo: paso.enEspera.titulo, esperando: paso.enEspera.esperando });
+      continue;
+    }
     hitos.push({ titulo: paso.titulo, completado, fecha: completado ? ev?.fecha_fin ?? ev?.fecha_inicio ?? null : null });
     if (!completado && paso.esperando) pendientes.push({ titulo: paso.titulo, esperando: paso.esperando });
   }
 
-  let esperando = pendientes[0]?.esperando ?? null;
+  const hayEspera = hitos.some((h) => h.enEspera);
+
+  // Un paso ya presentado y a la espera de un tercero es lo más avanzado del
+  // caso: se informa ese, aunque queden pasos anteriores sin tildar en la
+  // bitácora (no siempre se cargan en orden). "Luego" es lo que viene después.
+  const idxEspera = pendientes.findIndex((p) => hitos.some((h) => h.enEspera && h.titulo === p.titulo));
+  const actual = idxEspera >= 0 ? idxEspera : 0;
+  let esperando = pendientes[actual]?.esperando ?? null;
+  const siguiente = pendientes[actual + 1]?.esperando ?? null;
   // En un 04C el cierre suele quedar esperando el certificado de compactación.
   if (esperando === "El cierre del caso" && d.tipo_baja === "04C") {
     esperando = "El cierre del caso, a la espera del certificado de compactación";
   }
 
+  // Si la baja ya se presentó y se espera al registro, el estado lo dice así
+  // (aunque el estado interno todavía sea uno anterior).
+  const ESTADOS_POSTERIORES = ["presentado_en_registro", "documentacion_enviada", "baja_patentes_pendiente", "cierre_pendiente", "cerrado"];
+  const fraseEspera =
+    hayEspera && !ESTADOS_POSTERIORES.includes(d.estado)
+      ? "La baja ya fue presentada en el registro automotor y estamos a la espera de que la procese."
+      : null;
+
   return {
-    frase: d.anulado ? "El caso fue anulado." : FRASE_POR_ESTADO[d.estado] ?? "El trámite está en curso.",
+    frase: d.anulado ? "El caso fue anulado." : fraseEspera ?? FRASE_POR_ESTADO[d.estado] ?? "El trámite está en curso.",
     esperando: d.estado === "cerrado" || d.anulado ? null : esperando,
-    luego: d.estado === "cerrado" || d.anulado ? null : (pendientes[1]?.esperando ?? null),
+    luego: d.estado === "cerrado" || d.anulado ? null : siguiente,
     hitos
   };
 }
@@ -180,7 +214,9 @@ export function mailSeguimiento(
 
   lineas.push("", "AVANCE");
   for (const h of seg.hitos) {
-    lineas.push(h.completado ? `✔ ${h.titulo}${h.fecha ? ` — ${fechaCorta(h.fecha)}` : ""}` : `• ${h.titulo} — pendiente`);
+    if (h.completado) lineas.push(`✔ ${h.titulo}${h.fecha ? ` — ${fechaCorta(h.fecha)}` : ""}`);
+    else if (h.enEspera) lineas.push(`⏳ ${h.titulo}${h.fecha ? ` — desde el ${fechaCorta(h.fecha)}` : ""}`);
+    else lineas.push(`• ${h.titulo} — pendiente`);
   }
 
   if (opciones.incluirObservacion) {

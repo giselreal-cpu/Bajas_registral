@@ -33,6 +33,31 @@ describe("seguimiento al productor", () => {
     expect(s.luego).toBe("El retiro de la unidad");
   });
 
+  it("presentación cargada y sin completar = presentada, a la espera del registro", () => {
+    const eventos = [
+      ...base.eventos,
+      { tipo_evento: "Presentación de Baja", completado: false, fecha_inicio: "2026-11-06", fecha_fin: null }
+    ];
+    const datos = { ...base, estado: "gestor_asignado", eventos };
+    const s = construirSeguimiento(datos);
+    expect(s.frase).toBe("La baja ya fue presentada en el registro automotor y estamos a la espera de que la procese.");
+    expect(s.esperando).toBe("Que el registro procese la baja presentada");
+    const { text } = mailSeguimiento(datos);
+    expect(text).toContain("⏳ Baja presentada en el registro, a la espera de que la procese — desde el 06/11/2026");
+    expect(text).not.toMatch(/Presentación de la baja en el registro — pendiente/);
+  });
+
+  it("presentación completada se informa como finalizada; sin cargar, como pendiente", () => {
+    const completa = [
+      ...base.eventos,
+      { tipo_evento: "Presentación de Baja", completado: true, fecha_inicio: "2026-11-06", fecha_fin: "2026-11-10" }
+    ];
+    const a = construirSeguimiento({ ...base, estado: "presentado_en_registro", eventos: completa });
+    expect(a.frase).toBe("La presentación de la baja en el registro automotor está finalizada.");
+    expect(a.hitos.find((h) => h.titulo === "Presentación de la baja en el registro")?.fecha).toBe("2026-11-10");
+    expect(mailSeguimiento(base).text).toContain("• Presentación de la baja en el registro — pendiente");
+  });
+
   it("muestra el hito del gestor solo si el caso lo tiene", () => {
     expect(construirSeguimiento(base).hitos.some((h) => h.titulo === "Gestor asignado")).toBe(false);
     expect(construirSeguimiento({ ...base, tieneGestor: true }).hitos.some((h) => h.titulo === "Gestor asignado")).toBe(true);
