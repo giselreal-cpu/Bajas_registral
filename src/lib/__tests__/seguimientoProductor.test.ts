@@ -73,6 +73,13 @@ describe("seguimiento al productor", () => {
     expect(text).not.toMatch(/días|estimad/i);
   });
 
+  it("el mail de contacto es siempre el de Oltra, no el del responsable", () => {
+    const { text } = mailSeguimiento(base);
+    expect(text).toContain("contactate con Ana de Oltra Gestión Integral (oltra.gestion.integral@gmail.com)");
+    expect(text).not.toContain("ana@oltra.com");
+    expect(mailSeguimiento({ ...base, responsable: null }).text).toContain("oltra.gestion.integral@gmail.com");
+  });
+
   it("sin deudas ni rama no muestra la sección de situación", () => {
     expect(mailSeguimiento(base).text).not.toContain("SITUACIÓN DE LA UNIDAD");
   });

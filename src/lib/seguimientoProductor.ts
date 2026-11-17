@@ -7,6 +7,7 @@
 
 import { esBajaDigital, NOMBRE_IPV } from "@/lib/tipoBaja";
 import { esSoloInformes } from "@/lib/eventosBitacora";
+import { EMAIL_CONTACTO } from "@/lib/contacto";
 
 export interface EventoSeguimiento {
   tipo_evento: string;
@@ -187,12 +188,14 @@ export function mailSeguimiento(
     if (o) lineas.push("", `ÚLTIMA NOVEDAD${o.fecha ? ` (${fechaCorta(o.fecha)})` : ""}`, o.texto);
   }
 
-  if (d.responsable) {
-    lineas.push(
-      "",
-      `Cualquier consulta, contactate con ${d.responsable.nombre} de Oltra Gestión Integral${d.responsable.email ? ` (${d.responsable.email})` : ""}.`
-    );
-  }
+  // El mail de contacto es siempre el de Oltra, aunque el responsable tenga
+  // otro cargado (a futuro, un mail propio con el dominio ogi.com.ar).
+  lineas.push(
+    "",
+    d.responsable
+      ? `Cualquier consulta, contactate con ${d.responsable.nombre} de Oltra Gestión Integral (${EMAIL_CONTACTO}).`
+      : `Cualquier consulta, escribinos a ${EMAIL_CONTACTO}.`
+  );
   lineas.push("", "Saludos,", "Oltra Gestión Integral");
 
   return {
