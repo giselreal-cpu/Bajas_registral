@@ -58,6 +58,34 @@ describe("seguimiento al productor", () => {
     expect(mailSeguimiento(base).text).toContain("• Presentación de la baja en el registro — pendiente");
   });
 
+  it("04 Digital con el IPV completo y sin presentar: falta documentación del asegurado", () => {
+    const eventos = [
+      ...base.eventos,
+      { tipo_evento: "Formulario de Baja", completado: true, fecha_inicio: "2026-11-12", fecha_fin: "2026-11-12" }
+    ];
+    const datos = { ...base, tipo_baja: "04 Digital", estado: "baja_en_tramite", eventos };
+    const s = construirSeguimiento(datos);
+    expect(s.frase).toContain("falta documentación por parte del asegurado");
+    expect(s.esperando).toBe("La documentación pendiente del asegurado para poder presentar la baja");
+    expect(mailSeguimiento(datos).text).toContain(
+      "• Presentación de la baja en el registro — a la espera de documentación del asegurado"
+    );
+    // En 04D la misma situación sigue siendo un simple "pendiente".
+    const d04 = mailSeguimiento({ ...datos, tipo_baja: "04D" }).text;
+    expect(d04).toContain("• Presentación de la baja en el registro — pendiente");
+    expect(d04).not.toContain("documentación del asegurado");
+  });
+
+  it("04 Digital con la presentación cargada pasa a esperar al registro", () => {
+    const eventos = [
+      ...base.eventos,
+      { tipo_evento: "Formulario de Baja", completado: true, fecha_inicio: "2026-11-12", fecha_fin: "2026-11-12" },
+      { tipo_evento: "Presentación de Baja", completado: false, fecha_inicio: "2026-11-13", fecha_fin: null }
+    ];
+    const s = construirSeguimiento({ ...base, tipo_baja: "04 Digital", estado: "baja_en_tramite", eventos });
+    expect(s.esperando).toBe("Que el registro procese la baja presentada");
+  });
+
   it("muestra el hito del gestor solo si el caso lo tiene", () => {
     expect(construirSeguimiento(base).hitos.some((h) => h.titulo === "Gestor asignado")).toBe(false);
     expect(construirSeguimiento({ ...base, tieneGestor: true }).hitos.some((h) => h.titulo === "Gestor asignado")).toBe(true);

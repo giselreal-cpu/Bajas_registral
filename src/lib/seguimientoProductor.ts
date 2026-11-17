@@ -38,6 +38,8 @@ export interface Hito {
   titulo: string;
   completado: boolean;
   enEspera?: boolean; // ya realizado, a la espera de un tercero
+  pendienteTexto?: string; // en lugar de "pendiente"
+  faltaDocAsegurado?: boolean;
   fecha: string | null; // AAAA-MM-DD
 }
 
@@ -74,6 +76,9 @@ interface PasoDef {
   // Cuando el evento está cargado pero sin completar, el paso ya se hizo y se
   // espera a un tercero (ej.: la baja ya se presentó y el registro la procesa).
   enEspera?: { titulo: string; esperando: string };
+  // Cuando el evento todavía no se inició y la causa es de un tercero (ej.: en
+  // 04 Digital, documentación que falta del asegurado).
+  sinIniciar?: { esperando: string; detalle: string };
 }
 
 function pasosSegunTipo(tipoBaja: string | null): PasoDef[] {
@@ -101,7 +106,17 @@ function pasosSegunTipo(tipoBaja: string | null): PasoDef[] {
       enEspera: {
         titulo: "Baja presentada en el registro, a la espera de que la procese",
         esperando: "Que el registro procese la baja presentada"
-      }
+      },
+      // En la baja digital, la presentación no se inicia mientras falte
+      // documentación por parte del asegurado.
+      ...(esBajaDigital(tipoBaja)
+        ? {
+            sinIniciar: {
+              esperando: "La documentación pendiente del asegurado para poder presentar la baja",
+              detalle: "a la espera de documentación del asegurado"
+            }
+          }
+        : {})
     },
     { titulo: "Documentación enviada a la compañía", evento: "Envío de documentación Cía", esperando: "El envío de la documentación a la compañía" },
     { titulo: "Baja de patentes", evento: "Baja de Patentes", esperando: "La baja de patentes", soloSiExiste: true },
@@ -128,16 +143,26 @@ export function construirSeguimiento(d: DatosSeguimiento): Seguimiento {
       pendientes.push({ titulo: paso.enEspera.titulo, esperando: paso.enEspera.esperando });
       continue;
     }
+    if (!ev && paso.sinIniciar) {
+      hitos.push({ titulo: paso.titulo, completado: false, pendienteTexto: paso.sinIniciar.detalle, faltaDocAsegurado: true, fecha: null });
+      pendientes.push({ titulo: paso.titulo, esperando: paso.sinIniciar.esperando });
+      continue;
+    }
     hitos.push({ titulo: paso.titulo, completado, fecha: completado ? ev?.fecha_fin ?? ev?.fecha_inicio ?? null : null });
     if (!completado && paso.esperando) pendientes.push({ titulo: paso.titulo, esperando: paso.esperando });
   }
 
   const hayEspera = hitos.some((h) => h.enEspera);
+  // Baja digital con el IPV completo pero sin presentar: falta documentación del asegurado.
+  const ipvCompleto = d.eventos.some((e) => e.tipo_evento === "Formulario de Baja" && e.completado);
+  const faltaDoc = ipvCompleto && hitos.some((h) => h.faltaDocAsegurado);
 
   // Un paso ya presentado y a la espera de un tercero es lo más avanzado del
   // caso: se informa ese, aunque queden pasos anteriores sin tildar en la
   // bitácora (no siempre se cargan en orden). "Luego" es lo que viene después.
-  const idxEspera = pendientes.findIndex((p) => hitos.some((h) => h.enEspera && h.titulo === p.titulo));
+  const idxEspera = pendientes.findIndex((p) =>
+    hitos.some((h) => h.titulo === p.titulo && (h.enEspera || (h.faltaDocAsegurado && ipvCompleto)))
+  );
   const actual = idxEspera >= 0 ? idxEspera : 0;
   let esperando = pendientes[actual]?.esperando ?? null;
   const siguiente = pendientes[actual + 1]?.esperando ?? null;
@@ -154,8 +179,13 @@ export function construirSeguimiento(d: DatosSeguimiento): Seguimiento {
       ? "La baja ya fue presentada en el registro automotor y estamos a la espera de que la procese."
       : null;
 
+  const fraseDoc =
+    faltaDoc && !ESTADOS_POSTERIORES.includes(d.estado)
+      ? `El ${NOMBRE_IPV} está completo; para presentar la baja falta documentación por parte del asegurado.`
+      : null;
+
   return {
-    frase: d.anulado ? "El caso fue anulado." : fraseEspera ?? FRASE_POR_ESTADO[d.estado] ?? "El trámite está en curso.",
+    frase: d.anulado ? "El caso fue anulado." : fraseEspera ?? fraseDoc ?? FRASE_POR_ESTADO[d.estado] ?? "El trámite está en curso.",
     esperando: d.estado === "cerrado" || d.anulado ? null : esperando,
     luego: d.estado === "cerrado" || d.anulado ? null : siguiente,
     hitos
@@ -216,7 +246,7 @@ export function mailSeguimiento(
   for (const h of seg.hitos) {
     if (h.completado) lineas.push(`✔ ${h.titulo}${h.fecha ? ` — ${fechaCorta(h.fecha)}` : ""}`);
     else if (h.enEspera) lineas.push(`⏳ ${h.titulo}${h.fecha ? ` — desde el ${fechaCorta(h.fecha)}` : ""}`);
-    else lineas.push(`• ${h.titulo} — pendiente`);
+    else lineas.push(`• ${h.titulo} — ${h.pendienteTexto ?? "pendiente"}`);
   }
 
   if (opciones.incluirObservacion) {
