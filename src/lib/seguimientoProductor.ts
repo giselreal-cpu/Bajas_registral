@@ -210,17 +210,28 @@ function fechaCorta(fecha: string): string {
   return `${dia}/${m}/${a}`;
 }
 
-// Última observación pública de la bitácora (las internas nunca se incluyen).
-export function ultimaObservacionPublica(eventos: EventoSeguimiento[]): { fecha: string; texto: string } | null {
-  const obs = eventos
+// Observaciones públicas de la bitácora, de la más nueva a la más vieja (las
+// internas nunca se incluyen, ni se mandan a la IA).
+export function observacionesPublicas(
+  eventos: EventoSeguimiento[],
+  limite = 8
+): { fecha: string; texto: string }[] {
+  return eventos
     .filter((e) => e.tipo_evento === "Observaciones" && !e.es_interna && (e.observacion ?? "").trim())
-    .sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""));
-  return obs[0] ? { fecha: obs[0].fecha_inicio ?? "", texto: (obs[0].observacion ?? "").trim() } : null;
+    .sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))
+    .slice(0, limite)
+    .map((e) => ({ fecha: (e.fecha_inicio ?? "").slice(0, 10), texto: (e.observacion ?? "").trim() }));
+}
+
+export function ultimaObservacionPublica(eventos: EventoSeguimiento[]): { fecha: string; texto: string } | null {
+  return observacionesPublicas(eventos, 1)[0] ?? null;
 }
 
 export function mailSeguimiento(
   d: DatosSeguimiento,
-  opciones: { incluirObservacion?: boolean } = {}
+  // `novedad`: texto ya revisado y aprobado por una persona (redactado a mano,
+  // la última observación tal cual o un borrador de la IA que se corrigió).
+  opciones: { novedad?: string | null } = {}
 ): { subject: string; text: string } {
   const seg = construirSeguimiento(d);
   const lineas: string[] = [];
@@ -249,10 +260,8 @@ export function mailSeguimiento(
     else lineas.push(`• ${h.titulo} — ${h.pendienteTexto ?? "pendiente"}`);
   }
 
-  if (opciones.incluirObservacion) {
-    const o = ultimaObservacionPublica(d.eventos);
-    if (o) lineas.push("", `ÚLTIMA NOVEDAD${o.fecha ? ` (${fechaCorta(o.fecha)})` : ""}`, o.texto);
-  }
+  const novedad = (opciones.novedad ?? "").trim();
+  if (novedad) lineas.push("", "NOVEDAD", novedad);
 
   // El mail de contacto es siempre el de Oltra, aunque el responsable tenga
   // otro cargado (a futuro, un mail propio con el dominio ogi.com.ar).

@@ -3,8 +3,10 @@ import {
   construirSeguimiento,
   DatosSeguimiento,
   mailSeguimiento,
+  observacionesPublicas,
   ultimaObservacionPublica
 } from "../seguimientoProductor";
+import { armarEntrada } from "../resumenNovedad";
 
 const base: DatosSeguimiento = {
   numero_siniestro: "123456",
@@ -145,11 +147,27 @@ describe("seguimiento al productor", () => {
     ];
     const datos = { ...base, eventos };
     expect(ultimaObservacionPublica(eventos)?.texto).toBe("Esperando turno");
+    // El mail nunca toma observaciones por su cuenta: solo la novedad aprobada.
     expect(mailSeguimiento(datos).text).not.toContain("Esperando turno");
-    const con = mailSeguimiento(datos, { incluirObservacion: true }).text;
-    expect(con).toContain("ÚLTIMA NOVEDAD (06/11/2026)");
-    expect(con).toContain("Esperando turno");
-    expect(con).not.toContain("difícil");
+    expect(mailSeguimiento(datos).text).not.toContain("NOVEDAD");
+    const con = mailSeguimiento(datos, { novedad: "  Estamos esperando turno en el registro.  " }).text;
+    expect(con).toContain("NOVEDAD\nEstamos esperando turno en el registro.");
+    expect(mailSeguimiento(datos, { novedad: "   " }).text).not.toContain("NOVEDAD");
+  });
+
+  it("a la IA solo le llegan observaciones públicas, de la más nueva a la más vieja", () => {
+    const eventos = [
+      { tipo_evento: "Observaciones", completado: true, fecha_inicio: "2026-11-06", fecha_fin: null, es_interna: false, observacion: "Vieja" },
+      { tipo_evento: "Observaciones", completado: true, fecha_inicio: "2026-11-09", fecha_fin: null, es_interna: true, observacion: "Interna" },
+      { tipo_evento: "Observaciones", completado: true, fecha_inicio: "2026-11-10", fecha_fin: null, es_interna: false, observacion: "Nueva" },
+      { tipo_evento: "Observaciones", completado: true, fecha_inicio: "2026-11-11", fecha_fin: null, es_interna: false, observacion: "  " },
+      { tipo_evento: "Ingreso de caso", completado: true, fecha_inicio: "2026-11-12", fecha_fin: null, es_interna: false, observacion: "No es observación" }
+    ];
+    const obs = observacionesPublicas(eventos);
+    expect(obs.map((o) => o.texto)).toEqual(["Nueva", "Vieja"]);
+    expect(armarEntrada(obs, "Estado X")).toBe(
+      "Estado actual del caso (ya informado en el mail): Estado X\n\n<observaciones>\n[10/11/2026] Nueva\n\n[06/11/2026] Vieja\n</observaciones>"
+    );
   });
 
   it("Solo Informes tiene sus propios pasos", () => {
