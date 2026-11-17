@@ -1,0 +1,100 @@
+import { describe, expect, it } from "vitest";
+import {
+  construirSeguimiento,
+  DatosSeguimiento,
+  mailSeguimiento,
+  ultimaObservacionPublica
+} from "../seguimientoProductor";
+
+const base: DatosSeguimiento = {
+  numero_siniestro: "123456",
+  dominio: "AB123CD",
+  aseguradora: "Allianz",
+  asegurado: "Juan Pérez",
+  tipo_baja: "04D",
+  rama: null,
+  estado: "en_verificacion",
+  deuda_patentes: null,
+  deuda_multas: null,
+  tieneGestor: false,
+  responsable: { nombre: "Ana", email: "ana@oltra.com" },
+  eventos: [
+    { tipo_evento: "Ingreso de caso", completado: true, fecha_inicio: "2026-11-02", fecha_fin: "2026-11-02" },
+    { tipo_evento: "Contacto con el asegurado", completado: true, fecha_inicio: "2026-11-04", fecha_fin: "2026-11-05" }
+  ]
+};
+
+describe("seguimiento al productor", () => {
+  it("marca lo completado con su fecha y lo próximo como pendiente", () => {
+    const s = construirSeguimiento(base);
+    expect(s.hitos[0]).toEqual({ titulo: "Inicio del trámite", completado: true, fecha: "2026-11-02" });
+    expect(s.hitos[1].fecha).toBe("2026-11-05");
+    expect(s.esperando).toBe("La autorización de traslado");
+    expect(s.luego).toBe("El retiro de la unidad");
+  });
+
+  it("muestra el hito del gestor solo si el caso lo tiene", () => {
+    expect(construirSeguimiento(base).hitos.some((h) => h.titulo === "Gestor asignado")).toBe(false);
+    expect(construirSeguimiento({ ...base, tieneGestor: true }).hitos.some((h) => h.titulo === "Gestor asignado")).toBe(true);
+  });
+
+  it("en un 04C pendiente de cierre espera el certificado de compactación", () => {
+    const eventos = [
+      "Ingreso de caso",
+      "Contacto con el asegurado",
+      "Autorización de traslado",
+      "Traslado",
+      "Formulario de Baja",
+      "Presentación de Baja",
+      "Envío de documentación Cía"
+    ].map((tipo_evento) => ({ tipo_evento, completado: true, fecha_inicio: "2026-11-02", fecha_fin: "2026-11-02" }));
+    const s = construirSeguimiento({ ...base, tipo_baja: "04C", estado: "cierre_pendiente", eventos });
+    expect(s.esperando).toBe("El cierre del caso, a la espera del certificado de compactación");
+  });
+
+  it("un caso cerrado o anulado no espera nada", () => {
+    expect(construirSeguimiento({ ...base, estado: "cerrado" }).esperando).toBeNull();
+    const anulado = construirSeguimiento({ ...base, anulado: true });
+    expect(anulado.frase).toBe("El caso fue anulado.");
+    expect(anulado.esperando).toBeNull();
+  });
+
+  it("la baja digital nombra al IPV", () => {
+    const s = construirSeguimiento({ ...base, tipo_baja: "04 Digital" });
+    expect(s.hitos.some((h) => h.titulo.includes("IPV"))).toBe(true);
+  });
+
+  it("incluye las deudas con montos y no estima tiempos", () => {
+    const { text, subject } = mailSeguimiento({ ...base, deuda_patentes: 150000, deuda_multas: 20000 });
+    expect(subject).toBe("Seguimiento · Siniestro 123456 · Dominio AB123CD · Allianz");
+    expect(text).toContain("SITUACIÓN DE LA UNIDAD");
+    expect(text).toMatch(/Deuda de patentes: .*150\.000/);
+    expect(text).toMatch(/Multas: .*20\.000/);
+    expect(text).not.toMatch(/días|estimad/i);
+  });
+
+  it("sin deudas ni rama no muestra la sección de situación", () => {
+    expect(mailSeguimiento(base).text).not.toContain("SITUACIÓN DE LA UNIDAD");
+  });
+
+  it("la observación es opcional y nunca toma las internas", () => {
+    const eventos = [
+      ...base.eventos,
+      { tipo_evento: "Observaciones", completado: true, fecha_inicio: "2026-11-06", fecha_fin: null, es_interna: false, observacion: "Esperando turno" },
+      { tipo_evento: "Observaciones", completado: true, fecha_inicio: "2026-11-09", fecha_fin: null, es_interna: true, observacion: "El asegurado es difícil" }
+    ];
+    const datos = { ...base, eventos };
+    expect(ultimaObservacionPublica(eventos)?.texto).toBe("Esperando turno");
+    expect(mailSeguimiento(datos).text).not.toContain("Esperando turno");
+    const con = mailSeguimiento(datos, { incluirObservacion: true }).text;
+    expect(con).toContain("ÚLTIMA NOVEDAD (06/11/2026)");
+    expect(con).toContain("Esperando turno");
+    expect(con).not.toContain("difícil");
+  });
+
+  it("Solo Informes tiene sus propios pasos", () => {
+    const s = construirSeguimiento({ ...base, tipo_baja: "Solo Informes" });
+    expect(s.hitos.map((h) => h.titulo)).toContain("Informes enviados a la compañía");
+    expect(s.hitos.some((h) => h.titulo === "Retiro de la unidad")).toBe(false);
+  });
+});

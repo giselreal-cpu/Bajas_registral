@@ -7,6 +7,7 @@ import TramitadorSelect from "./TramitadorSelect";
 import SelectorNotificacion from "./SelectorNotificacion";
 import { avanceCaso } from "@/lib/avanceCaso";
 import AnulacionCaso from "./AnulacionCaso";
+import SeguimientoProductor from "./SeguimientoProductor";
 import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
@@ -99,6 +100,14 @@ export default function CasoCabeceraMobile(props: CasoCabeceraProps) {
         anuladoAt={caso.anulado_at}
         soloLectura={soloLectura}
         esAdministrador={esAdministrador}
+        mobile
+      />
+
+      <SeguimientoProductor
+        casoId={caso.id}
+        productorContacto={caso.productor_contacto}
+        anulado={caso.anulado}
+        soloLectura={soloLectura}
         mobile
       />
 

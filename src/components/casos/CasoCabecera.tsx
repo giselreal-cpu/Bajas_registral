@@ -7,6 +7,7 @@ import { CasoCabeceraProps, formatCurrency, useCasoCabecera } from "./useCasoCab
 import SelectorNotificacion from "./SelectorNotificacion";
 import { avanceCaso } from "@/lib/avanceCaso";
 import AnulacionCaso from "./AnulacionCaso";
+import SeguimientoProductor from "./SeguimientoProductor";
 import AvanceBar from "@/components/AvanceBar";
 
 export default function CasoCabecera(props: CasoCabeceraProps) {
@@ -104,6 +105,13 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
         anuladoAt={caso.anulado_at}
         soloLectura={soloLectura}
         esAdministrador={esAdministrador}
+      />
+
+      <SeguimientoProductor
+        casoId={caso.id}
+        productorContacto={caso.productor_contacto}
+        anulado={caso.anulado}
+        soloLectura={soloLectura}
       />
 
       {error && (
