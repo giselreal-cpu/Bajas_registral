@@ -5,7 +5,7 @@ import InstallBanner from "@/components/InstallBanner";
 import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import {
-  GRUPOS_VISIBLES_EXTERNOS,
+  GRUPOS_VISIBLES_DESARMADERO,
   clasificarDocumentosVisibles,
   type ClaveGrupoVisible
 } from "@/lib/documentosVisiblesExternos";
@@ -120,8 +120,9 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     .eq("id", caso.desarmadero_id)
     .maybeSingle();
 
-  // El desarmadero ve solo Título, Cédulas, Informe de dominio, Foto del
-  // titular y Fotos (ver documentosVisiblesExternos.ts). Multas, patentes,
+  // El desarmadero ve solo Título, Cédulas, Foto del titular y del cónyuge,
+  // DNI, Estatuto, Poder, Extravío, Informe de dominio, el IPV y Fotos (ver
+  // documentosVisiblesExternos.ts). Multas, patentes,
   // autorizaciones, documentación de la compañía y Anexo 04 no se le
   // muestran, ni siquiera lo que él mismo suba en esas categorías.
   const { data: documentosRaw } = await supabase
@@ -136,7 +137,7 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
       docs.map(async (d) => ({ id: d.id, nombre: d.nombre, url_firmada: await obtenerUrlFirmada(d.url) }))
     );
   const documentacion = Object.fromEntries(
-    await Promise.all(GRUPOS_VISIBLES_EXTERNOS.map(async (g) => [g.clave, await firmar(visibles[g.clave])]))
+    await Promise.all(GRUPOS_VISIBLES_DESARMADERO.map(async (g) => [g.clave, await firmar(visibles[g.clave])]))
   ) as Record<ClaveGrupoVisible, DocumentoConUrl[]>;
 
   const { data: observacionesRaw } = await supabase
@@ -259,9 +260,12 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Documentación</h2>
         <div className="space-y-4">
-          {GRUPOS_VISIBLES_EXTERNOS.map((g) => (
-            <GrupoDocumentos key={g.clave} titulo={g.titulo} documentos={documentacion[g.clave]} />
-          ))}
+          {GRUPOS_VISIBLES_DESARMADERO
+            // El IPV es de la baja digital: en las demás no se muestra el grupo vacío.
+            .filter((g) => g.clave !== "ipv" || !usaAnexo04(caso.tipo_baja?.nombre) || documentacion.ipv.length > 0)
+            .map((g) => (
+              <GrupoDocumentos key={g.clave} titulo={g.titulo} documentos={documentacion[g.clave]} />
+            ))}
         </div>
         <UploadFormDesarmadero token={params.token} />
       </section>

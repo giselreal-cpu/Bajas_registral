@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { clasificarDocumentosVisibles } from "../documentosVisiblesExternos";
+import {
+  GRUPOS_VISIBLES_DESARMADERO,
+  GRUPOS_VISIBLES_EXTERNOS,
+  clasificarDocumentosVisibles
+} from "../documentosVisiblesExternos";
 
 const doc = (nombre: string, categoria = "documento_compania") => ({ nombre, categoria });
 
@@ -25,6 +29,35 @@ describe("clasificarDocumentosVisibles", () => {
     expect(v.fotoTitular.map((d) => d.nombre)).toEqual(["Foto titular"]);
     // la foto del titular no se repite en Fotos
     expect(v.fotos.map((d) => d.nombre)).toEqual(["Fotos"]);
+  });
+});
+
+describe("clasificarDocumentosVisibles: foto del cónyuge e IPV (desarmadero)", () => {
+  it("reconoce la foto del cónyuge y el IPV, y la foto del cónyuge no se repite en Fotos", () => {
+    const docs = [
+      doc("Foto cónyuge", "imagen_dominio"),
+      doc("Foto del conyuge", "imagen_dominio"),
+      doc("Foto de la esposa", "imagen_dominio"),
+      doc("Foto titular", "imagen_dominio"),
+      doc("Foto frente", "imagen_dominio"),
+      doc("IPV firmado"),
+      doc("Instrumento de Petición Virtual"),
+      doc("Autorización"),
+      doc("Multas")
+    ];
+    const v = clasificarDocumentosVisibles(docs);
+    expect(v.fotoConyuge.map((d) => d.nombre)).toEqual(["Foto cónyuge", "Foto del conyuge", "Foto de la esposa"]);
+    expect(v.fotos.map((d) => d.nombre)).toEqual(["Foto frente"]);
+    expect(v.ipv.map((d) => d.nombre)).toEqual(["IPV firmado", "Instrumento de Petición Virtual"]);
+  });
+
+  it("el desarmadero ve esos grupos y el Formulario de Baja no", () => {
+    const desarmadero = GRUPOS_VISIBLES_DESARMADERO.map((g) => g.clave);
+    expect(desarmadero).toContain("ipv");
+    expect(desarmadero).toContain("fotoConyuge");
+    const fb = GRUPOS_VISIBLES_EXTERNOS.map((g) => g.clave);
+    expect(fb).not.toContain("ipv");
+    expect(fb).not.toContain("fotoConyuge");
   });
 });
 
