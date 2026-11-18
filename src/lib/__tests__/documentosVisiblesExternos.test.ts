@@ -33,22 +33,36 @@ describe("clasificarDocumentosVisibles", () => {
 });
 
 describe("clasificarDocumentosVisibles: foto del cónyuge e IPV (desarmadero)", () => {
-  it("reconoce la foto del cónyuge y el IPV, y la foto del cónyuge no se repite en Fotos", () => {
-    const docs = [
-      doc("Foto cónyuge", "imagen_dominio"),
-      doc("Foto del conyuge", "imagen_dominio"),
-      doc("Foto de la esposa", "imagen_dominio"),
-      doc("Foto titular", "imagen_dominio"),
-      doc("Foto frente", "imagen_dominio"),
-      doc("IPV firmado"),
-      doc("Instrumento de Petición Virtual"),
-      doc("Autorización"),
-      doc("Multas")
-    ];
-    const v = clasificarDocumentosVisibles(docs);
-    expect(v.fotoConyuge.map((d) => d.nombre)).toEqual(["Foto cónyuge", "Foto del conyuge", "Foto de la esposa"]);
+  const docsDigital = [
+    doc("Foto cónyuge", "imagen_dominio"),
+    doc("Foto del conyuge", "imagen_dominio"),
+    doc("Foto de la esposa", "imagen_dominio"),
+    doc("Cony", "imagen_dominio"),
+    doc("Foto titular", "imagen_dominio"),
+    doc("Foto frente", "imagen_dominio"),
+    doc("IPV firmado"),
+    doc("Instrumento de Petición Virtual"),
+    doc("Petición firmada"),
+    doc("Petición de informe de dominio"),
+    doc("Autorización"),
+    doc("Multas")
+  ];
+
+  it("en 04 Digital reconoce la foto del cónyuge y el IPV por palabras clave", () => {
+    const v = clasificarDocumentosVisibles(docsDigital, { digital: true });
+    expect(v.fotoConyuge.map((d) => d.nombre)).toEqual(["Foto cónyuge", "Foto del conyuge", "Foto de la esposa", "Cony"]);
+    // la foto del cónyuge no se repite en Fotos
     expect(v.fotos.map((d) => d.nombre)).toEqual(["Foto frente"]);
-    expect(v.ipv.map((d) => d.nombre)).toEqual(["IPV firmado", "Instrumento de Petición Virtual"]);
+    expect(v.ipv.map((d) => d.nombre)).toEqual(["IPV firmado", "Instrumento de Petición Virtual", "Petición firmada"]);
+  });
+
+  it("en los demás tipos de baja no se separan ni se comparten (todo como antes)", () => {
+    for (const opciones of [undefined, { digital: false }]) {
+      const v = clasificarDocumentosVisibles(docsDigital, opciones);
+      expect(v.ipv).toEqual([]);
+      expect(v.fotoConyuge).toEqual([]);
+      expect(v.fotos.map((d) => d.nombre)).toContain("Foto cónyuge");
+    }
   });
 
   it("el desarmadero ve esos grupos y el Formulario de Baja no", () => {

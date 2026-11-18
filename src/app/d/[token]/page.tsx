@@ -11,7 +11,7 @@ import {
 } from "@/lib/documentosVisiblesExternos";
 import { PIEZAS_RUDAC } from "@/lib/anexo04";
 import Anexo04Form from "./Anexo04Form";
-import { NOMBRE_IPV, usaAnexo04 } from "@/lib/tipoBaja";
+import { NOMBRE_IPV, esBajaDigital, usaAnexo04 } from "@/lib/tipoBaja";
 import ObservacionesDesarmadero, { ObservacionRow } from "./ObservacionesDesarmadero";
 import UploadFormDesarmadero from "./UploadFormDesarmadero";
 
@@ -131,7 +131,8 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     .eq("caso_id", caso.id)
     .order("created_at", { ascending: false });
 
-  const visibles = clasificarDocumentosVisibles(documentosRaw ?? []);
+  const digital = esBajaDigital(caso.tipo_baja?.nombre);
+  const visibles = clasificarDocumentosVisibles(documentosRaw ?? [], { digital });
   const firmar = async (docs: typeof visibles.fotos): Promise<DocumentoConUrl[]> =>
     Promise.all(
       docs.map(async (d) => ({ id: d.id, nombre: d.nombre, url_firmada: await obtenerUrlFirmada(d.url) }))
@@ -261,8 +262,10 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
         <h2 className="font-medium text-slate-800 mb-3">Documentación</h2>
         <div className="space-y-4">
           {GRUPOS_VISIBLES_DESARMADERO
-            // El IPV es de la baja digital: en las demás no se muestra el grupo vacío.
-            .filter((g) => g.clave !== "ipv" || !usaAnexo04(caso.tipo_baja?.nombre) || documentacion.ipv.length > 0)
+            // La foto del cónyuge y el IPV son solo de la baja digital (en las
+            // demás ni se clasifican). La foto del cónyuge no se muestra vacía.
+            .filter((g) => (g.clave !== "ipv" && g.clave !== "fotoConyuge") || digital)
+            .filter((g) => g.clave !== "fotoConyuge" || documentacion.fotoConyuge.length > 0)
             .map((g) => (
               <GrupoDocumentos key={g.clave} titulo={g.titulo} documentos={documentacion[g.clave]} />
             ))}

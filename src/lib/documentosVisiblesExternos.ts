@@ -22,33 +22,46 @@ const TITULO = /\btitulo\b/;
 const DNI = /\bdni\b/;
 const PODER = /\bpoder(es)?\b/;
 
-const FOTO_CONYUGE = /foto(s)?\s+(del\s+|de\s+(la\s+|el\s+)?)?(conyug|esposo|esposa)/;
-const IPV = /\bipv\b|peticion virtual/;
-
 export function esFotoTitular(nombre: string): boolean {
   return FOTO_TITULAR.test(normalizar(nombre));
 }
 
-export function esFotoConyuge(nombre: string): boolean {
-  return FOTO_CONYUGE.test(normalizar(nombre));
+// Foto del cónyuge: el nombre tiene "cony…" (cónyuge, conyugue, cony.) o
+// esposo/a, junto con "foto" o cargado en la categoría de imágenes.
+export function esFotoConyuge(doc: DocumentoBase): boolean {
+  const n = normalizar(doc.nombre);
+  return /cony|espos[oa]/.test(n) && (n.includes("foto") || doc.categoria === "imagen_dominio");
 }
 
-export function clasificarDocumentosVisibles<T extends DocumentoBase>(docs: T[]) {
+// Instrumento de Petición Virtual: "IPV", "instrumento…" o "petición…" (salvo
+// las peticiones de informes).
+export function esIpv(nombre: string): boolean {
+  const n = normalizar(nombre);
+  return /\bipv\b|instrumento/.test(n) || (n.includes("peticion") && !n.includes("informe"));
+}
+
+// `digital`: baja tipo 04 Digital. Solo ahí se separan la foto del cónyuge y
+// el IPV; en el resto de los tipos de baja se comportan como antes (la foto
+// del cónyuge queda dentro de Fotos y el IPV no se comparte).
+export function clasificarDocumentosVisibles<T extends DocumentoBase>(docs: T[], opciones: { digital?: boolean } = {}) {
+  const digital = !!opciones.digital;
   const por = (test: (n: string) => boolean) => docs.filter((d) => test(normalizar(d.nombre)));
   return {
     titulo: por((n) => TITULO.test(n)),
     cedulas: por((n) => n.includes("cedula")),
     fotoTitular: docs.filter((d) => esFotoTitular(d.nombre)),
-    fotoConyuge: docs.filter((d) => esFotoConyuge(d.nombre)),
+    fotoConyuge: digital ? docs.filter((d) => esFotoConyuge(d)) : [],
     // Instrumento de Petición Virtual (04 Digital): se carga en la
     // documentación para la compañía cuando está listo para RUDAC.
-    ipv: por((n) => IPV.test(n)),
+    ipv: digital ? docs.filter((d) => esIpv(d.nombre)) : [],
     dni: por((n) => DNI.test(n)),
     estatuto: por((n) => n.includes("estatuto")),
     poder: por((n) => PODER.test(n)),
     extravio: por((n) => n.includes("extrav")),
     informeDominio: por((n) => n.includes("informe de dominio")),
-    fotos: docs.filter((d) => d.categoria === "imagen_dominio" && !esFotoTitular(d.nombre) && !esFotoConyuge(d.nombre))
+    fotos: docs.filter(
+      (d) => d.categoria === "imagen_dominio" && !esFotoTitular(d.nombre) && !(digital && esFotoConyuge(d))
+    )
   };
 }
 
