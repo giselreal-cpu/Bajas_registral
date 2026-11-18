@@ -34,6 +34,8 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
     regenerarEnlaceGestor,
     enlaceDesarmadero,
     copiadoDesarmadero,
+    copiadoDocumentacion,
+    copiarMensajeDocumentacionLista,
     regenerandoDesarmadero,
     copiarMensajeDesarmadero,
     regenerarEnlaceDesarmadero,
@@ -535,6 +537,9 @@ export default function CasoCabecera(props: CasoCabeceraProps) {
             <div className="flex gap-2 flex-wrap">
               <button type="button" className="btn-secondary" onClick={copiarMensajeDesarmadero}>
                 {copiadoDesarmadero ? "¡Copiado!" : "Copiar mensaje"}
+              </button>
+              <button type="button" className="btn-secondary" onClick={copiarMensajeDocumentacionLista}>
+                {copiadoDocumentacion ? "¡Copiado!" : "Copiar aviso: documentación lista"}
               </button>
               <button
                 type="button"

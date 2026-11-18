@@ -10,6 +10,7 @@ import {
   Tramitador,
   Usuario
 } from "@/types/database";
+import { mensajeDocumentacionLista, mensajeLlegaVehiculo } from "@/lib/mensajesDesarmadero";
 
 export interface CasoCabeceraProps {
   caso: CasoConRelaciones;
@@ -83,6 +84,7 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
   const [regenerando, setRegenerando] = useState(false);
   const [notificarGestor, setNotificarGestor] = useState<CasoConRelaciones | null>(null);
   const [copiadoDesarmadero, setCopiadoDesarmadero] = useState(false);
+  const [copiadoDocumentacion, setCopiadoDocumentacion] = useState(false);
   const [regenerandoDesarmadero, setRegenerandoDesarmadero] = useState(false);
 
   useEffect(() => {
@@ -251,16 +253,26 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
 
   const enlaceDesarmadero = origin ? `${origin}/d/${caso.token_desarmadero}` : "";
 
-  async function copiarMensajeDesarmadero() {
-    const mensaje = [
-      `Te llega un vehículo por el caso ${caso.numero_siniestro}.`,
-      `Dominio: ${caso.vehiculo?.dominio ?? "—"}`,
-      `Podés seguir el estado del trámite acá: ${enlaceDesarmadero}`
-    ].join("\n");
+  const datosMensajeDesarmadero = {
+    numeroSiniestro: caso.numero_siniestro,
+    dominio: caso.vehiculo?.dominio,
+    marca: caso.vehiculo?.marca,
+    modelo: caso.vehiculo?.modelo,
+    enlace: enlaceDesarmadero
+  };
 
-    await navigator.clipboard.writeText(mensaje);
+  async function copiarMensajeDesarmadero() {
+    await navigator.clipboard.writeText(mensajeLlegaVehiculo(datosMensajeDesarmadero));
     setCopiadoDesarmadero(true);
     setTimeout(() => setCopiadoDesarmadero(false), 2000);
+  }
+
+  // Aviso de "documentación lista": puede cargarla en RUDAC o revisarla y
+  // completar la carga desde el enlace.
+  async function copiarMensajeDocumentacionLista() {
+    await navigator.clipboard.writeText(mensajeDocumentacionLista(datosMensajeDesarmadero));
+    setCopiadoDocumentacion(true);
+    setTimeout(() => setCopiadoDocumentacion(false), 2000);
   }
 
   async function regenerarEnlaceDesarmadero() {
@@ -310,6 +322,8 @@ export function useCasoCabecera({ caso, registros, soloLectura }: CasoCabeceraPr
     regenerarEnlaceGestor,
     enlaceDesarmadero,
     copiadoDesarmadero,
+    copiadoDocumentacion,
+    copiarMensajeDocumentacionLista,
     regenerandoDesarmadero,
     copiarMensajeDesarmadero,
     regenerarEnlaceDesarmadero,
