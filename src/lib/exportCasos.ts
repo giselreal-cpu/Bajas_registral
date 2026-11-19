@@ -11,6 +11,7 @@ export const SELECT_CASOS = `
   registro:registros_automotores(numero),
   tipo_baja:tipos_baja(nombre),
   responsable:usuarios!responsable_id(nombre),
+  gestor:gestores(nombre),
   movimientos_caso(monto, moneda, pagado, fecha, fecha_pago, anulado, aprobado, concepto:conceptos_movimiento(nombre, tipo)),
   facturas(tipo_receptor, cobros(monto, moneda, fecha, anulado))
 `;
@@ -108,6 +109,7 @@ export const COLUMNAS: { key: string; label: string; ancho: number; tipo?: "text
   { key: "registro", label: "Registro Automotor", ancho: 12, tipo: "texto" },
   { key: "tipo_baja", label: "Tipo de Baja", ancho: 14 },
   { key: "responsable", label: "Responsable", ancho: 18 },
+  { key: "gestor", label: "Gestor asignado", ancho: 22 },
   { key: "tramitador", label: "Trámitador de la Compañía", ancho: 24 },
   { key: "estado", label: "Estado", ancho: 24 },
   { key: "rama", label: "Rama", ancho: 18 },
@@ -172,6 +174,7 @@ export function aFila(c: any): Record<string, any> {
     registro: c.registro?.numero ?? "",
     tipo_baja: c.tipo_baja?.nombre ?? "",
     responsable: c.responsable?.nombre ?? "",
+    gestor: c.gestor?.nombre ?? "",
     tramitador: c.tramitador_nombre ?? "",
     estado: ESTADOS.find((e) => e.value === c.estado)?.label ?? c.estado,
     rama: RAMAS.find((r) => r.value === c.rama)?.label ?? c.rama ?? "",

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aFila } from "../exportCasos";
+import { COLUMNAS, aFila } from "../exportCasos";
 
 const mov = (nombre: string, tipo: string, extra: Record<string, unknown> = {}) => ({
   monto: 1000,
@@ -39,6 +39,14 @@ describe("aFila: columnas de cobros y pagos", () => {
     expect(fila.cobro_desarmadero_fecha).toBe("2026-10-08");
     expect(fila.cobro_compania_monto).toBe(""); // anulado: no cuenta
     expect(fila.cobro_compania_fecha).toBe("");
+  });
+});
+
+describe("aFila: gestor asignado", () => {
+  it("lleva el nombre del gestor, o vacío si el caso no tiene", () => {
+    expect(aFila({ numero_siniestro: "4", estado: "cerrado", gestor: { nombre: "Pérez Juan" } }).gestor).toBe("Pérez Juan");
+    expect(aFila({ numero_siniestro: "5", estado: "cerrado", gestor: null }).gestor).toBe("");
+    expect(COLUMNAS.find((c) => c.key === "gestor")?.label).toBe("Gestor asignado");
   });
 });
 
