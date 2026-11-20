@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { BitacoraEvento, CasoConRelaciones, Desarmadero, EncuestaSatisfaccion } from "@/types/database";
-import { TIPOS_EVENTO, EVENTOS_PERMITIDOS_SOLO_INFORMES, esSoloInformes, motivoBloqueo } from "@/lib/eventosBitacora";
+import {
+  TIPOS_EVENTO,
+  EVENTOS_PERMITIDOS_SOLO_INFORMES,
+  esSoloInformes,
+  eventoAplicaATipoBaja,
+  motivoBloqueo
+} from "@/lib/eventosBitacora";
 import { TipoNotificacion } from "@/lib/email/notificacionesCaso";
 import { linkWhatsapp, mensajeEncuesta } from "@/lib/whatsapp";
 import SelectorNotificacion from "./SelectorNotificacion";
@@ -719,6 +725,7 @@ export default function BitacoraSection({
   const tiposDisponiblesNuevo = TIPOS_EVENTO.filter(
     (t) =>
       (t.label === "Observaciones" || !tiposYaCargados.has(t.label)) &&
+      eventoAplicaATipoBaja(t.label, tipoBajaNombre) &&
       (esSoloInformes(tipoBajaNombre)
         ? EVENTOS_PERMITIDOS_SOLO_INFORMES.includes(t.label)
         : t.label !== "Revisión de documentación")

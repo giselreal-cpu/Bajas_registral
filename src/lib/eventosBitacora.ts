@@ -7,6 +7,8 @@
 // vez (string[], deben estar TODOS completados) — es el caso de "Cierre
 // de Caso", que no se puede cerrar si queda algún evento clave pendiente.
 
+import { TIPO_BAJA_DIGITAL } from "@/lib/tipoBaja";
+
 export interface TipoEventoDef {
   value: string;
   label: string;
@@ -41,6 +43,17 @@ export const TIPOS_EVENTO: TipoEventoDef[] = [
     // bloqueo real sigue estando en "Cierre de Caso", que sí exige
     // "Traslado" completado.
     requiere: null
+  },
+  // Solo bajas 04 Digital. El desarmadero recibe dos avisos: primero completar
+  // el formulario (IPV) y después, con la documentación lista, cargarla en el
+  // sistema RUDAC. Este evento sigue ese segundo paso: se carga (pendiente) al
+  // avisarle y se completa cuando el desarmadero ya cargó todo en RUDAC. Así
+  // el Panel lista los casos que todavía esperan esa carga, sin usar
+  // "Presentación de Baja" (que es la presentación en el registro).
+  {
+    value: "carga_rudac",
+    label: "Carga en RUDAC (desarmadero)",
+    requiere: "Formulario de Baja"
   },
   {
     value: "presentacion_baja",
@@ -96,6 +109,15 @@ const REQUISITOS_SOLO_INFORMES: Record<string, string | string[] | null> = {
   "Cierre de Caso": ["Petición de Informes", "Revisión de documentación", "Envío de documentación Cía"]
 };
 
+export const EVENTO_CARGA_RUDAC = "Carga en RUDAC (desarmadero)";
+
+// ¿Este evento se ofrece para este tipo de baja? "Carga en RUDAC" es solo de
+// la baja digital.
+export function eventoAplicaATipoBaja(label: string, tipoBaja: string | null | undefined): boolean {
+  if (label === EVENTO_CARGA_RUDAC) return tipoBaja === TIPO_BAJA_DIGITAL;
+  return true;
+}
+
 export function tipoEventoDe(label: string): TipoEventoDef | undefined {
   return TIPOS_EVENTO.find((t) => t.label === label);
 }
@@ -116,6 +138,15 @@ export function motivoBloqueo(
     esSoloInformes(tipoBaja) && label in REQUISITOS_SOLO_INFORMES
       ? REQUISITOS_SOLO_INFORMES[label]
       : tipo.requiere;
+  // No se cierra un caso mientras el desarmadero tenga pendiente la carga en
+  // RUDAC (si ese evento está cargado y sin completar). No se exige a los casos
+  // que nunca lo cargaron, así los casos en curso no quedan trabados.
+  if (
+    label === "Cierre de Caso" &&
+    eventosExistentes.some((ev) => ev.tipo_evento === EVENTO_CARGA_RUDAC && !ev.completado && ev.id !== idEventoActual)
+  ) {
+    return `No se puede completar "Cierre de Caso" porque "${EVENTO_CARGA_RUDAC}" todavía no está completado.`;
+  }
   if (!requiere) return null;
 
   const requisitos = Array.isArray(requiere) ? requiere : [requiere];

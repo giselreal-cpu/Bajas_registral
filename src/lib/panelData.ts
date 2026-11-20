@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { Caso, ESTADOS } from "@/types/database";
-import { TIPOS_EVENTO, TIPO_BAJA_SOLO_INFORMES } from "@/lib/eventosBitacora";
+import { EVENTO_CARGA_RUDAC, TIPOS_EVENTO, TIPO_BAJA_SOLO_INFORMES } from "@/lib/eventosBitacora";
 import { SIN_DESARMADERO } from "@/lib/desarmaderoFiltro";
 import { obtenerIdsAnulados } from "@/lib/anulacion";
 import { diasHabilesTranscurridos } from "@/lib/feriados";
@@ -59,6 +59,16 @@ export interface EventoIncompletoRow {
   numeroSiniestro: string;
   dominio: string;
   estado: string;
+}
+
+export interface PendienteRudacRow {
+  casoId: string;
+  dominio: string;
+  vehiculo: string;
+  desarmadero: string;
+  responsable: string | null;
+  desde: string;
+  dias: number; // días hábiles desde el aviso
 }
 
 export interface EncuestaRow {
@@ -529,6 +539,39 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     eventosPorTipo.set(ev.tipo_evento, lista);
   }
 
+  // Bajas 04 Digital con el evento "Carga en RUDAC (desarmadero)" cargado y sin
+  // completar: la documentación ya está en manos del desarmadero y falta que
+  // la cargue en el sistema RUDAC. Se cuentan los días hábiles desde el aviso.
+  const { data: rudacRaw } =
+    casoIds.length > 0
+      ? await supabase
+          .from("bitacora")
+          .select("caso_id, fecha_inicio, created_at")
+          .eq("tipo_evento", EVENTO_CARGA_RUDAC)
+          .eq("completado", false)
+          .in("caso_id", casoIds)
+      : { data: [] as { caso_id: string; fecha_inicio: string | null; created_at: string }[] };
+  const casoPorId = new Map((casos as CasoResumen[]).map((c) => [c.id, c]));
+  const nombreDesarmadero = new Map((desarmaderos ?? []).map((d) => [d.id, d.nombre as string]));
+  const pendientesRudac: PendienteRudacRow[] = (rudacRaw ?? [])
+    .flatMap((ev) => {
+      const c = casoPorId.get(ev.caso_id);
+      if (!c || c.estado === "cerrado") return [];
+      const desde = ev.fecha_inicio ?? ev.created_at;
+      return [
+        {
+          casoId: c.id,
+          dominio: c.vehiculo?.dominio ?? "—",
+          vehiculo: [c.vehiculo?.marca, c.vehiculo?.modelo].filter(Boolean).join(" "),
+          desarmadero: (c.desarmadero_id && nombreDesarmadero.get(c.desarmadero_id)) || "Sin desarmadero",
+          responsable: c.responsable?.nombre ?? null,
+          desde,
+          dias: diasHabilesTranscurridos(desde, hoy)
+        }
+      ];
+    })
+    .sort((a, b) => b.dias - a.dias);
+
   const encuestasRows = (encuestas ?? []) as unknown as EncuestaRow[];
   const encuestasEnviadas = encuestasRows.length;
   const encuestasRespondidas = encuestasRows.filter((e) => e.respondida).length;
@@ -744,6 +787,7 @@ export async function obtenerDatosPanel(filtros: PanelFiltros) {
     casosConPresentacion,
     promedioPresentacionCierre,
     eventosPorTipo,
+    pendientesRudac,
     encuestasRows,
     encuestasEnviadas,
     encuestasRespondidas,

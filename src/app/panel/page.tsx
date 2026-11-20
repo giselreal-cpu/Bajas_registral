@@ -45,6 +45,7 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
     desarmaderos,
     rankingGestores,
     eventosPorTipo,
+    pendientesRudac,
     itemsAtencionLimitados,
     totalACobrarCartera,
     casosACobrarCartera,
@@ -311,6 +312,41 @@ export default async function PanelPage({ searchParams }: { searchParams: PanelF
           <p className="text-sm text-slate-500">No hay casos que pidan atención por ahora.</p>
         )}
       </section>
+
+      {pendientesRudac.length > 0 && (
+        <section className="card p-4">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-heading font-semibold text-slate-800">Esperando carga en RUDAC (desarmadero)</h2>
+            <span className="text-xs text-slate-400">{pendientesRudac.length}</span>
+          </div>
+          <p className="text-xs text-slate-400 mb-3">
+            Bajas 04 Digital con el evento &quot;Carga en RUDAC (desarmadero)&quot; cargado y sin completar. Los días
+            son hábiles desde el aviso al desarmadero.
+          </p>
+          <div className="divide-y divide-slate-100">
+            {pendientesRudac.map((c) => (
+              <div key={c.casoId} className="py-2 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <Link href={`/casos/${c.casoId}`} className="text-brand-700 font-medium hover:underline text-sm">
+                    {c.dominio}
+                    {c.vehiculo && <span className="font-normal text-slate-500">{` · ${c.vehiculo}`}</span>}
+                  </Link>
+                  <p className="text-xs text-slate-500">
+                    {c.desarmadero} · {c.responsable ?? "Sin responsable"}
+                  </p>
+                </div>
+                <span
+                  className={`badge shrink-0 ${
+                    c.dias >= 3 ? "bg-amber-100 text-amber-800" : "bg-slate-100 text-slate-700"
+                  }`}
+                >
+                  {c.dias === 0 ? "Hoy" : `${c.dias} ${c.dias === 1 ? "día hábil" : "días hábiles"}`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="card p-4">

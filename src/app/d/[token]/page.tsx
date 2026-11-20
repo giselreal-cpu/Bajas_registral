@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createServiceClient } from "@/lib/supabase/serviceClient";
 import InstallBanner from "@/components/InstallBanner";
-import { TIPOS_EVENTO } from "@/lib/eventosBitacora";
+import { TIPOS_EVENTO, eventoAplicaATipoBaja } from "@/lib/eventosBitacora";
 import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import {
   GRUPOS_VISIBLES_DESARMADERO,
@@ -34,6 +34,7 @@ const ORDEN_TIMELINE = [
   "asignacion_desarmadero",
   "traslado",
   "formulario_baja",
+  "carga_rudac",
   "presentacion_baja",
   "envio_documentacion_cia",
   "baja_patentes",
@@ -112,7 +113,10 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     .eq("caso_id", caso.id);
 
   const eventos = (eventosRaw ?? []) as EventoTracker[];
-  const completados = PASOS.filter((p) => eventos.some((e) => e.tipo_evento === p.label && e.completado)).length;
+  const digital = esBajaDigital(caso.tipo_baja?.nombre);
+  // "Carga en RUDAC" es un paso propio de la baja digital.
+  const pasos = PASOS.filter((p) => eventoAplicaATipoBaja(p.label, caso.tipo_baja?.nombre));
+  const completados = pasos.filter((p) => eventos.some((e) => e.tipo_evento === p.label && e.completado)).length;
 
   const { data: desarmadero } = await supabase
     .from("desarmaderos")
@@ -131,7 +135,6 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
     .eq("caso_id", caso.id)
     .order("created_at", { ascending: false });
 
-  const digital = esBajaDigital(caso.tipo_baja?.nombre);
   const visibles = clasificarDocumentosVisibles(documentosRaw ?? [], { digital });
   const firmar = async (docs: typeof visibles.fotos): Promise<DocumentoConUrl[]> =>
     Promise.all(
@@ -209,14 +212,14 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-medium text-slate-800">Avance del trámite</h2>
           <span className="text-xs text-slate-400">
-            {completados} de {PASOS.length}
+            {completados} de {pasos.length}
           </span>
         </div>
         <div className="flex flex-col">
-          {PASOS.map((paso, i) => {
+          {pasos.map((paso, i) => {
             const ev = eventos.find((e) => e.tipo_evento === paso.label);
             const completado = !!ev?.completado;
-            const esUltimo = i === PASOS.length - 1;
+            const esUltimo = i === pasos.length - 1;
             return (
               <div key={paso.value} className="flex gap-3">
                 <div className="flex flex-col items-center w-[18px] shrink-0">

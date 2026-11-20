@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { BitacoraEvento, CasoConRelaciones } from "@/types/database";
-import { EVENTOS_SOLO_INFORMES, TIPOS_EVENTO, esSoloInformes, motivoBloqueo } from "@/lib/eventosBitacora";
+import {
+  EVENTOS_SOLO_INFORMES,
+  TIPOS_EVENTO,
+  esSoloInformes,
+  eventoAplicaATipoBaja,
+  motivoBloqueo
+} from "@/lib/eventosBitacora";
 import { GrueroBox, FormularioBajaBox, EVENTO_A_NOTIFICACION } from "./BitacoraSection";
 import SelectorNotificacion from "./SelectorNotificacion";
 
@@ -22,6 +28,7 @@ const ORDEN_TIMELINE = [
   "asignacion_desarmadero",
   "traslado",
   "formulario_baja",
+  "carga_rudac",
   "presentacion_baja",
   "envio_documentacion_cia",
   "baja_patentes",
@@ -166,7 +173,7 @@ function EditForm({
 export default function BitacoraTimeline({ casoId, caso, soloLectura, tipoBaja }: Props) {
   const PASOS_CASO = esSoloInformes(tipoBaja)
     ? PASOS.filter((p) => EVENTOS_SOLO_INFORMES.includes(p.label))
-    : PASOS.filter((p) => p.value !== "revision_documentacion");
+    : PASOS.filter((p) => p.value !== "revision_documentacion" && eventoAplicaATipoBaja(p.label, tipoBaja));
   const [eventos, setEventos] = useState<BitacoraEvento[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savingLabel, setSavingLabel] = useState<string | null>(null);

@@ -6,7 +6,7 @@
 // está en /api/casos/[id]/seguimiento-productor.
 
 import { esBajaDigital, NOMBRE_IPV } from "@/lib/tipoBaja";
-import { esSoloInformes } from "@/lib/eventosBitacora";
+import { EVENTO_CARGA_RUDAC, esSoloInformes } from "@/lib/eventosBitacora";
 import { EMAIL_CONTACTO } from "@/lib/contacto";
 
 export interface EventoSeguimiento {
@@ -38,6 +38,7 @@ export interface Hito {
   titulo: string;
   completado: boolean;
   enEspera?: boolean; // ya realizado, a la espera de un tercero
+  esperaRudac?: boolean; // la espera es la carga en RUDAC del desarmadero
   pendienteTexto?: string; // en lugar de "pendiente"
   faltaDocAsegurado?: boolean;
   fecha: string | null; // AAAA-MM-DD
@@ -75,7 +76,7 @@ interface PasoDef {
   derivado?: "gestor";
   // Cuando el evento está cargado pero sin completar, el paso ya se hizo y se
   // espera a un tercero (ej.: la baja ya se presentó y el registro la procesa).
-  enEspera?: { titulo: string; esperando: string };
+  enEspera?: { titulo: string; esperando: string; clave?: "rudac" };
   // Cuando el evento todavía no se inició y la causa es de un tercero (ej.: en
   // 04 Digital, documentación que falta del asegurado).
   sinIniciar?: { esperando: string; detalle: string };
@@ -99,6 +100,23 @@ function pasosSegunTipo(tipoBaja: string | null): PasoDef[] {
     { titulo: "Retiro de la unidad", evento: "Traslado", esperando: "El retiro de la unidad" },
     { titulo: "Gestor asignado", derivado: "gestor" },
     { titulo: `Completado el ${formulario}`, evento: "Formulario de Baja", esperando: `Que se complete el ${formulario}` },
+    // Solo 04 Digital: con la documentación lista, el desarmadero la carga en
+    // el sistema RUDAC. Aparece una vez que se le avisó (evento cargado).
+    ...(esBajaDigital(tipoBaja)
+      ? [
+          {
+            titulo: "Documentación cargada en RUDAC por el desarmadero",
+            evento: EVENTO_CARGA_RUDAC,
+            esperando: "La carga de la documentación en el sistema RUDAC",
+            soloSiExiste: true,
+            enEspera: {
+              titulo: "Documentación entregada al desarmadero, a la espera de que la cargue en RUDAC",
+              esperando: "Que el desarmadero cargue la documentación en el sistema RUDAC",
+              clave: "rudac" as const
+            }
+          }
+        ]
+      : []),
     {
       titulo: "Presentación de la baja en el registro",
       evento: "Presentación de Baja",
@@ -127,6 +145,7 @@ function pasosSegunTipo(tipoBaja: string | null): PasoDef[] {
 export function construirSeguimiento(d: DatosSeguimiento): Seguimiento {
   const hitos: Hito[] = [];
   const pendientes: { titulo: string; esperando: string }[] = [];
+  const hayRudac = d.eventos.some((e) => e.tipo_evento === EVENTO_CARGA_RUDAC);
 
   for (const paso of pasosSegunTipo(d.tipo_baja)) {
     if (paso.derivado === "gestor") {
@@ -139,11 +158,19 @@ export function construirSeguimiento(d: DatosSeguimiento): Seguimiento {
     const completado = !!ev?.completado;
     if (ev && !completado && paso.enEspera) {
       // Ya hecho, a la espera de un tercero: no es "pendiente" para el productor.
-      hitos.push({ titulo: paso.enEspera.titulo, completado: false, enEspera: true, fecha: ev.fecha_inicio ?? null });
+      hitos.push({
+        titulo: paso.enEspera.titulo,
+        completado: false,
+        enEspera: true,
+        esperaRudac: paso.enEspera.clave === "rudac",
+        fecha: ev.fecha_inicio ?? null
+      });
       pendientes.push({ titulo: paso.enEspera.titulo, esperando: paso.enEspera.esperando });
       continue;
     }
-    if (!ev && paso.sinIniciar) {
+    // Si ya se le avisó al desarmadero para cargar en RUDAC, la documentación
+    // está completa: no se espera nada del asegurado.
+    if (!ev && paso.sinIniciar && !hayRudac) {
       hitos.push({ titulo: paso.titulo, completado: false, pendienteTexto: paso.sinIniciar.detalle, faltaDocAsegurado: true, fecha: null });
       pendientes.push({ titulo: paso.titulo, esperando: paso.sinIniciar.esperando });
       continue;
@@ -174,10 +201,14 @@ export function construirSeguimiento(d: DatosSeguimiento): Seguimiento {
   // Si la baja ya se presentó y se espera al registro, el estado lo dice así
   // (aunque el estado interno todavía sea uno anterior).
   const ESTADOS_POSTERIORES = ["presentado_en_registro", "documentacion_enviada", "baja_patentes_pendiente", "cierre_pendiente", "cerrado"];
-  const fraseEspera =
-    hayEspera && !ESTADOS_POSTERIORES.includes(d.estado)
-      ? "La baja ya fue presentada en el registro automotor y estamos a la espera de que la procese."
-      : null;
+  const esperaRudac = hitos.some((h) => h.esperaRudac);
+  const fraseEspera = !ESTADOS_POSTERIORES.includes(d.estado)
+    ? esperaRudac
+      ? "La documentación ya está lista y el desarmadero está cargándola en el sistema RUDAC."
+      : hayEspera
+        ? "La baja ya fue presentada en el registro automotor y estamos a la espera de que la procese."
+        : null
+    : null;
 
   const fraseDoc =
     faltaDoc && !ESTADOS_POSTERIORES.includes(d.estado)
