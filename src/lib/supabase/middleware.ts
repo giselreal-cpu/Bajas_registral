@@ -72,9 +72,13 @@ export async function updateSession(request: NextRequest) {
   // Portada pública (solo la raíz exacta): presenta a Oltra a quien no
   // tiene cuenta. Con sesión, page.tsx redirige al panel.
   const esPortadaPublica = pathname === "/";
+  // Saludo de fin de año (archivo estático public/fiestas.html, con QR): se
+  // abre sin iniciar sesión.
+  const esFiestasPublica = pathname === "/fiestas.html";
 
   if (!user) {
     if (
+      esFiestasPublica ||
       esGestorPublico ||
       esGrueroPublico ||
       esFormularioBajaPublico ||
