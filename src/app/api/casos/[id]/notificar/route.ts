@@ -6,8 +6,10 @@ import {
   destinatariosDisponibles,
   Destinatario,
   DESTINATARIOS,
+  llevaInformeDominio,
   TipoNotificacion
 } from "@/lib/email/notificacionesCaso";
+import { obtenerAdjuntosInformeDominio, type ResultadoAdjuntos } from "@/lib/email/adjuntosInformeDominio";
 import { CasoConRelaciones } from "@/types/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { obtenerProveedorReposicion } from "@/lib/proveedoresReposicion";
@@ -38,6 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const tiposValidos: TipoNotificacion[] = [
     "ingreso_caso",
+    "peticion_informes",
     "contacto_asegurado",
     "gestor_asignado",
     "traslado",
@@ -74,6 +77,17 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
   const enviados: string[] = [];
   const fallidos: { destinatario: string; error: string }[] = [];
+  // Destinatarios a los que se les mandó el informe de dominio adjunto.
+  const conInforme: string[] = [];
+
+  // La compañía (tramitador / productor) recibe el informe de dominio como
+  // comprobante del estado de la unidad. Se descarga una sola vez, y solo si
+  // alguno de los destinatarios pedidos lo lleva.
+  const pedidosConInforme = pedidosValidos.filter((d) => disponibles[d] && llevaInformeDominio(tipo, d));
+  const informe: ResultadoAdjuntos | null =
+    pedidosConInforme.length > 0
+      ? await obtenerAdjuntosInformeDominio(supabase as unknown as SupabaseClient, params.id)
+      : null;
 
   for (const destinatario of pedidosValidos) {
     const email = disponibles[destinatario];
@@ -81,14 +95,26 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       fallidos.push({ destinatario, error: "No tiene mail cargado." });
       continue;
     }
-    const { subject, text } = asuntoYCuerpo(tipo, caso, destinatario);
-    const resultado = await enviarEmail({ to: email, subject, text });
+    const lleva = llevaInformeDominio(tipo, destinatario);
+    // Sin informe no se manda el aviso a la compañía: lo necesita adjunto.
+    if (lleva && informe && informe.adjuntos.length === 0) {
+      fallidos.push({ destinatario, error: informe.error ?? "No se pudo adjuntar el informe de dominio." });
+      continue;
+    }
+    const { subject, text } = asuntoYCuerpo(tipo, caso, destinatario, { conInformeAdjunto: lleva });
+    const resultado = await enviarEmail({
+      to: email,
+      subject,
+      text,
+      attachments: lleva ? informe?.adjuntos : undefined
+    });
     if (resultado.ok) {
       enviados.push(destinatario);
+      if (lleva) conInforme.push(destinatario);
     } else {
       fallidos.push({ destinatario, error: resultado.error ?? "No se pudo enviar." });
     }
   }
 
-  return NextResponse.json({ enviados, fallidos });
+  return NextResponse.json({ enviados, fallidos, conInforme });
 }

@@ -3,6 +3,7 @@ import { esSoloInformes } from "@/lib/eventosBitacora";
 
 export type TipoNotificacion =
   | "ingreso_caso"
+  | "peticion_informes"
   | "contacto_asegurado"
   | "gestor_asignado"
   | "traslado"
@@ -17,6 +18,18 @@ export const DESTINATARIOS: { value: Destinatario; label: string }[] = [
   { value: "asegurado", label: "Asegurado" },
   { value: "reposicion", label: "Proveedor de reposición" }
 ];
+
+// La compañía necesita el "Informe de dominio" como comprobante del estado de
+// la unidad (para pagar): al avisar que se contactó al asegurado o que se
+// cerró la petición de informes, el mail lo lleva adjunto. Solo para quienes
+// están del lado de la compañía (tramitador y productor): el asegurado y el
+// proveedor de reposición no lo reciben.
+export const TIPOS_CON_INFORME_DOMINIO: TipoNotificacion[] = ["contacto_asegurado", "peticion_informes"];
+export const DESTINATARIOS_CON_INFORME_DOMINIO: Destinatario[] = ["tramitador", "productor"];
+
+export function llevaInformeDominio(tipo: TipoNotificacion, destinatario: Destinatario): boolean {
+  return TIPOS_CON_INFORME_DOMINIO.includes(tipo) && DESTINATARIOS_CON_INFORME_DOMINIO.includes(destinatario);
+}
 
 // Los mails de un proveedor se cargan separados por coma: se normalizan y se
 // descartan los que no parecen una dirección.
@@ -43,6 +56,7 @@ export function destinatariosDisponibles(
 
 const TITULOS: Record<TipoNotificacion, string> = {
   ingreso_caso: "Inicio de trámite",
+  peticion_informes: "Informes de dominio",
   contacto_asegurado: "Contacto con el asegurado",
   gestor_asignado: "Gestor de campo asignado",
   traslado: "Traslado de la unidad",
@@ -50,10 +64,14 @@ const TITULOS: Record<TipoNotificacion, string> = {
   cierre_caso: "Caso cerrado"
 };
 
+export const TEXTO_INFORME_ADJUNTO =
+  "Adjuntamos el informe de dominio, como comprobante del estado de la unidad.";
+
 export function asuntoYCuerpo(
   tipo: TipoNotificacion,
   caso: CasoConRelaciones,
-  destinatario?: Destinatario
+  destinatario?: Destinatario,
+  opciones: { conInformeAdjunto?: boolean } = {}
 ): { subject: string; text: string } {
   const dominio = caso.vehiculo?.dominio ?? "s/d";
   const numero = caso.numero_siniestro;
@@ -69,6 +87,7 @@ export function asuntoYCuerpo(
     ingreso_caso: esSoloInformes(caso.tipo_baja?.nombre)
       ? `Le informamos que se dio inicio al trámite de Pedido de Informes del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}). El registro es quien emite el informe de dominio histórico, lo cual suele demorar entre 48/72hs hábiles en emitirlo.`
       : `Le informamos que se dio inicio al trámite de baja registral del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}). Como primer paso solicitaremos los informes de dominio para conocer la situación registral de la unidad, y nos comunicaremos dentro de las próximas 24 hs hábiles para detallarle el procedimiento a seguir.`,
+    peticion_informes: `Le informamos que se completó el pedido de informes del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}, asegurado ${nombreAsegurado}).`,
     contacto_asegurado: `Le informamos que se contactó al asegurado ${nombreAsegurado} para coordinar los próximos pasos de la baja del vehículo dominio ${dominio} (Siniestro N° ${numero}, ${aseguradora}). Se comunicó estado de multas por ${formatMoneda(
       caso.deuda_multas
     )} y patentes por ${formatMoneda(caso.deuda_patentes)}.`,
@@ -85,7 +104,8 @@ export function asuntoYCuerpo(
       ? `\n\nDatos del asegurado:\nNombre: ${nombreAsegurado}\nTeléfono: ${caso.asegurado?.telefono || "s/d"}\nEmail: ${caso.asegurado?.email || "s/d"}`
       : "";
 
-  const text = `Hola,\n\n${cuerpos[tipo]}${contacto}\n\nSaludos,\nOltra Gestión Integral`;
+  const adjunto = opciones.conInformeAdjunto ? ` ${TEXTO_INFORME_ADJUNTO}` : "";
+  const text = `Hola,\n\n${cuerpos[tipo]}${adjunto}${contacto}\n\nSaludos,\nOltra Gestión Integral`;
 
   return { subject, text };
 }

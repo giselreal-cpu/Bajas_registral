@@ -5,6 +5,7 @@ import { CasoConRelaciones } from "@/types/database";
 import {
   DESTINATARIOS,
   Destinatario,
+  TIPOS_CON_INFORME_DOMINIO,
   TipoNotificacion,
   destinatariosDisponibles
 } from "@/lib/email/notificacionesCaso";
@@ -12,6 +13,7 @@ import {
 interface Resultado {
   enviados: string[];
   fallidos: { destinatario: string; error: string }[];
+  conInforme?: string[];
 }
 
 export default function SelectorNotificacion({
@@ -67,6 +69,12 @@ export default function SelectorNotificacion({
           </button>
         )}
       </div>
+      {TIPOS_CON_INFORME_DOMINIO.includes(tipo) && (
+        <p className="text-xs text-slate-500">
+          Al Tramitador y al Productor se les adjunta el <b>Informe de dominio</b> cargado en Documentos, como
+          comprobante del estado de la unidad.
+        </p>
+      )}
       <div className="flex flex-wrap gap-4">
         {DESTINATARIOS.map((d) => {
           const email = disponibles[d.value];
@@ -99,7 +107,14 @@ export default function SelectorNotificacion({
         <div className="text-xs space-y-1">
           {resultado.enviados.length > 0 && (
             <p className="text-emerald-700">
-              Enviado a: {resultado.enviados.map(labelDestinatario).join(", ")}
+              Enviado a:{" "}
+              {resultado.enviados
+                .map((d) =>
+                  resultado.conInforme?.includes(d)
+                    ? `${labelDestinatario(d)} (con informe de dominio adjunto)`
+                    : labelDestinatario(d)
+                )
+                .join(", ")}
             </p>
           )}
           {resultado.fallidos.length > 0 && (

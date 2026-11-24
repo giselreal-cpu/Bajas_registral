@@ -23,6 +23,7 @@ const EVENTO_LIBERACION_DOCUMENTAL = "Envío de documentación Cía";
 // configuración fija — ver SelectorNotificacion).
 export const EVENTO_A_NOTIFICACION: Record<string, TipoNotificacion> = {
   "Ingreso de caso": "ingreso_caso",
+  "Petición de Informes": "peticion_informes",
   "Contacto con el asegurado": "contacto_asegurado",
   Traslado: "traslado",
   "Presentación de Baja": "presentacion_baja",

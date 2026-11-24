@@ -15,17 +15,24 @@ function getTransporter() {
   return transporter;
 }
 
+export interface AdjuntoEmail {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
 interface EnviarEmailInput {
   to: string;
   subject: string;
   text: string;
+  attachments?: AdjuntoEmail[];
 }
 
 // Nunca lanza — devuelve {ok:false, error} en vez de tirar excepción, para
 // que el llamador decida cómo mostrarlo sin romper el flujo principal
 // (completar un evento de bitácora, crear un caso, etc. no deben fallar
 // por un problema de envío de mail).
-export async function enviarEmail({ to, subject, text }: EnviarEmailInput): Promise<{
+export async function enviarEmail({ to, subject, text, attachments }: EnviarEmailInput): Promise<{
   ok: boolean;
   error?: string;
 }> {
@@ -38,7 +45,8 @@ export async function enviarEmail({ to, subject, text }: EnviarEmailInput): Prom
       from: `Oltra Gestión Integral <${process.env.GMAIL_USER}>`,
       to,
       subject,
-      text
+      text,
+      ...(attachments && attachments.length > 0 ? { attachments } : {})
     });
     return { ok: true };
   } catch (e) {

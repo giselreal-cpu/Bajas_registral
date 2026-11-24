@@ -22,6 +22,16 @@ const TITULO = /\btitulo\b/;
 const DNI = /\bdni\b/;
 const PODER = /\bpoder(es)?\b/;
 
+function esInformeDominioNormalizado(nombreNormalizado: string): boolean {
+  return nombreNormalizado.includes("informe de dominio");
+}
+
+// El "Informe de dominio" del caso (se reconoce por el nombre con el que se
+// carga, ej. "Informe de dominio" o "Informe de dominio histórico").
+export function esInformeDominio(nombre: string): boolean {
+  return esInformeDominioNormalizado(normalizar(nombre));
+}
+
 export function esFotoTitular(nombre: string): boolean {
   return FOTO_TITULAR.test(normalizar(nombre));
 }
@@ -58,7 +68,7 @@ export function clasificarDocumentosVisibles<T extends DocumentoBase>(docs: T[],
     estatuto: por((n) => n.includes("estatuto")),
     poder: por((n) => PODER.test(n)),
     extravio: por((n) => n.includes("extrav")),
-    informeDominio: por((n) => n.includes("informe de dominio")),
+    informeDominio: por((n) => esInformeDominioNormalizado(n)),
     // Fotos de las chapas patente (aunque no estén en la categoría de imágenes).
     chapas: por((n) => /\bchapas?\b/.test(n)),
     fotos: docs.filter(
