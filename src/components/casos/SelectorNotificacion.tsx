@@ -14,6 +14,7 @@ interface Resultado {
   enviados: string[];
   fallidos: { destinatario: string; error: string }[];
   conInforme?: string[];
+  conEnlace?: string[];
 }
 
 export default function SelectorNotificacion({
@@ -112,7 +113,9 @@ export default function SelectorNotificacion({
                 .map((d) =>
                   resultado.conInforme?.includes(d)
                     ? `${labelDestinatario(d)} (con informe de dominio adjunto)`
-                    : labelDestinatario(d)
+                    : resultado.conEnlace?.includes(d)
+                      ? `${labelDestinatario(d)} (con el enlace al informe de dominio, no se pudo adjuntar el archivo)`
+                      : labelDestinatario(d)
                 )
                 .join(", ")}
             </p>

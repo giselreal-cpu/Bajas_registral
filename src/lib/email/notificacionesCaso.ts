@@ -71,7 +71,9 @@ export function asuntoYCuerpo(
   tipo: TipoNotificacion,
   caso: CasoConRelaciones,
   destinatario?: Destinatario,
-  opciones: { conInformeAdjunto?: boolean } = {}
+  // `conInformeAdjunto`: el mail lleva el informe de dominio como archivo.
+  // `enlacesInforme`: informes que no se pudieron adjuntar y van como enlace.
+  opciones: { conInformeAdjunto?: boolean; enlacesInforme?: string[] } = {}
 ): { subject: string; text: string } {
   const dominio = caso.vehiculo?.dominio ?? "s/d";
   const numero = caso.numero_siniestro;
@@ -104,8 +106,13 @@ export function asuntoYCuerpo(
       ? `\n\nDatos del asegurado:\nNombre: ${nombreAsegurado}\nTeléfono: ${caso.asegurado?.telefono || "s/d"}\nEmail: ${caso.asegurado?.email || "s/d"}`
       : "";
 
+  const enlaces = opciones.enlacesInforme ?? [];
   const adjunto = opciones.conInformeAdjunto ? ` ${TEXTO_INFORME_ADJUNTO}` : "";
-  const text = `Hola,\n\n${cuerpos[tipo]}${adjunto}${contacto}\n\nSaludos,\nOltra Gestión Integral`;
+  const textoEnlaces =
+    enlaces.length > 0
+      ? `\n\n${enlaces.length === 1 ? "Informe de dominio" : "Informes de dominio"} (comprobante del estado de la unidad):\n${enlaces.join("\n")}`
+      : "";
+  const text = `Hola,\n\n${cuerpos[tipo]}${adjunto}${textoEnlaces}${contacto}\n\nSaludos,\nOltra Gestión Integral`;
 
   return { subject, text };
 }

@@ -79,6 +79,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   const fallidos: { destinatario: string; error: string }[] = [];
   // Destinatarios a los que se les mandó el informe de dominio adjunto.
   const conInforme: string[] = [];
+  // Destinatarios a los que el informe fue como enlace (no se pudo adjuntar).
+  const conEnlace: string[] = [];
 
   // La compañía (tramitador / productor) recibe el informe de dominio como
   // comprobante del estado de la unidad. Se descarga una sola vez, y solo si
@@ -96,25 +98,31 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       continue;
     }
     const lleva = llevaInformeDominio(tipo, destinatario);
-    // Sin informe no se manda el aviso a la compañía: lo necesita adjunto.
-    if (lleva && informe && informe.adjuntos.length === 0) {
-      fallidos.push({ destinatario, error: informe.error ?? "No se pudo adjuntar el informe de dominio." });
+    // Sin informe no se manda el aviso a la compañía: lo necesita como comprobante.
+    const adjuntos = lleva ? informe?.adjuntos ?? [] : [];
+    const enlaces = lleva ? informe?.enlaces ?? [] : [];
+    if (lleva && adjuntos.length === 0 && enlaces.length === 0) {
+      fallidos.push({ destinatario, error: informe?.error ?? "No se pudo adjuntar el informe de dominio." });
       continue;
     }
-    const { subject, text } = asuntoYCuerpo(tipo, caso, destinatario, { conInformeAdjunto: lleva });
+    const { subject, text } = asuntoYCuerpo(tipo, caso, destinatario, {
+      conInformeAdjunto: adjuntos.length > 0,
+      enlacesInforme: enlaces
+    });
     const resultado = await enviarEmail({
       to: email,
       subject,
       text,
-      attachments: lleva ? informe?.adjuntos : undefined
+      attachments: adjuntos.length > 0 ? adjuntos : undefined
     });
     if (resultado.ok) {
       enviados.push(destinatario);
-      if (lleva) conInforme.push(destinatario);
+      if (adjuntos.length > 0) conInforme.push(destinatario);
+      if (enlaces.length > 0) conEnlace.push(destinatario);
     } else {
       fallidos.push({ destinatario, error: resultado.error ?? "No se pudo enviar." });
     }
   }
 
-  return NextResponse.json({ enviados, fallidos, conInforme });
+  return NextResponse.json({ enviados, fallidos, conInforme, conEnlace });
 }

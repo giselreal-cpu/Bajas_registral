@@ -6,7 +6,7 @@ import {
   llevaInformeDominio,
   normalizarEmails
 } from "../email/notificacionesCaso";
-import { nombreAdjunto } from "../email/adjuntosInformeDominio";
+import { extensionPorContenido, nombreAdjunto, urlDescargaDirecta } from "../email/adjuntosInformeDominio";
 import { esInformeDominio } from "../documentosVisiblesExternos";
 import type { CasoConRelaciones } from "@/types/database";
 
@@ -43,9 +43,34 @@ describe("informe de dominio adjunto para la compañía", () => {
     expect(esInformeDominio("Informe de dominio")).toBe(true);
     expect(esInformeDominio("INFORME DE DOMINIO histórico")).toBe(true);
     expect(esInformeDominio("Informe de multas")).toBe(false);
-    expect(nombreAdjunto("Informe de dominio", "casos/1/x/123-informe.pdf")).toBe("Informe de dominio.pdf");
-    expect(nombreAdjunto("Informe de dominio.pdf", "casos/1/x/123.pdf")).toBe("Informe de dominio.pdf");
-    expect(nombreAdjunto("Informe de dominio", "casos/1/x/sin-ext", "application/pdf")).toBe("Informe de dominio.pdf");
+    expect(nombreAdjunto("Informe de dominio", ".pdf")).toBe("Informe de dominio.pdf");
+    expect(nombreAdjunto("Informe de dominio.PDF", ".pdf")).toBe("Informe de dominio.PDF");
+    expect(nombreAdjunto("Informe: 12/3", ".jpg")).toBe("Informe_ 12_3.jpg");
+  });
+  it("solo adjunta archivos reales (PDF o imagen), nunca la página web de un link de Drive", () => {
+    const pdf = Buffer.from("%PDF-1.7\n....................");
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0]);
+    const html = Buffer.from('<!DOCTYPE html><html dir="ltr"><head><script nonce="x">window.x=1</script>');
+    expect(extensionPorContenido(pdf)).toBe(".pdf");
+    expect(extensionPorContenido(png)).toBe(".png");
+    expect(extensionPorContenido(html)).toBeNull();
+    expect(extensionPorContenido(Buffer.from("corto"))).toBeNull();
+  });
+  it("los links de Drive se convierten en descarga directa; el resto queda igual", () => {
+    expect(urlDescargaDirecta("https://drive.google.com/file/d/1AbC-dEf_2/view?usp=sharing")).toBe(
+      "https://drive.google.com/uc?export=download&id=1AbC-dEf_2"
+    );
+    expect(urlDescargaDirecta("https://drive.google.com/open?id=1AbC-dEf_2")).toBe(
+      "https://drive.google.com/uc?export=download&id=1AbC-dEf_2"
+    );
+    expect(urlDescargaDirecta("https://ejemplo.com/informe.pdf")).toBe("https://ejemplo.com/informe.pdf");
+  });
+  it("si el informe va como enlace, el mail lo incluye", () => {
+    const { text } = asuntoYCuerpo("peticion_informes", caso, "tramitador", {
+      enlacesInforme: ["https://drive.google.com/file/d/1/view"]
+    });
+    expect(text).toContain("Informe de dominio (comprobante del estado de la unidad):\nhttps://drive.google.com/file/d/1/view");
+    expect(text).not.toContain("Adjuntamos");
   });
 });
 
