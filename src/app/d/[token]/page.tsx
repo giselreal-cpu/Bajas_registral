@@ -7,6 +7,7 @@ import { obtenerUrlFirmada } from "@/lib/documentosStorage";
 import {
   GRUPOS_VISIBLES_DESARMADERO,
   clasificarDocumentosVisibles,
+  listadoDocumentosDesarmadero,
   type ClaveGrupoVisible
 } from "@/lib/documentosVisiblesExternos";
 import { PIEZAS_RUDAC } from "@/lib/anexo04";
@@ -143,6 +144,7 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
   const documentacion = Object.fromEntries(
     await Promise.all(GRUPOS_VISIBLES_DESARMADERO.map(async (g) => [g.clave, await firmar(visibles[g.clave])]))
   ) as Record<ClaveGrupoVisible, DocumentoConUrl[]>;
+  const listado = listadoDocumentosDesarmadero(documentacion);
 
   const { data: observacionesRaw } = await supabase
     .from("bitacora")
@@ -263,44 +265,23 @@ export default async function EnlaceDesarmaderoPage({ params }: { params: { toke
 
       <section className="card p-4">
         <h2 className="font-medium text-slate-800 mb-3">Documentación</h2>
-        <div className="space-y-4">
-          {GRUPOS_VISIBLES_DESARMADERO
-            // La foto del cónyuge y el IPV son solo de la baja digital (en las
-            // demás ni se clasifican). La foto del cónyuge no se muestra vacía.
-            .filter((g) => (g.clave !== "ipv" && g.clave !== "fotoConyuge") || digital)
-            .filter((g) => g.clave !== "fotoConyuge" || documentacion.fotoConyuge.length > 0)
-            .map((g) => (
-              <GrupoDocumentos key={g.clave} titulo={g.titulo} documentos={documentacion[g.clave]} />
+        {/* Un único listado, sin títulos por tipo de documento. La foto del
+            cónyuge y el IPV solo se clasifican en la baja digital. */}
+        {listado.length === 0 ? (
+          <p className="text-sm text-slate-400">Sin documentos todavía.</p>
+        ) : (
+          <ul className="space-y-1 text-sm">
+            {listado.map((d) => (
+              <li key={d.id}>
+                <a href={d.url_firmada ?? "#"} target="_blank" rel="noreferrer" className="text-brand-600 hover:underline">
+                  {d.nombre}
+                </a>
+              </li>
             ))}
-        </div>
+          </ul>
+        )}
         <UploadFormDesarmadero token={params.token} />
       </section>
-    </div>
-  );
-}
-
-function GrupoDocumentos({ titulo, documentos }: { titulo: string; documentos: DocumentoConUrl[] }) {
-  return (
-    <div>
-      <p className="text-xs font-semibold uppercase text-slate-500 mb-1">{titulo}</p>
-      {documentos.length === 0 ? (
-        <p className="text-sm text-slate-400">Sin documentos todavía.</p>
-      ) : (
-        <ul className="space-y-1 text-sm">
-          {documentos.map((d) => (
-            <li key={d.id}>
-              <a
-                href={d.url_firmada ?? "#"}
-                target="_blank"
-                rel="noreferrer"
-                className="text-brand-600 hover:underline"
-              >
-                {d.nombre}
-              </a>
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 }

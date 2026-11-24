@@ -59,6 +59,8 @@ export function clasificarDocumentosVisibles<T extends DocumentoBase>(docs: T[],
     poder: por((n) => PODER.test(n)),
     extravio: por((n) => n.includes("extrav")),
     informeDominio: por((n) => n.includes("informe de dominio")),
+    // Fotos de las chapas patente (aunque no estén en la categoría de imágenes).
+    chapas: por((n) => /\bchapas?\b/.test(n)),
     fotos: docs.filter(
       (d) => d.categoria === "imagen_dominio" && !esFotoTitular(d.nombre) && !(digital && esFotoConyuge(d))
     )
@@ -93,5 +95,24 @@ export const GRUPOS_VISIBLES_DESARMADERO: { clave: ClaveGrupoVisible; titulo: st
   { clave: "extravio", titulo: "Extravío (denuncia)" },
   { clave: "informeDominio", titulo: "Informe de dominio" },
   { clave: "ipv", titulo: "Instrumento de Petición Virtual (IPV)" },
+  { clave: "chapas", titulo: "Chapas" },
   { clave: "fotos", titulo: "Fotos" }
 ];
+
+// Todos los documentos visibles para el desarmadero en un único listado, sin
+// títulos por grupo: se respeta el orden de los grupos y un documento que
+// cae en más de uno (ej.: una foto llamada "Chapas") figura una sola vez.
+export function listadoDocumentosDesarmadero<T extends { id: string }>(
+  porGrupo: Partial<Record<ClaveGrupoVisible, T[]>>
+): T[] {
+  const vistos = new Set<string>();
+  const lista: T[] = [];
+  for (const g of GRUPOS_VISIBLES_DESARMADERO) {
+    for (const d of porGrupo[g.clave] ?? []) {
+      if (vistos.has(d.id)) continue;
+      vistos.add(d.id);
+      lista.push(d);
+    }
+  }
+  return lista;
+}

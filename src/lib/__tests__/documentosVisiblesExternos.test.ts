@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   GRUPOS_VISIBLES_DESARMADERO,
   GRUPOS_VISIBLES_EXTERNOS,
-  clasificarDocumentosVisibles
+  clasificarDocumentosVisibles,
+  listadoDocumentosDesarmadero
 } from "../documentosVisiblesExternos";
 
 const doc = (nombre: string, categoria = "documento_compania") => ({ nombre, categoria });
@@ -72,6 +73,37 @@ describe("clasificarDocumentosVisibles: foto del cónyuge e IPV (desarmadero)", 
     const fb = GRUPOS_VISIBLES_EXTERNOS.map((g) => g.clave);
     expect(fb).not.toContain("ipv");
     expect(fb).not.toContain("fotoConyuge");
+  });
+});
+
+describe("listado único para el desarmadero y chapas", () => {
+  const d = (id: string, nombre: string, categoria = "documento_compania") => ({ id, nombre, categoria });
+
+  it("reconoce las chapas por el nombre, en cualquier tipo de baja", () => {
+    const docs = [d("1", "Chapas"), d("2", "Foto chapa patente", "imagen_dominio"), d("3", "Chapita"), d("4", "Multas")];
+    for (const digital of [false, true]) {
+      const v = clasificarDocumentosVisibles(docs, { digital });
+      expect(v.chapas.map((x) => x.id)).toEqual(["1", "2"]);
+    }
+  });
+
+  it("junta todo en una sola lista, en orden de grupos y sin repetir", () => {
+    const docs = [
+      d("1", "Fotos", "imagen_dominio"),
+      d("2", "Chapas", "imagen_dominio"), // cae en Chapas y en Fotos: una sola vez
+      d("3", "Título"),
+      d("4", "IPV firmado"),
+      d("5", "Cédula"),
+      d("6", "Multas")
+    ];
+    const v = clasificarDocumentosVisibles(docs, { digital: true });
+    expect(listadoDocumentosDesarmadero(v).map((x) => x.nombre)).toEqual([
+      "Título",
+      "Cédula",
+      "IPV firmado",
+      "Chapas",
+      "Fotos"
+    ]);
   });
 });
 
