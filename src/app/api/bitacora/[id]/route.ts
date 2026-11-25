@@ -227,7 +227,12 @@ export async function PUT(
 
   // Si se desmarcó un evento que había hecho avanzar el estado, el estado baja
   // al que indica la bitácora.
-  if (existente?.completado && !data.completado) {
+  // También si se le cambió el tipo al evento: el estado que había empujado el
+  // tipo anterior (ej.: "Baja de Patentes" -> "Baja de Patentes Pendiente",
+  // que se da con solo cargar el evento) se queda pegado si el evento pasa a
+  // ser otra cosa (ej.: una observación).
+  const cambioTipo = !!existente && existente.tipo_evento !== data.tipo_evento;
+  if ((existente?.completado && !data.completado) || cambioTipo) {
     await bajarEstadoSiCorresponde(data.caso_id);
   }
 
@@ -241,6 +246,10 @@ export async function PUT(
   // quedaba con la fecha vieja y los tiempos de trámite no se corregían).
   if (data.tipo_evento === "Cierre de Caso" && data.completado && data.fecha_fin && "fecha_fin" in update) {
     await supabase.from("casos").update({ fecha_cierre: data.fecha_fin }).eq("id", data.caso_id).eq("estado", "cerrado");
+  }
+
+  if (cambioTipo) {
+    await registrarCambio(data.caso_id, `Cambió el tipo de evento de bitácora: ${existente?.tipo_evento} → ${data.tipo_evento}`);
   }
 
   const marcoCompletado = "completado" in update && update.completado && !existente?.completado;
