@@ -15,6 +15,7 @@ interface Resultado {
   fallidos: { destinatario: string; error: string }[];
   conInforme?: string[];
   conEnlace?: string[];
+  informePendiente?: boolean;
 }
 
 export default function SelectorNotificacion({
@@ -72,8 +73,18 @@ export default function SelectorNotificacion({
       </div>
       {TIPOS_CON_INFORME_DOMINIO.includes(tipo) && (
         <p className="text-xs text-slate-500">
-          Al Tramitador y al Productor se les adjunta el <b>Informe de dominio</b> cargado en Documentos, como
-          comprobante del estado de la unidad.
+          {tipo === "contacto_asegurado" ? (
+            <>
+              Si <b>Petición de Informes</b> ya está completado, al Tramitador y al Productor se les adjunta el{" "}
+              <b>Informe de dominio</b> cargado en Documentos (comprobante del estado de la unidad). Si no, se
+              manda solo este aviso y el informe queda pendiente.
+            </>
+          ) : (
+            <>
+              Al Tramitador y al Productor se les adjunta el <b>Informe de dominio</b> cargado en Documentos, como
+              comprobante del estado de la unidad.
+            </>
+          )}
         </p>
       )}
       <div className="flex flex-wrap gap-4">
@@ -118,6 +129,12 @@ export default function SelectorNotificacion({
                       : labelDestinatario(d)
                 )
                 .join(", ")}
+            </p>
+          )}
+          {resultado.informePendiente && (
+            <p className="text-amber-700">
+              Se envió solo el aviso de contacto: &quot;Petición de Informes&quot; todavía no está completado, así que
+              el informe de dominio queda pendiente (se enviará con el aviso de esa petición).
             </p>
           )}
           {resultado.fallidos.length > 0 && (

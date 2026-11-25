@@ -29,6 +29,13 @@ describe("informe de dominio adjunto para la compañía", () => {
     expect(llevaInformeDominio("traslado", "tramitador")).toBe(false);
     expect(llevaInformeDominio("cierre_caso", "productor")).toBe(false);
   });
+  it("el aviso de contacto lleva el informe si y solo si Petición de Informes está completado", () => {
+    expect(llevaInformeDominio("contacto_asegurado", "tramitador", true)).toBe(true);
+    expect(llevaInformeDominio("contacto_asegurado", "tramitador", false)).toBe(false);
+    expect(llevaInformeDominio("contacto_asegurado", "productor", false)).toBe(false);
+    // el aviso de Petición de Informes siempre lo lleva (se manda al completarla)
+    expect(llevaInformeDominio("peticion_informes", "tramitador", false)).toBe(true);
+  });
   it("el texto avisa del adjunto solo cuando se adjunta", () => {
     const con = asuntoYCuerpo("peticion_informes", caso, "tramitador", { conInformeAdjunto: true });
     expect(con.subject).toContain("Informes de dominio");

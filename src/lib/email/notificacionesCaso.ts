@@ -27,7 +27,16 @@ export const DESTINATARIOS: { value: Destinatario; label: string }[] = [
 export const TIPOS_CON_INFORME_DOMINIO: TipoNotificacion[] = ["contacto_asegurado", "peticion_informes"];
 export const DESTINATARIOS_CON_INFORME_DOMINIO: Destinatario[] = ["tramitador", "productor"];
 
-export function llevaInformeDominio(tipo: TipoNotificacion, destinatario: Destinatario): boolean {
+// El aviso de contacto con el asegurado lleva el informe si y solo si el evento
+// "Petición de Informes" ya está completado; si no, se manda solo el aviso y el
+// informe queda pendiente (va con el aviso de "Petición de Informes" cuando se
+// complete). El aviso de "Petición de Informes" siempre lo lleva.
+export function llevaInformeDominio(
+  tipo: TipoNotificacion,
+  destinatario: Destinatario,
+  peticionInformesCompleta = true
+): boolean {
+  if (tipo === "contacto_asegurado" && !peticionInformesCompleta) return false;
   return TIPOS_CON_INFORME_DOMINIO.includes(tipo) && DESTINATARIOS_CON_INFORME_DOMINIO.includes(destinatario);
 }
 

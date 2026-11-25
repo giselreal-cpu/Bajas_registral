@@ -85,7 +85,21 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   // La compañía (tramitador / productor) recibe el informe de dominio como
   // comprobante del estado de la unidad. Se descarga una sola vez, y solo si
   // alguno de los destinatarios pedidos lo lleva.
-  const pedidosConInforme = pedidosValidos.filter((d) => disponibles[d] && llevaInformeDominio(tipo, d));
+  // En el aviso de contacto, el informe va solo si "Petición de Informes" ya
+  // está completado; si no, se manda el aviso solo y el informe queda pendiente.
+  let peticionInformesCompleta = true;
+  if (tipo === "contacto_asegurado") {
+    const { data: peticion } = await supabase
+      .from("bitacora")
+      .select("id")
+      .eq("caso_id", params.id)
+      .eq("tipo_evento", "Petición de Informes")
+      .eq("completado", true)
+      .limit(1);
+    peticionInformesCompleta = (peticion ?? []).length > 0;
+  }
+  const lleva = (d: Destinatario) => llevaInformeDominio(tipo, d, peticionInformesCompleta);
+  const pedidosConInforme = pedidosValidos.filter((d) => disponibles[d] && lleva(d));
   const informe: ResultadoAdjuntos | null =
     pedidosConInforme.length > 0
       ? await obtenerAdjuntosInformeDominio(supabase as unknown as SupabaseClient, params.id)
@@ -97,11 +111,11 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       fallidos.push({ destinatario, error: "No tiene mail cargado." });
       continue;
     }
-    const lleva = llevaInformeDominio(tipo, destinatario);
+    const llevaInforme = lleva(destinatario);
     // Sin informe no se manda el aviso a la compañía: lo necesita como comprobante.
-    const adjuntos = lleva ? informe?.adjuntos ?? [] : [];
-    const enlaces = lleva ? informe?.enlaces ?? [] : [];
-    if (lleva && adjuntos.length === 0 && enlaces.length === 0) {
+    const adjuntos = llevaInforme ? informe?.adjuntos ?? [] : [];
+    const enlaces = llevaInforme ? informe?.enlaces ?? [] : [];
+    if (llevaInforme && adjuntos.length === 0 && enlaces.length === 0) {
       fallidos.push({ destinatario, error: informe?.error ?? "No se pudo adjuntar el informe de dominio." });
       continue;
     }
@@ -124,5 +138,8 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     }
   }
 
-  return NextResponse.json({ enviados, fallidos, conInforme, conEnlace });
+  // `informePendiente`: aviso de contacto enviado sin informe porque "Petición
+  // de Informes" todavía no está completado.
+  const informePendiente = tipo === "contacto_asegurado" && !peticionInformesCompleta;
+  return NextResponse.json({ enviados, fallidos, conInforme, conEnlace, informePendiente });
 }
